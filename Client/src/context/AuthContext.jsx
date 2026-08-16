@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiLogin, apiRegister, apiGetCurrentUser } from '../services/api';
 import { useToast } from './ToastContext';
 

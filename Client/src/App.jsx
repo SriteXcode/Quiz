@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 // Reusable Layout & Showcase Components
 import Navbar from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';

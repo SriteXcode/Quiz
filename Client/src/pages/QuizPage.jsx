@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useToast } from '../context/ToastContext';
 import { apiGetPreviousWorks, apiGetQuizzes } from '../services/api';

@@ -1,13 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { getQuizCountdownData } from '../utils/dateUtils';
 
 export const QuizCountdownBadge = ({ quiz, size = 'sm', className = '' }) => {
   const [countdown, setCountdown] = useState(() => getQuizCountdownData(quiz));
 
   useEffect(() => {
-    // Initial update
-    setCountdown(getQuizCountdownData(quiz));
-
     // Tick every second to update countdown live
     const interval = setInterval(() => {
       setCountdown(getQuizCountdownData(quiz));

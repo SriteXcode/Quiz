@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Flexible Skeleton loader component with smooth shimmer effect
  * Supports types: 'text', 'heading', 'card', 'circle', 'rect'

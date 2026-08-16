@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Skeleton from './Skeleton';
 import { apiGetPreviousWorks } from '../services/api';
 

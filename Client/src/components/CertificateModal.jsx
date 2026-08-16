@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useToast } from '../context/ToastContext';
 
 export const CertificateModal = ({
@@ -10,8 +10,6 @@ export const CertificateModal = ({
   const { addToast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
 
-  if (!isOpen) return null;
-
   // Strictly use authenticated/registered user name - no custom editing
   const recipientName = data.userName || user?.name || (user?.email ? user.email.split('@')[0] : 'Distinguished Scholar');
 
@@ -19,11 +17,25 @@ export const CertificateModal = ({
   const score = data.score !== undefined ? data.score : 100;
   const accuracy = data.accuracy !== undefined ? data.accuracy : 100;
   const earnedXP = data.earnedXP || 150;
-  const certificateId = data.certificateId || `CERT-QZ-${Date.now().toString(36).slice(-5).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
   
-  const issueDate = data.issuedAt
-    ? new Date(data.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-    : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const certificateId = useMemo(() => {
+    if (data.certificateId) return data.certificateId;
+    if (data._id || data.id) return `CERT-${data._id || data.id}`;
+    const cleanName = (data.userName || 'CANDIDATE').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    return `CERT-QZ-${cleanName || 'GOLD'}-OFFICIAL`;
+  }, [data.certificateId, data._id, data.id, data.userName]);
+  
+  const issueDate = useMemo(() => {
+    if (data.issuedAt) {
+      return new Date(data.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    if (data.createdAt) {
+      return new Date(data.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    return 'August 16, 2026';
+  }, [data.issuedAt, data.createdAt]);
+
+  if (!isOpen) return null;
 
   // Determine achievement grade
   const getGrade = () => {

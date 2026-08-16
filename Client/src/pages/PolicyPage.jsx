@@ -1,5 +1,3 @@
-import React from 'react';
-
 export const PolicyPage = ({ policyType = 'terms', onBack }) => {
   const policies = {
     terms: {

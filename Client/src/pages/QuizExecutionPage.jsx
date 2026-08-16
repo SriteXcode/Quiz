@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { apiSubmitQuizResult, apiGetQuizLeaderboard } from '../services/api';
@@ -127,6 +127,7 @@ You are building a high-frequency financial settlement engine. Given an array of
   const [testMode, setTestMode] = useState(isCodeChallenge ? 'code' : 'active');
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  const [hasMediaStream, setHasMediaStream] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [questionTimer, setQuestionTimer] = useState(() => getQuestionInitialTime(0));
@@ -147,12 +148,15 @@ You are building a high-frequency financial settlement engine. Given an array of
 
   // References to prevent race conditions during submission and timeouts
   const userAnswersRef = useRef(userAnswers);
-  userAnswersRef.current = userAnswers;
   const currentQuestionIndexRef = useRef(currentQuestionIndex);
-  currentQuestionIndexRef.current = currentQuestionIndex;
   const isCompletedRef = useRef(false);
   const totalTimerSecondsRef = useRef(totalTimerSeconds);
-  totalTimerSecondsRef.current = totalTimerSeconds;
+
+  useEffect(() => {
+    userAnswersRef.current = userAnswers;
+    currentQuestionIndexRef.current = currentQuestionIndex;
+    totalTimerSecondsRef.current = totalTimerSeconds;
+  }, [userAnswers, currentQuestionIndex, totalTimerSeconds]);
 
   // Code Challenge State
   const [userCode, setUserCode] = useState(defaultStarterCode);
@@ -198,82 +202,26 @@ You are building a high-frequency financial settlement engine. Given an array of
     };
   }, [isQuizCompleted, isCodeChallenge]);
 
-  // Camera & Mic Proctoring
-  const startCameraAndAudioProctoring = async () => {
-    setIsCalibrating(true);
+  // 1. Fetch Leaderboard
+  const fetchLeaderboard = useCallback(async () => {
+    setIsLoadingLeaderboard(true);
+    setLeaderboardPage(1);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      mediaStreamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        const audioCtx = new AudioCtx();
-        audioContextRef.current = audioCtx;
-        const analyser = audioCtx.createAnalyser();
-        const microphone = audioCtx.createMediaStreamSource(stream);
-        microphone.connect(analyser);
-
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        const checkAudio = () => {
-          analyser.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-          const dB = Math.min(100, Math.round(average * 2.5 + 15));
-          setAudioDecibels(dB);
-          if (dB > 75) {
-            addToast(`⚠️ Ambient Sound Alert: ${dB} dB detected! Please keep quiet.`, 'warning');
-          }
-        };
-
-        const audioInterval = setInterval(checkAudio, 2000);
-        return () => clearInterval(audioInterval);
-      } catch (err) {
-        console.warn('Audio metering fallback:', err);
+      const quizId = quiz?._id || quiz?.id;
+      if (quizId) {
+        const res = await apiGetQuizLeaderboard(quizId);
+        if (res.success && res.leaderboard) {
+          setLeaderboardList(res.leaderboard);
+        }
       }
-
-      setTimeout(() => {
-        setIsCalibrating(false);
-        setIsCalibrated(true);
-        addToast('Proctoring Active: Live Face Calibration & Noise Meter Initialized 🛡️', 'success');
-      }, 1800);
     } catch (err) {
-      setIsCalibrating(false);
-      addToast('Camera/Microphone access granted in sandbox mode.', 'info');
-      setIsCalibrated(true);
+      console.warn('Leaderboard fetch fallback', err);
+    } finally {
+      setIsLoadingLeaderboard(false);
     }
-  };
+  }, [quiz]);
 
-  // Tab Switching Detection
-  useEffect(() => {
-    if (isQuizCompleted) return;
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setTabViolations((prev) => {
-          const next = prev + 1;
-          addToast(`⚠️ VIOLATION DETECTED: You switched tabs (${next}/3 warnings)!`, 'error');
-          if (next >= 3) {
-            addToast('🚫 Disqualified due to repeated tab switching violations!', 'error');
-            finishQuiz();
-          }
-          return next;
-        });
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isQuizCompleted]);
-
-  // Clean up media
-  useEffect(() => {
-    return () => {
-      if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-      if (audioContextRef.current) audioContextRef.current.close();
-    };
-  }, []);
-
-  // Finish Quiz & Submit
+  // 2. Finish Quiz & Submit
   const finishQuiz = useCallback(async () => {
     if (isCompletedRef.current) return;
     isCompletedRef.current = true;
@@ -335,7 +283,9 @@ You are building a high-frequency financial settlement engine. Given an array of
                 date: new Date().toISOString()
               })
             );
-          } catch (e) {}
+          } catch (_e) {
+            // Ignore storage write errors
+          }
         }
         if (res.success) {
           setSubmissionResult(res.submission);
@@ -366,9 +316,9 @@ You are building a high-frequency financial settlement engine. Given an array of
     }
 
     fetchLeaderboard();
-  }, [questions, isCodeChallenge, quiz, isPractice, addToast, user]);
+  }, [questions, isCodeChallenge, quiz, isPractice, addToast, user, fetchLeaderboard]);
 
-  // Helper to handle timeout on active question without cascade race conditions
+  // 3. Helper to handle timeout on active question without cascade race conditions
   const handleQuestionTimeout = useCallback(() => {
     const currentIndex = currentQuestionIndexRef.current;
     if (currentIndex < questions.length - 1) {
@@ -381,7 +331,7 @@ You are building a high-frequency financial settlement engine. Given an array of
     }
   }, [questions.length, addToast, finishQuiz]);
 
-  // Manual Next Question navigation
+  // 4. Manual Next Question navigation
   const handleNextQuestion = useCallback(() => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -389,6 +339,83 @@ You are building a high-frequency financial settlement engine. Given an array of
       finishQuiz();
     }
   }, [currentQuestionIndex, questions.length, finishQuiz]);
+
+  // 5. Camera & Mic Proctoring
+  const startCameraAndAudioProctoring = async () => {
+    setIsCalibrating(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      mediaStreamRef.current = stream;
+      setHasMediaStream(true);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioCtx();
+        audioContextRef.current = audioCtx;
+        const analyser = audioCtx.createAnalyser();
+        const microphone = audioCtx.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const checkAudio = () => {
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          const dB = Math.min(100, Math.round(average * 2.5 + 15));
+          setAudioDecibels(dB);
+          if (dB > 75) {
+            addToast(`⚠️ Ambient Sound Alert: ${dB} dB detected! Please keep quiet.`, 'warning');
+          }
+        };
+
+        const audioInterval = setInterval(checkAudio, 2000);
+        return () => clearInterval(audioInterval);
+      } catch (err) {
+        console.warn('Audio metering fallback:', err);
+      }
+
+      setTimeout(() => {
+        setIsCalibrating(false);
+        setIsCalibrated(true);
+        addToast('Proctoring Active: Live Face Calibration & Noise Meter Initialized 🛡️', 'success');
+      }, 1800);
+    } catch (_err) {
+      setIsCalibrating(false);
+      addToast('Camera/Microphone access granted in sandbox mode.', 'info');
+      setIsCalibrated(true);
+      setHasMediaStream(true);
+    }
+  };
+
+  // 6. Tab Switching Detection
+  useEffect(() => {
+    if (isQuizCompleted) return;
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setTabViolations((prev) => {
+          const next = prev + 1;
+          addToast(`⚠️ VIOLATION DETECTED: You switched tabs (${next}/3 warnings)!`, 'error');
+          if (next >= 3) {
+            addToast('🚫 Disqualified due to repeated tab switching violations!', 'error');
+            finishQuiz();
+          }
+          return next;
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isQuizCompleted, addToast, finishQuiz]);
+
+  // Clean up media
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      if (audioContextRef.current) audioContextRef.current.close();
+    };
+  }, []);
 
   // Total Timer Countdown (for total_quiz mode)
   useEffect(() => {
@@ -413,7 +440,9 @@ You are building a high-frequency financial settlement engine. Given an array of
     if (!isPerQuestionTiming || isQuizCompleted || isCodeChallenge) return;
 
     const initialSeconds = getQuestionInitialTime(currentQuestionIndex);
-    setQuestionTimer(initialSeconds);
+    const initTimer = setTimeout(() => {
+      setQuestionTimer(initialSeconds);
+    }, 0);
 
     let hasHandledTimeout = false;
     const timerInterval = setInterval(() => {
@@ -431,29 +460,10 @@ You are building a high-frequency financial settlement engine. Given an array of
     }, 1000);
 
     return () => {
+      clearTimeout(initTimer);
       clearInterval(timerInterval);
     };
   }, [isPerQuestionTiming, currentQuestionIndex, isQuizCompleted, isCodeChallenge, getQuestionInitialTime, handleQuestionTimeout]);
-
-
-
-  const fetchLeaderboard = async () => {
-    setIsLoadingLeaderboard(true);
-    setLeaderboardPage(1);
-    try {
-      const quizId = quiz?._id || quiz?.id;
-      if (quizId) {
-        const res = await apiGetQuizLeaderboard(quizId);
-        if (res.success && res.leaderboard) {
-          setLeaderboardList(res.leaderboard);
-        }
-      }
-    } catch (err) {
-      console.warn('Leaderboard fetch fallback', err);
-    } finally {
-      setIsLoadingLeaderboard(false);
-    }
-  };
 
   const handleRunCodeTests = () => {
     setIsRunningTests(true);
@@ -1567,7 +1577,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                   muted
                   className="w-full h-full object-cover"
                 />
-                {!mediaStreamRef.current && (
+                {!hasMediaStream && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 bg-slate-900/80">
                     <span className="text-2xl mb-1">📹</span>
                     <span className="text-xs text-slate-300 font-poppins">Camera Sandbox Active</span>

@@ -249,7 +249,11 @@ export const getQuizAutoStatus = (quiz) => {
 };
 
 /**
- * Calculates live countdown details for a quiz.
+ * Calculates countdown data (days, hours, minutes, seconds, text, and styling)
+ * for a quiz challenge based on real-time current clock.
+ * 
+ * @param {Object} quiz 
+ * @returns {Object} countdownData
  */
 export const getQuizCountdownData = (quiz) => {
   const status = getQuizAutoStatus(quiz);
@@ -261,20 +265,7 @@ export const getQuizCountdownData = (quiz) => {
 
   const now = new Date();
 
-  let targetDate = null;
-  let label = 'Live Now';
-  let badgeColor = 'bg-rose-500 text-white';
-
-  if (status === 'upcoming') {
-    targetDate = startDateObj;
-    label = 'Starts in';
-    badgeColor = 'bg-amber-500 text-white';
-  } else if (status === 'running') {
-    targetDate = endDateObj;
-    label = 'Ends in';
-    badgeColor = 'bg-rose-500 text-white';
-  } else {
-    // Completed / Ended
+  if (status === 'past') {
     return {
       status: 'past',
       label: 'Quiz Ended',
@@ -289,6 +280,10 @@ export const getQuizCountdownData = (quiz) => {
       badgeColor: 'bg-slate-500 text-white'
     };
   }
+
+  const targetDate = status === 'upcoming' ? startDateObj : endDateObj;
+  const label = status === 'upcoming' ? 'Starts in' : 'Ends in';
+  const badgeColor = status === 'upcoming' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white';
 
   if (!targetDate) {
     return {
@@ -347,7 +342,7 @@ export const getQuizCountdownData = (quiz) => {
 
   const pad = (n) => String(n).padStart(2, '0');
 
-  let formattedText = '';
+  let formattedText;
   if (days > 0) {
     formattedText = `${days}d ${pad(hours)}h ${pad(minutes)}m`;
   } else if (hours > 0) {

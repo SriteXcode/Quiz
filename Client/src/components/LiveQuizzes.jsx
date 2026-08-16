@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Skeleton from './Skeleton';
 import { apiGetQuizzes } from '../services/api';
 import QuizCountdownBadge from './QuizCountdownBadge';

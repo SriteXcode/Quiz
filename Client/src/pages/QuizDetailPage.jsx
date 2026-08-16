@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -144,7 +144,9 @@ Rules & Guidelines:
     try {
       const stored = localStorage.getItem(`quiz_attempted_${quizId}`);
       if (stored) localAttempt = JSON.parse(stored);
-    } catch (e) {}
+    } catch (_e) {
+      // Ignore localStorage read errors
+    }
   }
 
   // 2. Check leaderboard records with multi-factor matching

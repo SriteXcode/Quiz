@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Skeleton from './Skeleton';
 import { useToast } from '../context/ToastContext';
 import { apiGetPublicPartners } from '../services/api';

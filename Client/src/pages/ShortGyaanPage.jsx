@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -155,12 +155,14 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
           );
 
           if (stats.attempted > 0 || stats.unattempted > 0) {
-            setSavedSessionStats({
-              answers: parsed,
-              stats,
-              accuracy: stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0
-            });
-            setShowSessionPromptModal(true);
+            setTimeout(() => {
+              setSavedSessionStats({
+                answers: parsed,
+                stats,
+                accuracy: stats.attempted > 0 ? Math.round((stats.correct / stats.attempted) * 100) : 0
+              });
+              setShowSessionPromptModal(true);
+            }, 0);
           }
         }
       }
@@ -608,6 +610,23 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   // -------------------------------------------------------------
   // 6. PAUSABLE / RESUMABLE COUNTDOWN TIMER PER ACTIVE QUESTION
   // -------------------------------------------------------------
+  // 6. QUESTION COUNTDOWN TIMER WITH PAUSE & RESUME
+  // -------------------------------------------------------------
+  const handleQuestionTimeout = useCallback((shortId) => {
+    setAnswersState((prev) => ({
+      ...prev,
+      [shortId]: {
+        isAnswered: true,
+        selectedIndex: null,
+        isCorrect: false,
+        isTimedOut: true
+      }
+    }));
+    playSoundEffect('step');
+    addToast('⏰ Time’s up! Marked as Not Attempted (Accuracy preserved).', 'info');
+    setExplanationBufferTimer(10);
+  }, [addToast]);
+
   // - When user scrolls away (to previous or next question) or switches browser tabs:
   //   Timer for that question immediately stops/pauses and preserves remaining seconds.
   // - When user returns / tab becomes visible, timer resumes where left off.
@@ -617,14 +636,16 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
 
     const sId = currentShortId;
     const initialTime = remainingTimes[sId] !== undefined ? remainingTimes[sId] : (activeShort.timerSeconds || 30);
-    setActiveQuestionTimer(initialTime);
-    setExplanationBufferTimer(null);
-    setIsBufferPaused(false);
+    
+    const initTimeout = setTimeout(() => {
+      setActiveQuestionTimer(initialTime);
+      setExplanationBufferTimer(null);
+      setIsBufferPaused(false);
 
-    if (initialTime <= 0) {
-      handleQuestionTimeout(sId);
-      return;
-    }
+      if (initialTime <= 0) {
+        handleQuestionTimeout(sId);
+      }
+    }, 0);
 
     const timer = setInterval(() => {
       setRemainingTimes((prevTimes) => {
@@ -641,23 +662,11 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [activeCardIndex, activeShort?._id, currentAnswerState.isAnswered, isTabActive]);
-
-  const handleQuestionTimeout = (shortId) => {
-    setAnswersState((prev) => ({
-      ...prev,
-      [shortId]: {
-        isAnswered: true,
-        selectedIndex: null,
-        isCorrect: false,
-        isTimedOut: true
-      }
-    }));
-    playSoundEffect('step');
-    addToast('⏰ Time’s up! Marked as Not Attempted (Accuracy preserved).', 'info');
-    setExplanationBufferTimer(10);
-  };
+    return () => {
+      clearTimeout(initTimeout);
+      clearInterval(timer);
+    };
+  }, [activeCardIndex, activeShort, currentAnswerState.isAnswered, currentShortId, handleQuestionTimeout, isTabActive, remainingTimes]);
 
   // -------------------------------------------------------------
   // 7. 10-SECOND EXPLANATION AUTO-STEP BUFFER
@@ -667,9 +676,11 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     if (explanationBufferTimer === null || isBufferPaused || !isTabActive) return;
 
     if (explanationBufferTimer <= 0) {
-      scrollToNextCard();
-      setExplanationBufferTimer(null);
-      return;
+      const stepTimer = setTimeout(() => {
+        scrollToNextCard();
+        setExplanationBufferTimer(null);
+      }, 0);
+      return () => clearTimeout(stepTimer);
     }
 
     const interval = setInterval(() => {

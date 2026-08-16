@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { apiGetSiteSettings, apiGetPublicPartners } from '../services/api';
 import { PartnerModal, PartnerSkeletonCard } from '../components/PartnersSection';
 

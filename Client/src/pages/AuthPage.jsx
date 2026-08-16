@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -40,7 +40,10 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
 
   // Sync mode with initialMode prop when modal opens
   useEffect(() => {
-    setMode(initialMode);
+    const timer = setTimeout(() => {
+      setMode(initialMode);
+    }, 0);
+    return () => clearTimeout(timer);
   }, [initialMode]);
 
   // Close on Escape key
