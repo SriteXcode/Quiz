@@ -30,12 +30,12 @@ jobs:
       - name: Install Backend Dependencies
         run: |
           cd backend
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Install Frontend Dependencies
         run: |
           cd Client
-          npm ci
+          npm ci --legacy-peer-deps
 
       - name: Lint Frontend Code
         run: |
