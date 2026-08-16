@@ -141,46 +141,46 @@ export const PartnerModal = ({ partner, onClose }) => {
   );
 };
 
+const DEFAULT_PARTNERS = [
+  {
+    _id: 'default-1',
+    name: 'LexisGlobal Law & Verification Council',
+    type: 'Official Legal & Verification Partner',
+    logoUrl: '⚖️',
+    websiteUrl: 'https://lexisglobal.org',
+    description: 'Verifies proctored exam compliance, cash prize escrow distribution, and student anti-fraud integrity.'
+  },
+  {
+    _id: 'default-2',
+    name: 'IEEE Educational Standards Group',
+    type: 'Academic Institution',
+    logoUrl: '🎓',
+    websiteUrl: 'https://ieee.org',
+    description: 'Official academic syllabus alignment and algorithm benchmark standardization partner.'
+  },
+  {
+    _id: 'default-3',
+    name: 'Global Cloud Certification Alliance',
+    type: 'Certification Authority',
+    logoUrl: '🛡️',
+    websiteUrl: 'https://cloudalliance.org',
+    description: 'Provides cryptographic public-key validation for all 4K verified candidate certificates.'
+  },
+  {
+    _id: 'default-4',
+    name: 'Silicon Valley Tech Sponsor Network',
+    type: 'Corporate Sponsor',
+    logoUrl: '💎',
+    websiteUrl: 'https://techsponsors.io',
+    description: 'Funds cash rewards, fast-track engineering job interviews, and scholar grants for leaderboard winners.'
+  }
+];
+
 export const PartnersSection = () => {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [partnersList, setPartnersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
-
-  const defaultPartners = [
-    {
-      _id: 'default-1',
-      name: 'LexisGlobal Law & Verification Council',
-      type: 'Official Legal & Verification Partner',
-      logoUrl: '⚖️',
-      websiteUrl: 'https://lexisglobal.org',
-      description: 'Verifies proctored exam compliance, cash prize escrow distribution, and student anti-fraud integrity.'
-    },
-    {
-      _id: 'default-2',
-      name: 'IEEE Educational Standards Group',
-      type: 'Academic Institution',
-      logoUrl: '🎓',
-      websiteUrl: 'https://ieee.org',
-      description: 'Official academic syllabus alignment and algorithm benchmark standardization partner.'
-    },
-    {
-      _id: 'default-3',
-      name: 'Global Cloud Certification Alliance',
-      type: 'Certification Authority',
-      logoUrl: '🛡️',
-      websiteUrl: 'https://cloudalliance.org',
-      description: 'Provides cryptographic public-key validation for all 4K verified candidate certificates.'
-    },
-    {
-      _id: 'default-4',
-      name: 'Silicon Valley Tech Sponsor Network',
-      type: 'Corporate Sponsor',
-      logoUrl: '💎',
-      websiteUrl: 'https://techsponsors.io',
-      description: 'Funds cash rewards, fast-track engineering job interviews, and scholar grants for leaderboard winners.'
-    }
-  ];
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -189,11 +189,11 @@ export const PartnersSection = () => {
         if (res.success && res.partners && res.partners.length > 0) {
           setPartnersList(res.partners);
         } else {
-          setPartnersList(defaultPartners);
+          setPartnersList(DEFAULT_PARTNERS);
         }
       } catch (err) {
         console.warn('[PartnersSection Load Warning]: Using fallback partner list', err.message);
-        setPartnersList(defaultPartners);
+        setPartnersList(DEFAULT_PARTNERS);
       } finally {
         setIsLoading(false);
       }
@@ -207,7 +207,7 @@ export const PartnersSection = () => {
     addToast(`Opened ${partner.name} accreditation details`, 'info');
   };
 
-  const rawList = partnersList.length > 0 ? partnersList : defaultPartners;
+  const rawList = partnersList.length > 0 ? partnersList : DEFAULT_PARTNERS;
 
   // Duplicate items twice to ensure a seamless infinite seamless loop on the X-axis marquee
   const seamlessMarqueeList = useMemo(() => {

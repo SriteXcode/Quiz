@@ -8,8 +8,7 @@ import {
   apiToggleLikeShort,
   apiToggleSaveShort,
   apiAdminUploadExcelShorts,
-  apiAdminCreateShort,
-  apiAdminDeleteShort
+  apiAdminCreateShort
 } from '../services/api';
 
 const CATEGORIES = [
@@ -278,7 +277,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
         osc.start();
         osc.stop(ctx.currentTime + 0.09);
       }
-    } catch (e) {
+    } catch {
       // Audio autoplay policy fallback
     }
   }, [soundEnabled]);
@@ -495,7 +494,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   const handleTouchMove = (e) => {
     const scrollableInner = e.target.closest('.card-scroll-content');
     if (scrollableInner) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollableInner;
+      const { scrollHeight, clientHeight } = scrollableInner;
       if (scrollHeight > clientHeight + 2) {
         // Inner card is scrollable, allow natural finger drag
         return;
@@ -518,22 +517,25 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     const scrollableInner = e.target.closest('.card-scroll-content');
     if (scrollableInner) {
       const { scrollTop, scrollHeight, clientHeight } = scrollableInner;
-      if (scrollHeight > clientHeight + 2) {
-        if (diff > 0 && scrollTop + clientHeight < scrollHeight - 8) {
-          touchStartY.current = null;
-          return;
-        }
-        if (diff < 0 && scrollTop > 8) {
-          touchStartY.current = null;
-          return;
-        }
+      const isScrollAtBottom = scrollTop + clientHeight >= scrollHeight - 2;
+      const isScrollAtTop = scrollTop <= 2;
+
+      // Swiping up (moving forward) but inner content has not reached bottom
+      if (diff > 0 && !isScrollAtBottom) {
+        touchStartY.current = null;
+        return;
+      }
+      // Swiping down (moving backward) but inner content is not at top
+      if (diff < 0 && !isScrollAtTop) {
+        touchStartY.current = null;
+        return;
       }
     }
 
-    if (Math.abs(diff) > 30) {
-      if (diff > 0) {
+    if (Math.abs(diff) > 45) {
+      if (diff > 45) {
         scrollToNextCard(); // Swipe Up -> Next Question
-      } else {
+      } else if (diff < -45) {
         scrollToPrevCard(); // Swipe Down -> Prev Question
       }
     }
@@ -625,7 +627,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     playSoundEffect('step');
     addToast('⏰ Time’s up! Marked as Not Attempted (Accuracy preserved).', 'info');
     setExplanationBufferTimer(10);
-  }, [addToast]);
+  }, [addToast, playSoundEffect]);
 
   // - When user scrolls away (to previous or next question) or switches browser tabs:
   //   Timer for that question immediately stops/pauses and preserves remaining seconds.
@@ -1124,6 +1126,15 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
               title={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
             >
               <span>{soundEnabled ? '🔊' : '🔇'}</span>
+            </button>
+
+            {/* Reset / Restart Session */}
+            <button
+              onClick={handleResetAndRefresh}
+              className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs cursor-pointer hover:border-[var(--color-primary-400)] transition-all shadow-sm text-[var(--text-main)]"
+              title="Reset session and start from first question"
+            >
+              <span>🔄</span>
             </button>
 
             {/* Languages Dropdown (Right to Search and Speaker) */}

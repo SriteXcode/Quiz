@@ -17,7 +17,6 @@ export const QuizCountdownBadge = ({ quiz, size = 'sm', className = '' }) => {
 
   const isUpcoming = countdown.status === 'upcoming';
   const isRunning = countdown.status === 'running';
-  const isPast = countdown.status === 'past';
 
   if (size === 'lg') {
     return (

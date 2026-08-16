@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
           if (response.success && response.user) {
             setUser(response.user);
           }
-        } catch (error) {
+        } catch {
           console.warn('[AuthInit Warning]: Session expired or invalid token');
           localStorage.removeItem('quiz_token');
           setToken(null);

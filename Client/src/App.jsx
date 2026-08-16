@@ -17,7 +17,6 @@ import ShortGyaanPage from './pages/ShortGyaanPage';
 import PolicyPage from './pages/PolicyPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
-import NotFoundPage from './pages/NotFoundPage';
 import { AuthPage } from './pages/AuthPage';
 
 // Admin Portal
@@ -53,9 +52,8 @@ export const App = () => {
     return localStorage.getItem('quiz_platform_active_policy') || null;
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const { isAuthenticated, user, isAdmin } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -190,7 +188,7 @@ export const App = () => {
         ) : selectedQuiz !== null ? (
           <QuizDetailPage
             quiz={selectedQuiz}
-            isLoading={isLoading}
+            isLoading={false}
             onStartQuiz={handleStartQuiz}
             onRequireLogin={() => setActiveTab('login')}
             onBack={() => {

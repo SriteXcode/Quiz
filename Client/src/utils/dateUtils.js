@@ -186,7 +186,7 @@ export const calculateDynamicQuizDuration = (startDate, startTime, startPeriod, 
 
   const hours = Math.floor(diffMinutes / 60);
   const mins = diffMinutes % 60;
-  let formatted = '';
+  let formatted;
   if (hours > 0 && mins > 0) {
     formatted = `${hours}h ${mins}m`;
   } else if (hours > 0) {

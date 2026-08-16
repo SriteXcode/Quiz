@@ -89,7 +89,7 @@ export const QuizExecutionPage = ({ quiz, onFinish, onBack, isPractice = false }
 
   const rawQuestions = quiz?.questions && quiz.questions.length > 0 ? quiz.questions : defaultRawQuestions;
 
-  const [questions, setQuestions] = useState(() => {
+  const [questions] = useState(() => {
     return rawQuestions.map((q) => shuffleQuestionOptions(q));
   });
 
@@ -124,7 +124,6 @@ You are building a high-frequency financial settlement engine. Given an array of
   }, [timerType, questions, quiz]);
 
   // Execution State
-  const [testMode, setTestMode] = useState(isCodeChallenge ? 'code' : 'active');
   const [isCalibrated, setIsCalibrated] = useState(false);
   const [isCalibrating, setIsCalibrating] = useState(false);
   const [hasMediaStream, setHasMediaStream] = useState(false);
@@ -200,7 +199,7 @@ You are building a high-frequency financial settlement engine. Given an array of
       document.removeEventListener('paste', handlePaste);
       document.removeEventListener('contextmenu', handleContextMenu);
     };
-  }, [isQuizCompleted, isCodeChallenge]);
+  }, [isQuizCompleted, isCodeChallenge, addToast]);
 
   // 1. Fetch Leaderboard
   const fetchLeaderboard = useCallback(async () => {
@@ -283,7 +282,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                 date: new Date().toISOString()
               })
             );
-          } catch (_e) {
+          } catch {
             // Ignore storage write errors
           }
         }
@@ -379,7 +378,7 @@ You are building a high-frequency financial settlement engine. Given an array of
         setIsCalibrated(true);
         addToast('Proctoring Active: Live Face Calibration & Noise Meter Initialized 🛡️', 'success');
       }, 1800);
-    } catch (_err) {
+    } catch {
       setIsCalibrating(false);
       addToast('Camera/Microphone access granted in sandbox mode.', 'info');
       setIsCalibrated(true);
@@ -1926,7 +1925,7 @@ You are building a high-frequency financial settlement engine. Given an array of
             </button>
           ) : (
             <button
-              onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}
+              onClick={handleNextQuestion}
               className="px-6 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold cursor-pointer shadow-md"
             >
               Next Question →

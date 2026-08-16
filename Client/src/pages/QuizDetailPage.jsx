@@ -144,7 +144,7 @@ Rules & Guidelines:
     try {
       const stored = localStorage.getItem(`quiz_attempted_${quizId}`);
       if (stored) localAttempt = JSON.parse(stored);
-    } catch (_e) {
+    } catch {
       // Ignore localStorage read errors
     }
   }

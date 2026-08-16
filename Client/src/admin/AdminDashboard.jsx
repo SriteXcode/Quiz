@@ -27,13 +27,11 @@ import {
 } from '../services/api';
 import {
   downloadQuizQuestionsTemplate,
-  parseQuizQuestionsExcel,
-  downloadShortsGyaanTemplate
+  parseQuizQuestionsExcel
 } from '../utils/excelTemplateUtils';
 import {
   getQuizAutoStatus,
   getQuizCountdownData,
-  getCurrentDateString,
   getCurrentDateDDMonYYYY,
   formatDateToDDMonYYYY,
   getCurrentTimeObject,
@@ -339,7 +337,7 @@ const initialMockMessages = [
 ];
 
 export const AdminDashboard = () => {
-  const { user, isAdmin, login } = useAuth();
+  const { isAdmin, login } = useAuth();
   const { addToast } = useToast();
 
   const [demoAccessGranted, setDemoAccessGranted] = useState(false);
@@ -444,8 +442,6 @@ export const AdminDashboard = () => {
     order: 1
   });
 
-  const [isLoadingData, setIsLoadingData] = useState(false);
-
   // Quick One-Click Admin Login
   const handleQuickAdminLogin = async () => {
     setIsLoggingInAdmin(true);
@@ -456,7 +452,7 @@ export const AdminDashboard = () => {
       } else {
         setDemoAccessGranted(true);
       }
-    } catch (err) {
+    } catch {
       setDemoAccessGranted(true);
     } finally {
       setIsLoggingInAdmin(false);
@@ -468,7 +464,7 @@ export const AdminDashboard = () => {
     if (!isAdmin && !demoAccessGranted) return;
 
     const fetchAllAdminData = async () => {
-      setIsLoadingData(true);
+      setIsLoadingMessages(true);
       try {
         const [statsRes, usersRes, quizzesRes, worksRes, siteRes, partnersRes, msgsRes] =
           await Promise.allSettled([
@@ -508,10 +504,10 @@ export const AdminDashboard = () => {
           if (msgsRes.value.messages?.length) setMessagesList(msgsRes.value.messages);
           if (msgsRes.value.stats) setMessageStats(msgsRes.value.stats);
         }
-      } catch (err) {
-        console.warn('[Admin Parallel Load]: Fallback active', err.message);
+      } catch {
+        console.warn('[Admin Parallel Load]: Fallback active');
       } finally {
-        setIsLoadingData(false);
+        setIsLoadingMessages(false);
       }
     };
 
@@ -534,7 +530,7 @@ export const AdminDashboard = () => {
         }
         addToast(res.message || `Message marked as ${res.isRead ? 'Read' : 'Unread'}`, 'success');
       }
-    } catch (err) {
+    } catch {
       // Local fallback toggle
       setMessagesList((prev) =>
         prev.map((msg) => (msg._id === id || msg.id === id ? { ...msg, isRead: !currentIsRead } : msg))
@@ -555,7 +551,7 @@ export const AdminDashboard = () => {
         }
         addToast(`Priority updated to ${newPriority.toUpperCase()}`, 'success');
       }
-    } catch (err) {
+    } catch {
       setMessagesList((prev) =>
         prev.map((msg) => (msg._id === id || msg.id === id ? { ...msg, priority: newPriority } : msg))
       );
@@ -580,7 +576,7 @@ export const AdminDashboard = () => {
         }
         addToast(`Inquiry from "${senderName}" deleted.`, 'success');
       }
-    } catch (err) {
+    } catch {
       setMessagesList((prev) => prev.filter((msg) => (msg._id !== id && msg.id !== id)));
       if (selectedMessageModal && (selectedMessageModal._id === id || selectedMessageModal.id === id)) {
         setSelectedMessageModal(null);
@@ -1060,7 +1056,7 @@ You are building a high-frequency financial settlement engine. Given an array of
       await apiDeleteQuiz(quizId);
       setQuizzesList((prev) => prev.filter((q) => (q._id || q.id) !== quizId));
       addToast(`Deleted quiz "${title}"`, 'info');
-    } catch (err) {
+    } catch {
       setQuizzesList((prev) => prev.filter((q) => (q._id || q.id) !== quizId));
       addToast(`Deleted quiz "${title}"`, 'info');
     }
@@ -1155,7 +1151,7 @@ You are building a high-frequency financial settlement engine. Given an array of
       await apiDeletePreviousWork(workId);
       setPreviousWorksList((prev) => prev.filter((w) => (w._id || w.id) !== workId));
       addToast(`Deleted previous work "${title}"`, 'info');
-    } catch (err) {
+    } catch {
       setPreviousWorksList((prev) => prev.filter((w) => (w._id || w.id) !== workId));
       addToast(`Removed previous work "${title}"`, 'info');
     }
@@ -2097,6 +2093,24 @@ You are building a high-frequency financial settlement engine. Given an array of
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                placeholder="Search works..."
+                value={workSearchQuery}
+                onChange={(e) => setWorkSearchQuery(e.target.value)}
+                className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+              />
+              <select
+                value={workCategoryFilter}
+                onChange={(e) => setWorkCategoryFilter(e.target.value)}
+                className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none font-bold"
+              >
+                <option value="all">All Categories</option>
+                <option value="Web Dev">Web Dev</option>
+                <option value="DSA">DSA</option>
+                <option value="Full Stack">Full Stack</option>
+                <option value="System Design">System Design</option>
+              </select>
               <button
                 onClick={handleOpenCreateWorkModal}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
