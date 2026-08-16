@@ -1,0 +1,328 @@
+@import "tailwindcss";
+
+:root {
+  /* ==========================================================================
+     COLOR PALETTES (Extracted from color.png)
+     ========================================================================== */
+
+  /* Primary Color Palette (Blue) */
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #0f172a;
+
+  /* Secondary Color Palette (Green) */
+  --color-secondary-50: #ecfdf5;
+  --color-secondary-100: #d1fae5;
+  --color-secondary-200: #a7f3d0;
+  --color-secondary-300: #6ee7b7;
+  --color-secondary-400: #34d399;
+  --color-secondary-500: #10b981;
+  --color-secondary-600: #059669;
+  --color-secondary-700: #047857;
+  --color-secondary-800: #065f46;
+  --color-secondary-900: #064e3b;
+
+  /* Tertiary Color Palette (Gray) */
+  --color-tertiary-50: #f9fafb;
+  --color-tertiary-100: #f3f4f6;
+  --color-tertiary-200: #e5e7eb;
+  --color-tertiary-300: #d1d5db;
+  --color-tertiary-400: #9ca3af;
+  --color-tertiary-500: #6b7280;
+  --color-tertiary-600: #4b5563;
+  --color-tertiary-700: #374151;
+  --color-tertiary-800: #1f2937;
+  --color-tertiary-900: #111827;
+
+  /* ==========================================================================
+     THEME VARIABLES (LIGHT MODE DEFAULT)
+     ========================================================================== */
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-nav: rgba(255, 255, 255, 0.85);
+  --text-main: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-theme: #e2e8f0;
+  --skeleton-bg: #e2e8f0;
+  --skeleton-shimmer: #f1f5f9;
+
+  --accent-green-card: #86efac;
+  --accent-yellow-banner: #fef08a;
+  --accent-yellow-footer: #fef08a;
+
+  /* Typography */
+  --font-poppins: 'Poppins', sans-serif;
+  --font-lato: 'Lato', sans-serif;
+}
+
+/* ==========================================================================
+   THEME VARIABLES (DARK MODE)
+   ========================================================================== */
+[data-theme="dark"], .dark {
+  --bg-main: #0b0f19;
+  --bg-card: #131b2e;
+  --bg-nav: rgba(15, 23, 42, 0.85);
+  --text-main: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-theme: #1e293b;
+  --skeleton-bg: #1e293b;
+  --skeleton-shimmer: #334155;
+
+  --accent-green-card: #166534;
+  --accent-yellow-banner: #854d0e;
+  --accent-yellow-footer: #070a12;
+}
+
+/* ==========================================================================
+   TAILWIND CSS v4 THEME CONFIGURATION
+   ========================================================================== */
+@theme {
+  --font-poppins: 'Poppins', sans-serif;
+  --font-lato: 'Lato', sans-serif;
+
+  /* Primary Palette */
+  --color-primary-50: var(--color-primary-50);
+  --color-primary-100: var(--color-primary-100);
+  --color-primary-200: var(--color-primary-200);
+  --color-primary-300: var(--color-primary-300);
+  --color-primary-400: var(--color-primary-400);
+  --color-primary-500: var(--color-primary-500);
+  --color-primary-600: var(--color-primary-600);
+  --color-primary-700: var(--color-primary-700);
+  --color-primary-800: var(--color-primary-800);
+  --color-primary-900: var(--color-primary-900);
+
+  /* Secondary Palette */
+  --color-secondary-50: var(--color-secondary-50);
+  --color-secondary-100: var(--color-secondary-100);
+  --color-secondary-200: var(--color-secondary-200);
+  --color-secondary-300: var(--color-secondary-300);
+  --color-secondary-400: var(--color-secondary-400);
+  --color-secondary-500: var(--color-secondary-500);
+  --color-secondary-600: var(--color-secondary-600);
+  --color-secondary-700: var(--color-secondary-700);
+  --color-secondary-800: var(--color-secondary-800);
+  --color-secondary-900: var(--color-secondary-900);
+
+  /* Tertiary Palette */
+  --color-tertiary-50: var(--color-tertiary-50);
+  --color-tertiary-100: var(--color-tertiary-100);
+  --color-tertiary-200: var(--color-tertiary-200);
+  --color-tertiary-300: var(--color-tertiary-300);
+  --color-tertiary-400: var(--color-tertiary-400);
+  --color-tertiary-500: var(--color-tertiary-500);
+  --color-tertiary-600: var(--color-tertiary-600);
+  --color-tertiary-700: var(--color-tertiary-700);
+  --color-tertiary-800: var(--color-tertiary-800);
+  --color-tertiary-900: var(--color-tertiary-900);
+}
+
+/* ==========================================================================
+   GLOBAL TYPOGRAPHY DEFAULTS
+   ========================================================================== */
+body {
+  font-family: var(--font-lato);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-poppins);
+}
+
+/* ==========================================================================
+   DIYA FLAME FLICKER ANIMATION
+   ========================================================================== */
+@keyframes flameFlicker {
+  0%, 100% {
+    transform: scale(1) rotate(-1.5deg);
+    filter: drop-shadow(0 0 4px #f59e0b) drop-shadow(0 0 10px #ef4444);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.12, 0.92) rotate(2.5deg);
+    filter: drop-shadow(0 0 6px #fbbf24) drop-shadow(0 0 12px #f97316);
+    opacity: 0.94;
+  }
+  50% {
+    transform: scale(0.92, 1.1) rotate(-2.5deg);
+    filter: drop-shadow(0 0 5px #f59e0b) drop-shadow(0 0 14px #ef4444);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.06, 0.98) rotate(1.5deg);
+    filter: drop-shadow(0 0 7px #fbbf24) drop-shadow(0 0 10px #f97316);
+    opacity: 0.96;
+  }
+}
+
+.animate-flame {
+  display: inline-block;
+  animation: flameFlicker 1.2s ease-in-out infinite alternate;
+  transform-origin: bottom center;
+}
+
+/* ==========================================================================
+   SKELETON SHIMMER ANIMATION
+   ========================================================================== */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--skeleton-bg);
+}
+
+.skeleton-shimmer::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.5) 60%,
+    rgba(255, 255, 255, 0)
+  );
+  animation: shimmer 1.8s infinite;
+  content: '';
+}
+
+[data-theme="dark"] .skeleton-shimmer::after {
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.05) 20%,
+    rgba(255, 255, 255, 0.15) 60%,
+    rgba(255, 255, 255, 0)
+  );
+}
+
+/* ==========================================================================
+   HIDE SCROLLBAR UTILITY
+   ========================================================================== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ==========================================================================
+   CUSTOM SLIM SCROLLBAR UTILITY
+   ========================================================================== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--border-theme);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-primary-400);
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-theme) transparent;
+}
+
+/* ==========================================================================
+   NO-SCROLLBAR UTILITIES (Cross-Browser)
+   ========================================================================== */
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* ==========================================================================
+   INFINITE MARQUEE X-AXIS ANIMATION UTILITIES
+   ========================================================================== */
+@keyframes marquee-x {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-x {
+  display: flex;
+  width: max-content;
+  animation: marquee-x 96s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-x:hover {
+  animation-play-state: paused;
+}
+
+/* ==========================================================================
+   CERTIFICATE TYPOGRAPHY & PRINT UTILITIES
+   ========================================================================== */
+.font-cinzel {
+  font-family: 'Cinzel', Georgia, serif;
+}
+
+.font-playfair {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.font-signature {
+  font-family: 'Alex Brush', cursive;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-certificate,
+  #printable-certificate * {
+    visibility: visible;
+  }
+  #printable-certificate {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: transparent !important;
+  }
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+}

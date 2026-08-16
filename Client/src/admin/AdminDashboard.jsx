@@ -1,0 +1,4334 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import {
+  apiGetAdminStats,
+  apiGetAdminUsers,
+  apiUpdateUserRole,
+  apiDeleteUser,
+  apiGetAdminQuizzes,
+  apiCreateQuiz,
+  apiUpdateQuiz,
+  apiDeleteQuiz,
+  apiGetAdminPreviousWorks,
+  apiCreatePreviousWork,
+  apiUpdatePreviousWork,
+  apiDeletePreviousWork,
+  apiGetSiteSettings,
+  apiUpdateSiteSettings,
+  apiGetAdminPartners,
+  apiCreatePartner,
+  apiUpdatePartner,
+  apiDeletePartner,
+  apiGetAdminMessages,
+  apiToggleMessageRead,
+  apiUpdateMessagePriority,
+  apiDeleteMessage
+} from '../services/api';
+import {
+  downloadQuizQuestionsTemplate,
+  parseQuizQuestionsExcel,
+  downloadShortsGyaanTemplate
+} from '../utils/excelTemplateUtils';
+import {
+  getQuizAutoStatus,
+  getQuizCountdownData,
+  getCurrentDateString,
+  getCurrentDateDDMonYYYY,
+  formatDateToDDMonYYYY,
+  getCurrentTimeObject,
+  calculateDynamicQuizDuration,
+  STANDARD_TIME_OPTIONS
+} from '../utils/dateUtils';
+import QuizCountdownBadge from '../components/QuizCountdownBadge';
+
+// Initial Fallback Mock Datasets so All Tabs Always Render Rich Interactive Data
+const initialMockUsers = [
+  {
+    _id: 'user-001',
+    name: 'Super Admin',
+    email: 'admin@quizplatform.com',
+    role: 'admin',
+    school: 'Platform Governance Hub',
+    studentClass: 'Administrator',
+    phone: '+91 9876543210',
+    createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'user-002',
+    name: 'Sarah Jenkins',
+    email: 'sarah.j@mit.edu',
+    role: 'student',
+    school: 'MIT Computer Science',
+    studentClass: 'Year 4 - AI & Algo',
+    phone: '+1 617-253-1000',
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'user-003',
+    name: 'Alex Rivers',
+    email: 'alex.rivers@gmail.com',
+    role: 'student',
+    school: 'Stanford Engineering',
+    studentClass: 'Senior Frontend Lab',
+    phone: '+1 650-723-2300',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'user-004',
+    name: 'Priya Sharma',
+    email: 'priya.sharma@edutech.org',
+    role: 'student',
+    school: 'IIT Delhi',
+    studentClass: 'B.Tech CS - Sem 6',
+    phone: '+91 9811223344',
+    createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'user-005',
+    name: 'Devon Vance',
+    email: 'devon.vance@techcorp.io',
+    role: 'student',
+    school: 'UC Berkeley',
+    studentClass: 'Data Structures Group',
+    phone: '+1 510-642-6000',
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'user-006',
+    name: 'Marcus Brody',
+    email: 'm.brody@cloudsolutions.net',
+    role: 'student',
+    school: 'Georgia Tech',
+    studentClass: 'Cloud Architecture Cohort',
+    phone: '+1 404-894-2000',
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];
+
+const initialMockQuizzes = [
+  {
+    _id: 'quiz-001',
+    title: 'JavaScript ES6+ & Async Architecture Challenge',
+    quizType: 'multiple_choice',
+    mcqSubtype: 'quick',
+    timerType: 'per_question_general',
+    generalQuestionTimerSeconds: 15,
+    category: 'Web Dev',
+    status: 'running',
+    durationMinutes: 15,
+    quickTimerSeconds: 15,
+    techStack: ['JavaScript', 'ES6+', 'Promises', 'Async/Await'],
+    description: 'Fast-paced 15-second rapid blitz testing modern ECMAScript features and asynchronous architecture.',
+    rewards: [
+      { place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Gold Trophy' },
+      { place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash + Silver Medal' }
+    ],
+    questions: [
+      { questionText: 'What is the primary difference between const and let?', options: ['const is block-scoped immutable binding', 'const is global', 'no difference', 'let cannot reassign'], correctAnswerIndex: 0 }
+    ]
+  },
+  {
+    _id: 'quiz-002',
+    title: 'React 19 Server Components & Concurrent Mode',
+    quizType: 'multiple_choice',
+    mcqSubtype: 'standard',
+    timerType: 'overall',
+    durationMinutes: 30,
+    category: 'Frontend',
+    status: 'upcoming',
+    techStack: ['React 19', 'Next.js', 'SSR', 'RSC'],
+    description: 'Deep dive into React 19 Actions, optimistic state mutations, and Server Actions.',
+    rewards: [
+      { place: '1st', badge: '🥇 Winner', prize: '$400 Cash + Trophy' }
+    ],
+    questions: [
+      { questionText: 'How do React Server Components communicate with Client Components?', options: ['Via serialized JSON over the wire', 'Direct DOM sharing', 'Window globals', 'WebSockets only'], correctAnswerIndex: 0 }
+    ]
+  },
+  {
+    _id: 'quiz-003',
+    title: 'Fullstack Microservices & Distributed Caching Challenge',
+    quizType: 'code',
+    category: 'Backend',
+    status: 'running',
+    durationMinutes: 45,
+    techStack: ['Node.js', 'Redis', 'Kafka', 'Docker'],
+    description: 'Practical coding simulation implementing LRU caching, rate limiters, and idempotency keys.',
+    codingChallenge: {
+      problemStatement: 'Implement a thread-safe distributed cache invalidation webhook handler in Node.js.',
+      starterCode: 'function handleInvalidation(key, ttl) {\n  // Write implementation here\n}',
+      language: 'javascript'
+    }
+  },
+  {
+    _id: 'quiz-004',
+    title: 'CS Data Structures & Graph Algorithms Speedrun',
+    quizType: 'multiple_choice',
+    mcqSubtype: 'quick',
+    category: 'CS Algo',
+    status: 'upcoming',
+    durationMinutes: 20,
+    techStack: ['Algorithms', 'Graphs', 'Dynamic Programming'],
+    description: 'Timed speedrun testing graph traversals, Dijkstra, topological sort, and Big-O efficiency.'
+  }
+];
+
+const initialMockPreviousWorks = [
+  {
+    _id: 'work-001',
+    title: 'Fullstack Web Architecture Challenge 2025',
+    description: 'A 50-question competition testing HTML, CSS, React, and Express fundamentals.',
+    category: 'Web Dev',
+    participantsCount: '4,820 Participants',
+    avgScore: '84% Avg Score',
+    topWinner: 'Sarah J. (100%)',
+    badge: 'Completed',
+    gradient: 'from-blue-500 to-indigo-600',
+    techStack: ['HTML5', 'CSS3', 'React', 'Express'],
+    completedDate: 'Dec 2025',
+    totalQuestions: 50
+  },
+  {
+    _id: 'work-002',
+    title: 'Python Data Science Speedrun',
+    description: 'Timed algorithm challenge focusing on NumPy, Pandas, and Machine Learning.',
+    category: 'Data & AI',
+    participantsCount: '3,150 Participants',
+    avgScore: '79% Avg Score',
+    topWinner: 'Alex C. (98%)',
+    badge: 'Completed',
+    gradient: 'from-emerald-500 to-teal-600',
+    techStack: ['Python', 'Pandas', 'NumPy', 'Scikit-Learn'],
+    completedDate: 'Nov 2025',
+    totalQuestions: 40
+  },
+  {
+    _id: 'work-003',
+    title: 'Cybersecurity & CTF Code Championship',
+    description: 'Practical security quiz covering network vulnerabilities, JWT validation, and cryptography.',
+    category: 'CS Algo',
+    participantsCount: '2,940 Participants',
+    avgScore: '72% Avg Score',
+    topWinner: 'Devon V. (96%)',
+    badge: 'Completed',
+    gradient: 'from-violet-500 to-purple-600',
+    techStack: ['Security', 'Cryptography', 'Networks'],
+    completedDate: 'Oct 2025',
+    totalQuestions: 35
+  },
+  {
+    _id: 'work-004',
+    title: 'UI/UX Design Master Quiz',
+    description: 'Design system fundamentals, typography scales, contrast ratios, and WCAG accessibility standards.',
+    category: 'UI / UX',
+    participantsCount: '1,890 Participants',
+    avgScore: '88% Avg Score',
+    topWinner: 'Maya K. (99%)',
+    badge: 'Completed',
+    gradient: 'from-amber-500 to-orange-600',
+    techStack: ['Figma', 'Accessibility', 'Design Systems'],
+    completedDate: 'Sep 2025',
+    totalQuestions: 45
+  }
+];
+
+const initialMockPartners = [
+  {
+    _id: 'partner-001',
+    name: 'LexisGlobal Law & Verification Council',
+    type: 'Official Legal & Verification Partner',
+    logoUrl: '⚖️',
+    websiteUrl: 'https://lexisglobal.org',
+    description: 'Verifies proctored exam compliance, cash prize escrow distribution, and student anti-fraud integrity.',
+    status: 'active',
+    order: 1
+  },
+  {
+    _id: 'partner-002',
+    name: 'IEEE Educational Standards Group',
+    type: 'Academic Institution',
+    logoUrl: '🎓',
+    websiteUrl: 'https://ieee.org',
+    description: 'Official academic syllabus alignment and algorithm benchmark standardization partner.',
+    status: 'active',
+    order: 2
+  },
+  {
+    _id: 'partner-003',
+    name: 'Global Cloud Certification Alliance',
+    type: 'Certification Authority',
+    logoUrl: '🛡️',
+    websiteUrl: 'https://cloudalliance.org',
+    description: 'Provides cryptographic public-key validation for all 4K verified candidate certificates.',
+    status: 'active',
+    order: 3
+  },
+  {
+    _id: 'partner-004',
+    name: 'Silicon Valley Tech Sponsor Network',
+    type: 'Corporate Sponsor',
+    logoUrl: '💎',
+    websiteUrl: 'https://techsponsors.io',
+    description: 'Funds cash rewards, fast-track engineering job interviews, and scholar grants for leaderboard winners.',
+    status: 'active',
+    order: 4
+  }
+];
+
+const initialMockMessages = [
+  {
+    _id: 'msg-001',
+    name: 'Devon Vance',
+    email: 'devon.vance@techcorp.io',
+    category: 'Partnership',
+    subject: 'Institutional Hackathon Sponsorship & Quiz Hosting',
+    message: 'Hello Admin Team, We would like to sponsor the upcoming Algorithm Speedrun championship and provide $2,500 in cloud credits for all top 10 finishers. Please let us know the onboarding process.',
+    priority: 'urgent',
+    isRead: false,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'msg-002',
+    name: 'Sarah Jenkins',
+    email: 'sarah.j@mit.edu',
+    category: 'Support',
+    subject: 'Certificate Verification QR Code query for React 19 Exam',
+    message: 'Hi, I passed the React 19 architecture test yesterday with 94% accuracy. My certificate PDF downloaded with a verification ID, but I wanted to know if this integrates with LinkedIn certifications directly?',
+    priority: 'high',
+    isRead: false,
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'msg-003',
+    name: 'Alex Rivera',
+    email: 'arivera.dev@gmail.com',
+    category: 'Bug Report',
+    subject: 'Code Editor dark mode syntax theme contrast in Firefox',
+    message: 'On Firefox v128, the code editor syntax highlight tokens for TypeScript interfaces have a slightly low contrast when in dark mode. Everything else is ultra fast!',
+    priority: 'medium',
+    isRead: true,
+    readAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'msg-004',
+    name: 'Priya Sharma',
+    email: 'priya.sharma@edutech.org',
+    category: 'Prize Inquiry',
+    subject: 'Prize Escrow Settlement for JavaScript Speedrun Challenge',
+    message: 'Greetings! I secured 2nd place in the JavaScript ES6+ challenge on August 14th. Could you guide me on the UPI/PayPal payout verification form?',
+    priority: 'urgent',
+    isRead: false,
+    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    _id: 'msg-005',
+    name: 'Marcus Brody',
+    email: 'm.brody@cloudsolutions.net',
+    category: 'General',
+    subject: 'Inquiry on Enterprise Team Assessment Tiers',
+    message: 'We are looking to test 85 engineers across our backend engineering divisions. Do you support custom private quiz cohorts with private leaderboards?',
+    priority: 'medium',
+    isRead: true,
+    readAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];
+
+export const AdminDashboard = () => {
+  const { user, isAdmin, login } = useAuth();
+  const { addToast } = useToast();
+
+  const [demoAccessGranted, setDemoAccessGranted] = useState(false);
+  const [isLoggingInAdmin, setIsLoggingInAdmin] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('overview');
+  const [stats, setStats] = useState({
+    totalUsers: 24,
+    totalStudents: 22,
+    totalAdmins: 2,
+    totalQuizzes: 8,
+    activeLiveQuizzes: 3,
+    totalPreviousWorks: 4,
+    totalRewardsDistributed: 125,
+    totalXPPointsAwarded: '48,500'
+  });
+
+  const [usersList, setUsersList] = useState(initialMockUsers);
+  const [quizzesList, setQuizzesList] = useState(initialMockQuizzes);
+  const [previousWorksList, setPreviousWorksList] = useState(initialMockPreviousWorks);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [workCategoryFilter, setWorkCategoryFilter] = useState('all');
+  const [workSearchQuery, setWorkSearchQuery] = useState('');
+  const [quizFilterType, setQuizFilterType] = useState('all');
+  const [quizStatusFilter, setQuizStatusFilter] = useState('all'); // 'all' | 'active' | 'live' | 'upcoming' | 'past'
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Contact Messages & Inquiries State
+  const [messagesList, setMessagesList] = useState(initialMockMessages);
+  const [messageStats, setMessageStats] = useState({ totalAll: 5, unreadCount: 3, urgentCount: 3, lastWeekCount: 3 });
+  const [msgDateFilter, setMsgDateFilter] = useState('last_week'); // 'last_week' (default) | 'last_month' | 'all'
+  const [msgReadFilter, setMsgReadFilter] = useState('all'); // 'all' | 'unread' | 'read'
+  const [msgPriorityFilter, setMsgPriorityFilter] = useState('all'); // 'all' | 'urgent' | 'high' | 'medium' | 'low'
+  const [msgSearchQuery, setMsgSearchQuery] = useState('');
+  const [selectedMessageModal, setSelectedMessageModal] = useState(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+  // Site Settings (About Us & Contact Information) State
+  const [siteSettings, setSiteSettings] = useState({
+    about: {
+      heroBadge: 'About Brand Platform',
+      heroTitle: 'Empowering the Next Generation of Tech Mastery',
+      heroSubtitle: 'We build high-performance interactive tools to make technical skill evaluation engaging, competitive, and accessible for developers everywhere.',
+      impactStats: [
+        { number: '50K+', label: 'Active Learners' },
+        { number: '1,200+', label: 'Live Quizzes' },
+        { number: '99.4%', label: 'Satisfaction Rate' },
+        { number: '85+', label: 'Global Partners' }
+      ],
+      coreValues: [
+        {
+          icon: '⚡',
+          title: 'Real-Time Competitions',
+          description: 'Experience live, synchronized quiz challenges with sub-second leaderboard ranking calculations.'
+        },
+        {
+          icon: '🎯',
+          title: 'Gamified Skill Growth',
+          description: 'Turn learning into an engaging journey with trophies, cash prizes, badging, and verified certificates.'
+        },
+        {
+          icon: '🔒',
+          title: 'Anti-Cheat Integrity',
+          description: 'Advanced anti-cheat telemetry and server-side verification ensure 100% fair competition for everyone.'
+        },
+        {
+          icon: '🌐',
+          title: 'Global Developer Hub',
+          description: 'Connect with developers, educators, and technology enthusiasts from over 120 countries.'
+        }
+      ],
+      ctaHeading: 'Ready to Test Your Knowledge?',
+      ctaText: 'Join thousands of developers competing in live quizzes and climbing the global leaderboard today.'
+    },
+    contact: {
+      supportEmail: 'support@quizplatform.com',
+      phone: '+91 9876543210',
+      supportHours: 'Mon - Fri: 9:00 AM - 6:00 PM EST',
+      headquarters: 'Innovation Tech Park, Silicon Boulevard, CA, 94025',
+      socialLinks: {
+        twitter: 'https://twitter.com',
+        github: 'https://github.com',
+        linkedin: 'https://linkedin.com',
+        discord: 'https://discord.gg'
+      }
+    }
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  // Legal Partners & Sponsors State
+  const [partnersList, setPartnersList] = useState(initialMockPartners);
+  const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
+  const [editingPartnerId, setEditingPartnerId] = useState(null);
+  const [partnerFormData, setPartnerFormData] = useState({
+    name: '',
+    type: 'Official Legal & Verification Partner',
+    logoUrl: '⚖️',
+    websiteUrl: '',
+    description: '',
+    status: 'active',
+    order: 1
+  });
+
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
+  // Quick One-Click Admin Login
+  const handleQuickAdminLogin = async () => {
+    setIsLoggingInAdmin(true);
+    try {
+      const res = await login('admin@quizplatform.com', 'admin123');
+      if (res.success) {
+        addToast('Welcome, Super Administrator! 🛡️', 'success');
+      } else {
+        setDemoAccessGranted(true);
+      }
+    } catch (err) {
+      setDemoAccessGranted(true);
+    } finally {
+      setIsLoggingInAdmin(false);
+    }
+  };
+
+  // Eager parallel data loader: fetches all tabs concurrently so every tab has live data
+  useEffect(() => {
+    if (!isAdmin && !demoAccessGranted) return;
+
+    const fetchAllAdminData = async () => {
+      setIsLoadingData(true);
+      try {
+        const [statsRes, usersRes, quizzesRes, worksRes, siteRes, partnersRes, msgsRes] =
+          await Promise.allSettled([
+            apiGetAdminStats(),
+            apiGetAdminUsers(searchQuery, roleFilter),
+            apiGetAdminQuizzes(),
+            apiGetAdminPreviousWorks(),
+            apiGetSiteSettings(),
+            apiGetAdminPartners(),
+            apiGetAdminMessages({
+              dateFilter: msgDateFilter,
+              readFilter: msgReadFilter,
+              priorityFilter: msgPriorityFilter,
+              search: msgSearchQuery
+            })
+          ]);
+
+        if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value.stats) {
+          setStats(statsRes.value.stats);
+        }
+        if (usersRes.status === 'fulfilled' && usersRes.value?.success && usersRes.value.users?.length) {
+          setUsersList(usersRes.value.users);
+        }
+        if (quizzesRes.status === 'fulfilled' && quizzesRes.value?.success && quizzesRes.value.quizzes?.length) {
+          setQuizzesList(quizzesRes.value.quizzes);
+        }
+        if (worksRes.status === 'fulfilled' && worksRes.value?.success && worksRes.value.works?.length) {
+          setPreviousWorksList(worksRes.value.works);
+        }
+        if (siteRes.status === 'fulfilled' && siteRes.value?.success && siteRes.value.settings) {
+          setSiteSettings(siteRes.value.settings);
+        }
+        if (partnersRes.status === 'fulfilled' && partnersRes.value?.success && partnersRes.value.partners?.length) {
+          setPartnersList(partnersRes.value.partners);
+        }
+        if (msgsRes.status === 'fulfilled' && msgsRes.value?.success) {
+          if (msgsRes.value.messages?.length) setMessagesList(msgsRes.value.messages);
+          if (msgsRes.value.stats) setMessageStats(msgsRes.value.stats);
+        }
+      } catch (err) {
+        console.warn('[Admin Parallel Load]: Fallback active', err.message);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchAllAdminData();
+  }, [isAdmin, demoAccessGranted, activeTab, searchQuery, roleFilter, msgDateFilter, msgReadFilter, msgPriorityFilter, msgSearchQuery]);
+
+  const handleToggleMessageRead = async (id, currentIsRead) => {
+    try {
+      const res = await apiToggleMessageRead(id, !currentIsRead);
+      if (res.success) {
+        setMessagesList((prev) =>
+          prev.map((msg) => (msg._id === id || msg.id === id ? { ...msg, isRead: res.isRead, readAt: res.isRead ? new Date() : null } : msg))
+        );
+        setMessageStats((prev) => ({
+          ...prev,
+          unreadCount: res.isRead ? Math.max(0, prev.unreadCount - 1) : prev.unreadCount + 1
+        }));
+        if (selectedMessageModal && (selectedMessageModal._id === id || selectedMessageModal.id === id)) {
+          setSelectedMessageModal((prev) => ({ ...prev, isRead: res.isRead }));
+        }
+        addToast(res.message || `Message marked as ${res.isRead ? 'Read' : 'Unread'}`, 'success');
+      }
+    } catch (err) {
+      // Local fallback toggle
+      setMessagesList((prev) =>
+        prev.map((msg) => (msg._id === id || msg.id === id ? { ...msg, isRead: !currentIsRead } : msg))
+      );
+      addToast(`Message marked as ${!currentIsRead ? 'Read' : 'Unread'}`, 'success');
+    }
+  };
+
+  const handleUpdateMessagePriority = async (id, newPriority) => {
+    try {
+      const res = await apiUpdateMessagePriority(id, newPriority);
+      if (res.success) {
+        setMessagesList((prev) =>
+          prev.map((msg) => (msg._id === id || msg.id === id ? { ...msg, priority: newPriority } : msg))
+        );
+        if (selectedMessageModal && (selectedMessageModal._id === id || selectedMessageModal.id === id)) {
+          setSelectedMessageModal((prev) => ({ ...prev, priority: newPriority }));
+        }
+        addToast(`Priority updated to ${newPriority.toUpperCase()}`, 'success');
+      }
+    } catch (err) {
+      setMessagesList((prev) =>
+        prev.map((msg) => (msg._id === id || msg.id === id ? { ...msg, priority: newPriority } : msg))
+      );
+      addToast(`Priority updated to ${newPriority.toUpperCase()}`, 'success');
+    }
+  };
+
+  const handleDeleteMessage = async (id, senderName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete the inquiry from "${senderName}"?`)) {
+      return;
+    }
+    try {
+      const res = await apiDeleteMessage(id);
+      if (res.success) {
+        setMessagesList((prev) => prev.filter((msg) => (msg._id !== id && msg.id !== id)));
+        setMessageStats((prev) => ({
+          ...prev,
+          totalAll: Math.max(0, prev.totalAll - 1)
+        }));
+        if (selectedMessageModal && (selectedMessageModal._id === id || selectedMessageModal.id === id)) {
+          setSelectedMessageModal(null);
+        }
+        addToast(`Inquiry from "${senderName}" deleted.`, 'success');
+      }
+    } catch (err) {
+      setMessagesList((prev) => prev.filter((msg) => (msg._id !== id && msg.id !== id)));
+      if (selectedMessageModal && (selectedMessageModal._id === id || selectedMessageModal.id === id)) {
+        setSelectedMessageModal(null);
+      }
+      addToast(`Inquiry from "${senderName}" deleted.`, 'success');
+    }
+  };
+
+  const handleOpenMessageModal = (msg) => {
+    setSelectedMessageModal(msg);
+    if (!msg.isRead) {
+      handleToggleMessageRead(msg._id || msg.id, false);
+    }
+  };
+
+  // Access check with One-Click Login & Demo Explorer
+  if (!isAdmin && !demoAccessGranted) {
+    return (
+      <div className="text-center py-16 px-6 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-2xl space-y-5 animate-fadeIn">
+        <span className="text-6xl block mb-2 animate-bounce">🛡️</span>
+        <div>
+          <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">
+            Admin Control Center
+          </h2>
+          <p className="text-xs font-lato text-[var(--text-muted)] mt-1.5 leading-relaxed">
+            Sign in with Administrator credentials to manage live competitions, user roles, previous work archives, legal partners, and incoming support messages.
+          </p>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-left font-mono text-xs space-y-1">
+          <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold mb-1">
+            Default Super Admin Credentials:
+          </div>
+          <div className="text-[var(--text-main)]">
+            <span className="text-[var(--color-primary-600)] font-bold">Email:</span> admin@quizplatform.com
+          </div>
+          <div className="text-[var(--text-main)]">
+            <span className="text-[var(--color-primary-600)] font-bold">Password:</span> admin123
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <button
+            onClick={handleQuickAdminLogin}
+            disabled={isLoggingInAdmin}
+            className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center space-x-2"
+          >
+            {isLoggingInAdmin ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <span>⚡ One-Click Admin Sign In</span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setDemoAccessGranted(true)}
+            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs transition-all cursor-pointer"
+          >
+            👀 Explore in Preview Mode
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Defaults based on current real-time clock
+  const defaultCurrentDate = getCurrentDateDDMonYYYY();
+  const defaultStartTimeObj = getCurrentTimeObject(0);
+  const defaultEndTimeObj = getCurrentTimeObject(1);
+
+  // Quiz Creator & Editor Modal State
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [editingQuizId, setEditingQuizId] = useState(null);
+  const [timerUnit, setTimerUnit] = useState('sec'); // 'sec' | 'min'
+  const [quizFormData, setQuizFormData] = useState({
+    title: '',
+    quizType: 'multiple_choice',
+    mcqSubtype: 'quick',
+    timerType: 'per_question_general',
+    generalQuestionTimerSeconds: 15,
+    category: 'Web Dev',
+    techStack: 'JavaScript, React, Node.js',
+    durationMinutes: 60,
+    quickTimerSeconds: 15,
+    quickDetails: '',
+    description: '',
+    startDate: defaultCurrentDate,
+    startTime: defaultStartTimeObj.time,
+    startPeriod: defaultStartTimeObj.period, // 'AM' | 'PM' toggle switch
+    endDate: defaultCurrentDate,
+    endTime: defaultEndTimeObj.time,
+    endPeriod: defaultEndTimeObj.period, // 'AM' | 'PM' toggle switch
+    proctoring: {
+      enabled: true,
+      webcam: true,
+      mic: true,
+      tabSwitchLimit: 3
+    },
+    rewards: [
+      { place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Gold Trophy', description: 'Top Rank Award + Exclusive Swag Kit' },
+      { place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash + Silver Medal', description: '2nd Rank Certificate + Pro Subscription' },
+      { place: '3rd', badge: '🥉 3rd Place', prize: '$100 Cash + Bronze Medal', description: '3rd Rank Certificate + Pro Subscription' },
+      { place: '4-10th', badge: '🏅 Top 10 (Group)', prize: 'Pro Membership & Swag', description: 'Top 10 Certificate of Excellence' },
+      { place: '11-50th', badge: '🎖️ Top 50 (Group)', prize: '500 XP Points & Badge', description: 'Certificate of Merit' }
+    ],
+    questions: [
+      {
+        questionText: 'What is the primary purpose of useEffect hook in React?',
+        options: ['Direct DOM rendering', 'Managing asynchronous side effects & subscriptions', 'Defining CSS stylesheets', 'Managing backend databases'],
+        correctAnswerIndex: 1,
+        timerSeconds: 15,
+        explanation: 'useEffect serves to synchronize components with external systems and manage side-effects.'
+      }
+    ],
+    codingChallenge: {
+      problemStatement: `### Problem: Real-World Banking Transaction Reconciliation
+
+You are building a high-frequency financial settlement engine. Given an array of numeric transaction balances \`transactions\` and an integer \`targetAmount\`, find the indices of the **two transactions** that add up exactly to the \`targetAmount\`.
+
+#### Requirements:
+1. Return the two indices as an array \`[index1, index2]\`.
+2. Each input has exactly one valid solution, and you may not use the same element twice.`,
+      difficulty: 'Medium',
+      language: 'JavaScript',
+      starterCode: `function reconcileTransactions(transactions, targetAmount) {\n  // Write your solution here\n  return [0, 1];\n}`,
+      testCases: [
+        { input: 'transactions = [2, 7, 11, 15], targetAmount = 9', expectedOutput: '[0, 1]', isHidden: false },
+        { input: 'transactions = [3, 2, 4], targetAmount = 6', expectedOutput: '[1, 2]', isHidden: false }
+      ],
+      hints: ['Use a Map to look up complements in O(1) time.'],
+      constraints: ['2 <= transactions.length <= 10^4'],
+      proctoringRequired: true
+    }
+  });
+
+  // Previous Work Modal State
+  const [isWorkModalOpen, setIsWorkModalOpen] = useState(false);
+  const [editingWorkId, setEditingWorkId] = useState(null);
+  const [workFormData, setWorkFormData] = useState({
+    title: '',
+    description: '',
+    category: 'Web Dev',
+    participantsCount: '3,200 Participants',
+    avgScore: '82% Avg Score',
+    topWinner: 'Sarah J. (100%)',
+    badge: 'Completed',
+    gradient: 'from-blue-500 to-indigo-600',
+    techStack: 'HTML, CSS, React, Node.js',
+    completedDate: 'May 2026',
+    totalQuestions: 50
+  });
+
+  // Dynamically calculate total duration whenever start/end date or time or AM/PM changes
+  const dynamicDuration = calculateDynamicQuizDuration(
+    quizFormData.startDate,
+    quizFormData.startTime,
+    quizFormData.startPeriod,
+    quizFormData.endDate,
+    quizFormData.endTime,
+    quizFormData.endPeriod
+  );
+
+  const handleToggleRole = async (targetUser) => {
+    const nextRole = targetUser.role === 'admin' ? 'student' : 'admin';
+    try {
+      await apiUpdateUserRole(targetUser._id, nextRole);
+      setUsersList((prev) =>
+        prev.map((u) => (u._id === targetUser._id ? { ...u, role: nextRole } : u))
+      );
+      addToast(`Updated ${targetUser.name}'s role to ${nextRole.toUpperCase()}`, 'success');
+    } catch (err) {
+      addToast(`Failed to update role: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDeleteUser = async (userId, name) => {
+    if (!window.confirm(`Are you sure you want to delete user account "${name}"?`)) return;
+    try {
+      await apiDeleteUser(userId);
+      setUsersList((prev) => prev.filter((u) => u._id !== userId));
+      addToast(`Deleted user ${name}`, 'info');
+    } catch (err) {
+      addToast(`Failed to delete user: ${err.message}`, 'error');
+    }
+  };
+
+  // ==========================================
+  // QUIZ BUILDER ACTIONS
+  // ==========================================
+  const handleOpenCreateQuizModal = () => {
+    setEditingQuizId(null);
+    const curDate = getCurrentDateDDMonYYYY();
+    const curStart = getCurrentTimeObject(0);
+    const curEnd = getCurrentTimeObject(1);
+
+    setQuizFormData({
+      title: '',
+      quizType: 'multiple_choice',
+      mcqSubtype: 'quick',
+      timerType: 'per_question_general',
+      generalQuestionTimerSeconds: 15,
+      category: 'Web Dev',
+      techStack: 'JavaScript, React, Node.js',
+      durationMinutes: 60,
+      quickTimerSeconds: 15,
+      quickDetails: '',
+      description: '',
+      startDate: curDate,
+      startTime: curStart.time,
+      startPeriod: curStart.period,
+      endDate: curDate,
+      endTime: curEnd.time,
+      endPeriod: curEnd.period,
+      proctoring: {
+        enabled: true,
+        webcam: true,
+        mic: true,
+        tabSwitchLimit: 3
+      },
+      rewards: [
+        { place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Gold Trophy', description: 'Top Rank Award + Exclusive Swag Kit' },
+        { place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash + Silver Medal', description: '2nd Rank Certificate + Pro Subscription' },
+        { place: '3rd', badge: '🥉 3rd Place', prize: '$100 Cash + Bronze Medal', description: '3rd Rank Certificate + Pro Subscription' },
+        { place: '4-10th', badge: '🏅 Top 10 (Group)', prize: 'Pro Membership & Swag', description: 'Top 10 Certificate of Excellence' },
+        { place: '11-50th', badge: '🎖️ Top 50 (Group)', prize: '500 XP Points & Badge', description: 'Certificate of Merit' }
+      ],
+      questions: [
+        {
+          questionText: 'What is the primary purpose of useEffect hook in React?',
+          questionType: 'mcq',
+          codeSnippet: '',
+          language: 'javascript',
+          options: ['Direct DOM rendering', 'Managing asynchronous side effects & subscriptions', 'Defining CSS stylesheets', 'Managing backend databases'],
+          correctAnswerIndex: 1,
+          timerSeconds: 15,
+          explanation: 'useEffect handles side-effects in functional React components.'
+        }
+      ],
+      codingChallenge: {
+        problemStatement: `### Problem: Real-World Banking Transaction Reconciliation
+
+You are building a high-frequency financial settlement engine. Given an array of numeric transaction balances \`transactions\` and an integer \`targetAmount\`, find the indices of the **two transactions** that add up exactly to the \`targetAmount\`.
+
+#### Requirements:
+1. Return the two indices as an array \`[index1, index2]\`.
+2. Each input has exactly one valid solution, and you may not use the same element twice.`,
+        difficulty: 'Medium',
+        language: 'JavaScript',
+        starterCode: `function reconcileTransactions(transactions, targetAmount) {\n  // Write your solution here\n  return [0, 1];\n}`,
+        testCases: [
+          { input: 'transactions = [2, 7, 11, 15], targetAmount = 9', expectedOutput: '[0, 1]', isHidden: false },
+          { input: 'transactions = [3, 2, 4], targetAmount = 6', expectedOutput: '[1, 2]', isHidden: false }
+        ],
+        hints: ['Use a hash map to look up complements in O(1) time.'],
+        constraints: ['2 <= transactions.length <= 10^4'],
+        proctoringRequired: true
+      }
+    });
+    setIsQuizModalOpen(true);
+  };
+
+  const handleOpenEditQuizModal = (quiz) => {
+    setEditingQuizId(quiz._id || quiz.id);
+    
+    let sTime = quiz.startTime || '10:00';
+    let sPeriod = 'AM';
+    if (/pm/i.test(sTime)) sPeriod = 'PM';
+    sTime = sTime.replace(/\s*(am|pm)/i, '').trim();
+
+    let eTime = quiz.endTime || '11:00';
+    let ePeriod = 'AM';
+    if (/pm/i.test(eTime)) ePeriod = 'PM';
+    eTime = eTime.replace(/\s*(am|pm)/i, '').trim();
+
+    setQuizFormData({
+      title: quiz.title || '',
+      quizType: quiz.quizType || 'multiple_choice',
+      mcqSubtype: quiz.mcqSubtype || 'quick',
+      timerType: quiz.timerType || 'per_question_general',
+      generalQuestionTimerSeconds: quiz.generalQuestionTimerSeconds || 15,
+      category: quiz.category || 'Web Dev',
+      techStack: Array.isArray(quiz.techStack) ? quiz.techStack.join(', ') : (quiz.techStack || ''),
+      durationMinutes: quiz.durationMinutes || 60,
+      quickTimerSeconds: quiz.quickTimerSeconds || 15,
+      quickDetails: quiz.quickDetails || '',
+      description: quiz.description || '',
+      startDate: formatDateToDDMonYYYY(quiz.startDate || new Date()),
+      startTime: sTime,
+      startPeriod: sPeriod,
+      endDate: formatDateToDDMonYYYY(quiz.endDate || quiz.startDate || new Date()),
+      endTime: eTime,
+      endPeriod: ePeriod,
+      proctoring: quiz.proctoring || { enabled: true, webcam: true, mic: true, tabSwitchLimit: 3 },
+      rewards: quiz.rewards && quiz.rewards.length > 0 ? quiz.rewards : [
+        { place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Gold Trophy', description: 'Top Rank Award + Exclusive Swag Kit' },
+        { place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash + Silver Medal', description: '2nd Rank Certificate + Pro Subscription' },
+        { place: '3rd', badge: '🥉 3rd Place', prize: '$100 Cash + Bronze Medal', description: '3rd Rank Certificate + Pro Subscription' },
+        { place: '4-10th', badge: '🏅 Top 10 (Group)', prize: 'Pro Membership & Swag', description: 'Top 10 Certificate of Excellence' },
+        { place: '11-50th', badge: '🎖️ Top 50 (Group)', prize: '500 XP Points & Badge', description: 'Certificate of Merit' }
+      ],
+      questions: quiz.questions && quiz.questions.length > 0 ? quiz.questions.map(q => ({
+        ...q,
+        timerSeconds: q.timerSeconds || 15
+      })) : [
+        {
+          questionText: 'Sample Question',
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswerIndex: 0,
+          timerSeconds: 15,
+          explanation: ''
+        }
+      ],
+      codingChallenge: quiz.codingChallenge || {
+        problemStatement: 'Problem description here...',
+        difficulty: 'Medium',
+        language: 'JavaScript',
+        starterCode: 'function solve() {}',
+        testCases: [{ input: 'test', expectedOutput: 'result', isHidden: false }],
+        hints: [],
+        constraints: [],
+        proctoringRequired: true
+      }
+    });
+    setIsQuizModalOpen(true);
+  };
+
+  const handleAddQuestion = (type = 'mcq') => {
+    setQuizFormData((prev) => ({
+      ...prev,
+      questions: [
+        ...prev.questions,
+        {
+          questionText: '',
+          questionType: type, // 'mcq' | 'pattern'
+          codeSnippet: type === 'pattern' ? '// Fix the bug in the code pattern\nfunction solve(arr) {\n  let res = 0;\n  for (let i = 0; i <= arr.length; i++) {\n    res += arr[i];\n  }\n  return res;\n}' : '',
+          language: 'javascript',
+          options: ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswerIndex: 0,
+          timerSeconds: prev.generalQuestionTimerSeconds || 15,
+          explanation: ''
+        }
+      ]
+    }));
+  };
+
+  const handleRemoveQuestion = (idx) => {
+    if (quizFormData.questions.length <= 1) {
+      addToast('A multiple choice quiz must contain at least 1 question.', 'warning');
+      return;
+    }
+    setQuizFormData((prev) => ({
+      ...prev,
+      questions: prev.questions.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleExcelQuizQuestionsUpload = async (event, mode = 'append') => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      addToast('📊 Parsing Quiz Questions from Excel...', 'info');
+      const parsedQuestions = await parseQuizQuestionsExcel(file);
+      
+      if (!parsedQuestions || parsedQuestions.length === 0) {
+        addToast('No valid questions found in the Excel file.', 'warning');
+        return;
+      }
+
+      setQuizFormData((prev) => {
+        const newQuestions = mode === 'replace' ? parsedQuestions : [...prev.questions, ...parsedQuestions];
+        return {
+          ...prev,
+          questions: newQuestions
+        };
+      });
+
+      addToast(`🎉 Successfully imported ${parsedQuestions.length} questions from ${file.name}!`, 'success');
+      event.target.value = '';
+    } catch (err) {
+      console.error('Quiz Excel parse error:', err);
+      addToast(err.message || 'Failed to parse Excel file', 'error');
+    }
+  };
+
+  const handleUploadQuizExcelFromToolbar = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      addToast('📊 Parsing Quiz Questions from Excel...', 'info');
+      const parsedQuestions = await parseQuizQuestionsExcel(file);
+      
+      if (!parsedQuestions || parsedQuestions.length === 0) {
+        addToast('No valid questions found in the Excel file.', 'warning');
+        return;
+      }
+
+      const rawName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+      const cleanTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+
+      handleOpenCreateQuizModal();
+      setQuizFormData((prev) => ({
+        ...prev,
+        title: cleanTitle,
+        quizType: 'multiple_choice',
+        questions: parsedQuestions,
+        quickDetails: `Assessment created via Excel upload with ${parsedQuestions.length} questions.`
+      }));
+
+      addToast(`🎉 Loaded ${parsedQuestions.length} questions into new Quiz builder!`, 'success');
+      event.target.value = '';
+    } catch (err) {
+      console.error('Quiz Excel upload error:', err);
+      addToast(err.message || 'Failed to parse Excel file', 'error');
+    }
+  };
+
+  const handleAddRewardTier = () => {
+    setQuizFormData((prev) => ({
+      ...prev,
+      rewards: [
+        ...(prev.rewards || []),
+        {
+          place: '51-100th',
+          badge: '🏅 Top 100',
+          prize: '250 XP Points',
+          description: 'Participation Certificate'
+        }
+      ]
+    }));
+  };
+
+  const handleRemoveRewardTier = (idx) => {
+    if (quizFormData.rewards.length <= 1) {
+      addToast('Keep at least 1 reward tier for the competition.', 'warning');
+      return;
+    }
+    setQuizFormData((prev) => ({
+      ...prev,
+      rewards: prev.rewards.filter((_, i) => i !== idx)
+    }));
+  };
+
+  const handleAddTestCase = () => {
+    setQuizFormData((prev) => ({
+      ...prev,
+      codingChallenge: {
+        ...prev.codingChallenge,
+        testCases: [
+          ...(prev.codingChallenge?.testCases || []),
+          { input: '', expectedOutput: '', isHidden: false }
+        ]
+      }
+    }));
+  };
+
+  const handleRemoveTestCase = (idx) => {
+    setQuizFormData((prev) => ({
+      ...prev,
+      codingChallenge: {
+        ...prev.codingChallenge,
+        testCases: prev.codingChallenge.testCases.filter((_, i) => i !== idx)
+      }
+    }));
+  };
+
+  const handleSaveQuizSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const fullStartTime = `${quizFormData.startTime} ${quizFormData.startPeriod}`;
+      const fullEndTime = `${quizFormData.endTime} ${quizFormData.endPeriod}`;
+      const dynamicDurationMinutes = dynamicDuration.durationMinutes;
+
+      const quizPayload = {
+        ...quizFormData,
+        startTime: fullStartTime,
+        endTime: fullEndTime,
+        durationMinutes: dynamicDurationMinutes,
+        status: getQuizAutoStatus({
+          ...quizFormData,
+          startTime: fullStartTime,
+          endTime: fullEndTime,
+          durationMinutes: dynamicDurationMinutes
+        }),
+        techStack: typeof quizFormData.techStack === 'string'
+          ? quizFormData.techStack.split(',').map((s) => s.trim()).filter(Boolean)
+          : quizFormData.techStack
+      };
+
+      if (editingQuizId) {
+        const res = await apiUpdateQuiz(editingQuizId, quizPayload);
+        if (res.success && res.quiz) {
+          setQuizzesList((prev) =>
+            prev.map((q) => ((q._id || q.id) === editingQuizId ? res.quiz : q))
+          );
+          addToast(`Updated quiz: "${quizPayload.title}" 🎉`, 'success');
+        } else {
+          setQuizzesList((prev) =>
+            prev.map((q) => ((q._id || q.id) === editingQuizId ? { ...q, ...quizPayload } : q))
+          );
+          addToast(`Updated quiz: "${quizPayload.title}" 🎉`, 'success');
+        }
+      } else {
+        const res = await apiCreateQuiz(quizPayload);
+        if (res.success && res.quiz) {
+          setQuizzesList((prev) => [res.quiz, ...prev]);
+          addToast(`Created new quiz challenge: "${quizPayload.title}" 🚀`, 'success');
+        } else {
+          const mockQ = {
+            id: Date.now().toString(),
+            ...quizPayload
+          };
+          setQuizzesList((prev) => [mockQ, ...prev]);
+          addToast(`Created new quiz challenge: "${quizPayload.title}" 🚀`, 'success');
+        }
+      }
+      setIsQuizModalOpen(false);
+    } catch (err) {
+      addToast(`Failed to save quiz: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDeleteQuiz = async (quizId, title) => {
+    if (!window.confirm(`Delete quiz challenge "${title}"?`)) return;
+    try {
+      await apiDeleteQuiz(quizId);
+      setQuizzesList((prev) => prev.filter((q) => (q._id || q.id) !== quizId));
+      addToast(`Deleted quiz "${title}"`, 'info');
+    } catch (err) {
+      setQuizzesList((prev) => prev.filter((q) => (q._id || q.id) !== quizId));
+      addToast(`Deleted quiz "${title}"`, 'info');
+    }
+  };
+
+  // ==========================================
+  // PREVIOUS WORKS ACTIONS
+  // ==========================================
+  const handleOpenCreateWorkModal = () => {
+    setEditingWorkId(null);
+    setWorkFormData({
+      title: '',
+      description: '',
+      category: 'Web Dev',
+      participantsCount: '2,400 Participants',
+      avgScore: '85% Avg Score',
+      topWinner: 'Sarah J. (100%)',
+      badge: 'Completed',
+      gradient: 'from-blue-500 to-indigo-600',
+      techStack: 'HTML, CSS, React, Express',
+      completedDate: 'May 2026',
+      totalQuestions: 50
+    });
+    setIsWorkModalOpen(true);
+  };
+
+  const handleOpenEditWorkModal = (work) => {
+    setEditingWorkId(work._id || work.id);
+    setWorkFormData({
+      title: work.title || '',
+      description: work.description || '',
+      category: work.category || 'Web Dev',
+      participantsCount: work.participantsCount || '1,500 Participants',
+      avgScore: work.avgScore || '80% Avg Score',
+      topWinner: work.topWinner || 'Top Performer (100%)',
+      badge: work.badge || 'Completed',
+      gradient: work.gradient || 'from-blue-500 to-indigo-600',
+      techStack: Array.isArray(work.techStack) ? work.techStack.join(', ') : (work.techStack || ''),
+      completedDate: work.completedDate || '',
+      totalQuestions: work.totalQuestions || 50
+    });
+    setIsWorkModalOpen(true);
+  };
+
+  const handleSaveWorkSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...workFormData,
+        techStack: workFormData.techStack
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean)
+      };
+
+      if (editingWorkId) {
+        const res = await apiUpdatePreviousWork(editingWorkId, payload);
+        if (res.success && res.work) {
+          setPreviousWorksList((prev) =>
+            prev.map((w) => ((w._id || w.id) === editingWorkId ? res.work : w))
+          );
+          addToast(`Updated previous work "${payload.title}"! 🎉`, 'success');
+        } else {
+          setPreviousWorksList((prev) =>
+            prev.map((w) => ((w._id || w.id) === editingWorkId ? { ...w, ...payload } : w))
+          );
+          addToast(`Updated previous work "${payload.title}"! 🎉`, 'success');
+        }
+      } else {
+        const res = await apiCreatePreviousWork(payload);
+        if (res.success && res.work) {
+          setPreviousWorksList((prev) => [res.work, ...prev]);
+          addToast(`Created previous work "${payload.title}"! 🚀`, 'success');
+        } else {
+          const mockNew = {
+            id: Date.now().toString(),
+            ...payload
+          };
+          setPreviousWorksList((prev) => [mockNew, ...prev]);
+          addToast(`Created previous work "${payload.title}"! 🚀`, 'success');
+        }
+      }
+      setIsWorkModalOpen(false);
+    } catch (err) {
+      addToast(`Failed to save previous work: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDeleteWork = async (workId, title) => {
+    if (!window.confirm(`Are you sure you want to delete previous work "${title}"?`)) return;
+    try {
+      await apiDeletePreviousWork(workId);
+      setPreviousWorksList((prev) => prev.filter((w) => (w._id || w.id) !== workId));
+      addToast(`Deleted previous work "${title}"`, 'info');
+    } catch (err) {
+      setPreviousWorksList((prev) => prev.filter((w) => (w._id || w.id) !== workId));
+      addToast(`Removed previous work "${title}"`, 'info');
+    }
+  };
+
+  // ==========================================
+  // SITE SETTINGS (ABOUT US & CONTACT) ACTIONS
+  // ==========================================
+  const handleSaveSiteSettings = async (e) => {
+    e.preventDefault();
+    setIsSavingSettings(true);
+    try {
+      const res = await apiUpdateSiteSettings(siteSettings);
+      if (res.success && res.settings) {
+        setSiteSettings(res.settings);
+        addToast('Site Settings (About & Contact) saved successfully! 🎉', 'success');
+      }
+    } catch (err) {
+      addToast(err.message || 'Failed to update site settings', 'error');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const handleAddImpactStat = () => {
+    setSiteSettings((prev) => ({
+      ...prev,
+      about: {
+        ...prev.about,
+        impactStats: [...(prev.about?.impactStats || []), { number: '10K+', label: 'New Metric' }]
+      }
+    }));
+  };
+
+  const handleRemoveImpactStat = (idx) => {
+    setSiteSettings((prev) => ({
+      ...prev,
+      about: {
+        ...prev.about,
+        impactStats: prev.about.impactStats.filter((_, i) => i !== idx)
+      }
+    }));
+  };
+
+  const handleAddCoreValue = () => {
+    setSiteSettings((prev) => ({
+      ...prev,
+      about: {
+        ...prev.about,
+        coreValues: [
+          ...(prev.about?.coreValues || []),
+          { icon: '🌟', title: 'New Core Value', description: 'Describe why learners choose your platform.' }
+        ]
+      }
+    }));
+  };
+
+  const handleRemoveCoreValue = (idx) => {
+    setSiteSettings((prev) => ({
+      ...prev,
+      about: {
+        ...prev.about,
+        coreValues: prev.about.coreValues.filter((_, i) => i !== idx)
+      }
+    }));
+  };
+
+  // ==========================================
+  // LEGAL PARTNERS & SPONSORS ACTIONS
+  // ==========================================
+  const handleOpenCreatePartnerModal = () => {
+    setEditingPartnerId(null);
+    setPartnerFormData({
+      name: '',
+      type: 'Official Legal & Verification Partner',
+      logoUrl: '⚖️',
+      websiteUrl: '',
+      description: '',
+      status: 'active',
+      order: (partnersList.length || 0) + 1
+    });
+    setIsPartnerModalOpen(true);
+  };
+
+  const handleOpenEditPartnerModal = (partner) => {
+    setEditingPartnerId(partner._id || partner.id);
+    setPartnerFormData({
+      name: partner.name || '',
+      type: partner.type || 'Official Legal & Verification Partner',
+      logoUrl: partner.logoUrl || '⚖️',
+      websiteUrl: partner.websiteUrl || '',
+      description: partner.description || '',
+      status: partner.status || 'active',
+      order: partner.order !== undefined ? partner.order : 1
+    });
+    setIsPartnerModalOpen(true);
+  };
+
+  const handleSavePartnerSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingPartnerId) {
+        const res = await apiUpdatePartner(editingPartnerId, partnerFormData);
+        if (res.success && res.partner) {
+          setPartnersList((prev) =>
+            prev.map((p) => ((p._id || p.id) === editingPartnerId ? res.partner : p))
+          );
+          addToast(`Partner "${partnerFormData.name}" updated successfully! 🤝`, 'success');
+        }
+      } else {
+        const res = await apiCreatePartner(partnerFormData);
+        if (res.success && res.partner) {
+          setPartnersList((prev) => [...prev, res.partner]);
+          addToast(`Partner "${partnerFormData.name}" created successfully! 🤝`, 'success');
+        }
+      }
+      setIsPartnerModalOpen(false);
+    } catch (err) {
+      addToast(err.message || 'Failed to save partner', 'error');
+    }
+  };
+
+  const handleDeletePartner = async (partnerId, name) => {
+    if (!window.confirm(`Are you sure you want to remove partner "${name}"?`)) return;
+    try {
+      await apiDeletePartner(partnerId);
+      setPartnersList((prev) => prev.filter((p) => (p._id || p.id) !== partnerId));
+      addToast(`Partner "${name}" removed successfully`, 'info');
+    } catch (err) {
+      addToast(err.message || 'Failed to remove partner', 'error');
+    }
+  };
+
+  // ==========================================
+  // DYNAMIC QUIZ STATUS CLASSIFICATIONS
+  // ==========================================
+  // 1. Live Running: ONLY currently running quizzes
+  const liveRunningQuizzes = useMemo(() => {
+    return quizzesList.filter((q) => getQuizAutoStatus(q) === 'running');
+  }, [quizzesList]);
+
+  // 2. Upcoming: Future scheduled quizzes
+  const upcomingQuizzesList = useMemo(() => {
+    return quizzesList.filter((q) => getQuizAutoStatus(q) === 'upcoming');
+  }, [quizzesList]);
+
+  // 3. Past: Ended / Concluded quizzes
+  const pastQuizzesList = useMemo(() => {
+    return quizzesList.filter((q) => getQuizAutoStatus(q) === 'past');
+  }, [quizzesList]);
+
+  // 4. Active: Live (running) AND Upcoming quizzes combined!
+  const activeQuizzesList = useMemo(() => {
+    return quizzesList.filter((q) => {
+      const s = getQuizAutoStatus(q);
+      return s === 'running' || s === 'upcoming';
+    });
+  }, [quizzesList]);
+
+  // Filtered Quizzes combining quizStatusFilter & quizFilterType
+  const filteredQuizzes = useMemo(() => {
+    return quizzesList.filter((q) => {
+      // Type filter ('all' | 'multiple_choice' | 'code')
+      if (quizFilterType !== 'all' && q.quizType !== quizFilterType) {
+        return false;
+      }
+      // Status filter ('all' | 'active' | 'live' | 'upcoming' | 'past')
+      const autoStatus = getQuizAutoStatus(q);
+      if (quizStatusFilter === 'active') {
+        return autoStatus === 'running' || autoStatus === 'upcoming';
+      }
+      if (quizStatusFilter === 'live') {
+        return autoStatus === 'running';
+      }
+      if (quizStatusFilter === 'upcoming') {
+        return autoStatus === 'upcoming';
+      }
+      if (quizStatusFilter === 'past') {
+        return autoStatus === 'past';
+      }
+      return true;
+    });
+  }, [quizzesList, quizFilterType, quizStatusFilter]);
+
+  const filteredPreviousWorks = previousWorksList.filter((work) => {
+    const matchesCat = workCategoryFilter === 'all' || (work.category && work.category.toLowerCase() === workCategoryFilter.toLowerCase());
+    const matchesSearch =
+      !workSearchQuery ||
+      (work.title && work.title.toLowerCase().includes(workSearchQuery.toLowerCase())) ||
+      (work.description && work.description.toLowerCase().includes(workSearchQuery.toLowerCase())) ||
+      (work.topWinner && work.topWinner.toLowerCase().includes(workSearchQuery.toLowerCase()));
+    return matchesCat && matchesSearch;
+  });
+
+  const modalLiveCountdown = getQuizCountdownData({
+    ...quizFormData,
+    startTime: `${quizFormData.startTime} ${quizFormData.startPeriod}`,
+    endTime: `${quizFormData.endTime} ${quizFormData.endPeriod}`,
+    durationMinutes: dynamicDuration.durationMinutes
+  });
+
+  const adminNavTabs = [
+    {
+      id: 'overview',
+      icon: '📊',
+      label: 'System Overview',
+      badge: 'Live',
+      badgeColor: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+    },
+    {
+      id: 'users',
+      icon: '👥',
+      label: 'User Directory',
+      badge: `${stats.totalUsers || usersList.length || 0}`,
+      badgeColor: 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+    },
+    {
+      id: 'quizzes',
+      icon: '📝',
+      label: 'Quiz Hub',
+      badge: `${activeQuizzesList.length} Active`,
+      badgeColor: 'bg-purple-500/15 text-purple-600 dark:text-purple-400'
+    },
+    {
+      id: 'previous-works',
+      icon: '💼',
+      label: 'Previous Works',
+      badge: `${previousWorksList.length || stats.totalPreviousWorks || 0}`,
+      badgeColor: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+    },
+    {
+      id: 'site-info',
+      icon: '🏛️',
+      label: 'About & Contact',
+      badge: 'Config',
+      badgeColor: 'bg-teal-500/15 text-teal-600 dark:text-teal-400'
+    },
+    {
+      id: 'partners',
+      icon: '⚖️',
+      label: 'Legal Partners',
+      badge: `${partnersList.length}`,
+      badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+    },
+    {
+      id: 'messages',
+      icon: '📬',
+      label: 'Contact Inquiries',
+      badge: messageStats.unreadCount > 0 ? `${messageStats.unreadCount} New` : `${messagesList.length || messageStats.totalAll || 0}`,
+      badgeColor: messageStats.unreadCount > 0 ? 'bg-rose-500 text-white font-bold animate-pulse' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+    },
+    {
+      id: 'rewards',
+      icon: '🏆',
+      label: 'Rewards & Tiers',
+      badge: 'Tiers',
+      badgeColor: 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+    }
+  ];
+
+  const currentActiveTabMeta = adminNavTabs.find((t) => t.id === activeTab) || adminNavTabs[0];
+
+  return (
+    <div className="max-w-[1600px] mx-auto py-5 px-3 sm:px-6 animate-fadeIn space-y-5">
+      
+      {/* ========================================================================= */}
+      {/* 📱 MOBILE / TABLET TOP TOGGLE HEADER BAR (Visible only on < lg) */}
+      {/* ========================================================================= */}
+      <div className="lg:hidden bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+            className="w-10 h-10 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-center font-bold text-lg"
+            title="Toggle Admin Navigation Menu"
+          >
+            {isMobileSidebarOpen ? '✕' : '☰'}
+          </button>
+          <div>
+            <div className="text-[10px] font-mono uppercase font-bold text-[var(--color-primary-600)]">
+              Admin Portal
+            </div>
+            <div className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-1.5">
+              <span>{currentActiveTabMeta.icon}</span>
+              <span>{currentActiveTabMeta.label}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleOpenCreateQuizModal}
+            className="px-3 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer active:scale-95 transition-all flex items-center space-x-1"
+            title="Create New Quiz"
+          >
+            <span>➕</span>
+            <span className="hidden sm:inline">Quiz</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* MAIN TWO-COLUMN LAYOUT: SIDEBAR (LEFT) + FULL PAGE CANVAS (RIGHT) */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col lg:flex-row items-start gap-6 relative">
+        
+        {/* ========================================================================= */}
+        {/* 📱 MOBILE SIDEBAR DRAWER OVERLAY (< lg) */}
+        {/* ========================================================================= */}
+        {isMobileSidebarOpen && (
+          <div
+            className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <div
+              className="w-72 max-w-[85vw] h-full bg-[var(--bg-card)] border-r border-[var(--border-theme)] p-5 shadow-2xl overflow-y-auto flex flex-col justify-between"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="space-y-6">
+                {/* Mobile Drawer Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-[var(--border-theme)]">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-[var(--color-primary-600)] text-white flex items-center justify-center text-lg font-bold shadow-md">
+                      🛡️
+                    </div>
+                    <div>
+                      <div className="font-poppins font-bold text-sm text-[var(--text-main)]">Admin Panel</div>
+                      <div className="text-[10px] font-lato text-[var(--text-muted)]">Control Center</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                    className="w-8 h-8 rounded-full border border-[var(--border-theme)] text-[var(--text-secondary)] hover:text-white hover:bg-rose-500 text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Mobile Nav Links */}
+                <nav className="space-y-1.5 font-poppins text-xs font-semibold">
+                  {adminNavTabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
+                          isActive
+                            ? 'bg-[var(--color-primary-600)] text-white font-bold shadow-md shadow-blue-500/20'
+                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-main)] hover:text-[var(--text-main)]'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className="text-base">{tab.icon}</span>
+                          <span>{tab.label}</span>
+                        </div>
+                        {tab.badge !== undefined && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                            isActive
+                              ? 'bg-white/20 text-white'
+                              : tab.badgeColor || 'bg-[var(--bg-main)] text-[var(--text-muted)]'
+                          }`}>
+                            {tab.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+
+              {/* Mobile Drawer Bottom Simple Status */}
+              <div className="pt-4 border-t border-[var(--border-theme)] flex items-center justify-between text-[11px] font-mono text-[var(--text-muted)]">
+                <span>Admin Suite</span>
+                <span className="text-emerald-500 font-bold">● Active</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 💻 DESKTOP STICKY SIDEBAR (Visible only on lg: and up) */}
+        {/* ========================================================================= */}
+        <aside className="hidden lg:flex flex-col w-64 xl:w-72 shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm sticky top-20 self-start space-y-6">
+          {/* Sidebar Brand / Identity Header */}
+          <div className="flex items-center space-x-3 pb-4 border-b border-[var(--border-theme)]">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-800)] text-white flex items-center justify-center text-2xl shadow-lg border border-white/20 shrink-0">
+              🛡️
+            </div>
+            <div className="min-w-0">
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-poppins font-bold bg-amber-400 text-slate-900 uppercase tracking-wider block w-fit">
+                Super Admin
+              </span>
+              <h2 className="font-poppins font-bold text-sm text-[var(--text-main)] truncate mt-0.5">
+                Control Portal
+              </h2>
+            </div>
+          </div>
+
+          {/* Sidebar Nav Items */}
+          <nav className="space-y-1.5 font-poppins text-xs font-semibold">
+            {adminNavTabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer group ${
+                    isActive
+                      ? 'bg-[var(--color-primary-600)] text-white font-bold shadow-lg shadow-blue-500/25 scale-[1.02]'
+                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-main)] hover:text-[var(--text-main)]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className={`text-base transition-transform group-hover:scale-110 ${isActive ? 'scale-110' : ''}`}>
+                      {tab.icon}
+                    </span>
+                    <span>{tab.label}</span>
+                  </div>
+
+                  {tab.badge !== undefined && (
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-colors ${
+                      isActive
+                        ? 'bg-white/20 text-white'
+                        : tab.badgeColor || 'bg-[var(--bg-main)] text-[var(--text-muted)]'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* ========================================================================= */}
+        {/* 📄 RIGHT-SIDE MAIN PAGE CANVAS (Occupies all remaining space) */}
+        {/* ========================================================================= */}
+        <main className="flex-1 min-w-0 space-y-6 w-full">
+          {/* Top Page Header Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-[var(--color-primary-900)] to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-amber-400 text-slate-900 uppercase">
+                  Active Section
+                </span>
+                <span className="text-xs font-mono text-blue-200">
+                  / admin / {activeTab}
+                </span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-extrabold font-poppins flex items-center space-x-2">
+                <span>{currentActiveTabMeta.icon}</span>
+                <span>
+                  {activeTab === 'overview' && 'System Overview & Analytics'}
+                  {activeTab === 'users' && 'User Directory & Permissions'}
+                  {activeTab === 'quizzes' && 'Quiz & Coding Challenge Hub'}
+                  {activeTab === 'previous-works' && 'Previous Works & Archives'}
+                  {activeTab === 'site-info' && 'About Us & Contact Manager'}
+                  {activeTab === 'partners' && 'Legal Partners & Sponsors Manager'}
+                  {activeTab === 'messages' && 'Contact Inquiries & Support Hub'}
+                  {activeTab === 'rewards' && 'Leaderboard & Reward Tiers'}
+                </span>
+              </h1>
+              <p className="text-xs font-lato text-blue-200 mt-1">
+                {activeTab === 'overview' && 'Live platform telemetry, student registrations, active vs live quiz status, and performance metrics.'}
+                {activeTab === 'users' && 'Manage all registered student accounts, promote to admins, and update role permissions.'}
+                {activeTab === 'quizzes' && 'Build, schedule, monitor live running countdowns, and configure reward structures.'}
+                {activeTab === 'previous-works' && 'Publish verified competition showcases, winner archives, and portfolio artifacts.'}
+                {activeTab === 'site-info' && 'Customize public About Us banner copy, impact counters, core values, and contact details.'}
+                {activeTab === 'partners' && 'Maintain institutional accreditation partners, verification councils, and corporate sponsors.'}
+                {activeTab === 'messages' && 'Triage and resolve incoming user inquiries, sponsorship proposals, and feedback with priority & read-status filtering.'}
+                {activeTab === 'rewards' && 'Configure reward distributions, cash prizes, and rank-group tiers.'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                onClick={handleOpenCreateQuizModal}
+                className="px-4 py-2.5 rounded-2xl bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] text-white font-poppins font-bold text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-emerald-400"
+              >
+                <span>➕ Create Quiz</span>
+              </button>
+
+              <button
+                onClick={handleOpenCreateWorkModal}
+                className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs shadow-lg shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-indigo-400"
+              >
+                <span>💼 Previous Work</span>
+              </button>
+            </div>
+          </div>
+
+      {/* TAB 1: OVERVIEW STATS */}
+      {activeTab === 'overview' && (
+        <div className="space-y-8 animate-fadeIn">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* 1. Students */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">🎓</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
+                {stats.totalStudents || 0}
+              </div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Students</div>
+            </div>
+
+            {/* 2. Admins */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">🛡️</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
+                {stats.totalAdmins || 0}
+              </div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Admins</div>
+            </div>
+
+            {/* 3. Active Quizzes (Live + Upcoming) */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">⚡</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
+                {activeQuizzesList.length}
+              </div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-bold">Active Quizzes</div>
+              <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
+                Live ({liveRunningQuizzes.length}) + Up ({upcomingQuizzesList.length})
+              </div>
+            </div>
+
+            {/* 4. Live Running (ONLY Currently Running Quizzes) */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">🔴</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-rose-500">
+                {liveRunningQuizzes.length}
+              </div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-bold">Live (Running Now)</div>
+              <div className="text-[9px] font-mono text-rose-500 mt-0.5 font-bold">
+                Running Only
+              </div>
+            </div>
+
+            {/* 5. Upcoming Quizzes */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">⏳</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-indigo-500">
+                {upcomingQuizzesList.length}
+              </div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Upcoming Quizzes</div>
+            </div>
+
+            {/* 6. Previous Works */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">💼</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-cyan-500">
+                {previousWorksList.length || stats.totalPreviousWorks || 0}
+              </div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Previous Works</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: USER MANAGEMENT */}
+      {activeTab === 'users' && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+            <div>
+              <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                Registered Users Management
+              </h3>
+              <span className="text-xs font-lato text-[var(--text-muted)]">
+                Search, filter, promote roles, and manage user access
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search name, email, school..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)]"
+              />
+
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+              >
+                <option value="all">All Roles</option>
+                <option value="student">Students Only</option>
+                <option value="admin">Admins Only</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-lato text-xs sm:text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
+                  <th className="py-3 px-2">User</th>
+                  <th className="py-3 px-2">Email</th>
+                  <th className="py-3 px-2">Role</th>
+                  <th className="py-3 px-2">School / College</th>
+                  <th className="py-3 px-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-theme)]">
+                {usersList.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="py-8 text-center text-[var(--text-muted)]">
+                      No users found.
+                    </td>
+                  </tr>
+                ) : (
+                  usersList.map((u) => (
+                    <tr key={u._id || u.email} className="hover:bg-[var(--bg-main)] transition-colors">
+                      <td className="py-3 px-2 font-bold text-[var(--text-main)] flex items-center space-x-2">
+                        <span>{u.role === 'admin' ? '🛡️' : '🎓'}</span>
+                        <span>{u.name}</span>
+                      </td>
+                      <td className="py-3 px-2 text-[var(--text-secondary)]">{u.email}</td>
+                      <td className="py-3 px-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold uppercase ${
+                          u.role === 'admin'
+                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                        }`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-[var(--text-muted)]">{u.school || 'N/A'}</td>
+                      <td className="py-3 px-2 text-right space-x-2">
+                        <button
+                          onClick={() => handleToggleRole(u)}
+                          className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                        >
+                          {u.role === 'admin' ? 'Demote to Student' : 'Promote to Admin'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteUser(u._id, u.name)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: QUIZ CREATOR & LIST */}
+      {activeTab === 'quizzes' && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                  Quiz & Code Challenge Manager
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  {quizzesList.length} Quizzes
+                </span>
+              </div>
+              <span className="text-xs font-lato text-[var(--text-muted)]">
+                Total duration automatically syncs from Start & End Times with AM/PM toggle switch.
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Status Filter Bar */}
+              <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] p-1 flex-wrap gap-1">
+                <button
+                  onClick={() => setQuizStatusFilter('all')}
+                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizStatusFilter === 'all' ? 'bg-[var(--color-primary-600)] text-white shadow-sm' : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  All ({quizzesList.length})
+                </button>
+                <button
+                  onClick={() => setQuizStatusFilter('active')}
+                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizStatusFilter === 'active' ? 'bg-emerald-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  ⚡ Active ({activeQuizzesList.length})
+                </button>
+                <button
+                  onClick={() => setQuizStatusFilter('live')}
+                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizStatusFilter === 'live' ? 'bg-rose-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  🔴 Live Now ({liveRunningQuizzes.length})
+                </button>
+                <button
+                  onClick={() => setQuizStatusFilter('upcoming')}
+                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizStatusFilter === 'upcoming' ? 'bg-indigo-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  ⏳ Upcoming ({upcomingQuizzesList.length})
+                </button>
+                <button
+                  onClick={() => setQuizStatusFilter('past')}
+                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizStatusFilter === 'past' ? 'bg-slate-600 text-white shadow-sm' : 'text-[var(--text-secondary)]'
+                  }`}
+                >
+                  📁 Past ({pastQuizzesList.length})
+                </button>
+              </div>
+
+              {/* Type Filter Bar */}
+              <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] p-1">
+                <button
+                  onClick={() => setQuizFilterType('all')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizFilterType === 'all' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  All Types
+                </button>
+                <button
+                  onClick={() => setQuizFilterType('multiple_choice')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizFilterType === 'multiple_choice' ? 'bg-[var(--bg-card)] text-[var(--color-primary-600)] font-bold shadow-sm' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  🔘 MCQ ({quizzesList.filter(q => q.quizType === 'multiple_choice' || !q.quizType).length})
+                </button>
+                <button
+                  onClick={() => setQuizFilterType('code')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                    quizFilterType === 'code' ? 'bg-[var(--bg-card)] text-indigo-500 font-bold shadow-sm' : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  💻 Code ({quizzesList.filter(q => q.quizType === 'code').length})
+                </button>
+              </div>
+
+              {/* Excel Template & Bulk Upload Quick Actions */}
+              <button
+                type="button"
+                onClick={downloadQuizQuestionsTemplate}
+                className="px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-poppins font-bold text-xs shadow-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+                title="Download structured Excel template for Quiz Questions"
+              >
+                <span>📥</span>
+                <span>Download Excel Template</span>
+              </button>
+
+              <label
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-sm cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+                title="Upload an Excel file to create a Quiz with all questions automatically parsed"
+              >
+                <span>📤</span>
+                <span>Upload Quiz via Excel</span>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleUploadQuizExcelFromToolbar}
+                  className="hidden"
+                />
+              </label>
+
+              <button
+                onClick={handleOpenCreateQuizModal}
+                className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
+              >
+                <span>➕ Create Quiz / Code Challenge</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredQuizzes.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-[var(--text-muted)] font-lato bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-6">
+                <span className="text-4xl block mb-2">📝</span>
+                <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No quizzes found.</p>
+                <button
+                  onClick={handleOpenCreateQuizModal}
+                  className="mt-4 px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-xs font-poppins font-bold cursor-pointer"
+                >
+                  Create Quiz
+                </button>
+              </div>
+            ) : (
+              filteredQuizzes.map((quiz) => {
+                const isCode = quiz.quizType === 'code';
+                const isQuick = quiz.mcqSubtype === 'quick';
+                const timerLabel = quiz.timerType === 'per_question_custom'
+                  ? '🎯 Custom Time/Q'
+                  : quiz.timerType === 'total_quiz'
+                  ? `⏳ ${quiz.durationMinutes || 60}m Total`
+                  : `⏱️ ${quiz.generalQuestionTimerSeconds || 15}s / Q`;
+
+                return (
+                  <div
+                    key={quiz._id || quiz.id || quiz.title}
+                    className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-5 rounded-2xl space-y-3 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+                  >
+                    <div>
+                      <div className="flex justify-between items-center mb-2 flex-wrap gap-1">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                          {quiz.category || 'Web Dev'}
+                        </span>
+                        
+                        <div className="flex items-center space-x-1.5">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-poppins font-semibold bg-slate-200 dark:bg-slate-800 text-[var(--text-secondary)]">
+                            {timerLabel}
+                          </span>
+
+                          {isCode ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-poppins font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-300">
+                              💻 Code
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-poppins font-bold ${
+                              isQuick
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                            }`}>
+                              {isQuick ? '⚡ Quick' : '📝 Standard'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors">
+                        {quiz.title}
+                      </h4>
+                      <p className="font-lato text-xs text-[var(--text-muted)] line-clamp-2 mt-1">
+                        {quiz.quickDetails || quiz.description}
+                      </p>
+
+                      <div className="mt-3 pt-2 border-t border-[var(--border-theme)] flex items-center justify-between">
+                        <QuizCountdownBadge quiz={quiz} />
+                        <span className="text-[11px] font-lato text-[var(--text-muted)] font-bold">
+                          ⏱️ {quiz.durationMinutes || 60}m
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--border-theme)] flex justify-between items-center text-xs">
+                      <span className="text-[10px] text-[var(--text-muted)] font-lato">
+                        {quiz.startDate} {quiz.startTime}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleOpenEditQuizModal(quiz)}
+                          className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white transition-colors cursor-pointer font-bold"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuiz(quiz._id || quiz.id, quiz.title)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer font-bold"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: PREVIOUS WORKS */}
+      {activeTab === 'previous-works' && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                  Previous Works Showcase
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                  {previousWorksList.length} Items
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleOpenCreateWorkModal}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
+              >
+                <span>➕ Add Previous Work</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filteredPreviousWorks.map((work) => (
+              <div
+                key={work._id || work.id}
+                className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+              >
+                <div>
+                  <div className={`h-28 rounded-xl bg-gradient-to-r ${work.gradient || 'from-blue-500 to-indigo-600'} p-3 text-white flex flex-col justify-between mb-3 shadow-sm relative overflow-hidden`}>
+                    <div className="flex justify-between items-start z-10">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-poppins bg-black/25 backdrop-blur-md">
+                        {work.badge || 'Completed'}
+                      </span>
+                      <span className="text-[10px] font-medium font-lato bg-white/25 px-2 py-0.5 rounded-md backdrop-blur-md">
+                        🏆 {work.topWinner || 'Top Winner'}
+                      </span>
+                    </div>
+                    <div className="z-10">
+                      <div className="text-[10px] font-lato opacity-80">{work.category || 'Challenge'}</div>
+                      <div className="font-poppins font-bold text-sm line-clamp-1">{work.title}</div>
+                    </div>
+                  </div>
+
+                  <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] mb-1 line-clamp-1">
+                    {work.title}
+                  </h4>
+                  <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-2 mb-3">
+                    {work.description}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-[var(--text-muted)] font-semibold">
+                    👥 {work.participantsCount || '1.2k Scholars'}
+                  </span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleOpenEditWorkModal(work)}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteWork(work._id || work.id, work.title)}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: ABOUT US & CONTACT INFO EDITOR */}
+      {activeTab === 'site-info' && (
+        <form onSubmit={handleSaveSiteSettings} className="space-y-8 animate-fadeIn">
+          {/* 1. ABOUT US SECTION */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-theme)] pb-4">
+              <div>
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                  <span>🏛️</span>
+                  <span>About Us Page Content Configuration</span>
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Edit hero banners, brand headlines, impact statistics, and core values displayed on the public About page
+                </p>
+              </div>
+              <button
+                type="submit"
+                disabled={isSavingSettings}
+                className="px-5 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingSettings ? '⏳ Saving...' : '💾 Save Changes'}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-poppins">
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Hero Badge Label</label>
+                <input
+                  type="text"
+                  value={siteSettings.about?.heroBadge || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    about: { ...prev.about, heroBadge: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Hero Title Heading</label>
+                <input
+                  type="text"
+                  value={siteSettings.about?.heroTitle || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    about: { ...prev.about, heroTitle: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="col-span-full space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Hero Subtitle / Mission Statement</label>
+                <textarea
+                  rows="2"
+                  value={siteSettings.about?.heroSubtitle || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    about: { ...prev.about, heroSubtitle: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Impact Stats Editor */}
+            <div className="space-y-3 pt-2 border-t border-[var(--border-theme)]">
+              <div className="flex items-center justify-between">
+                <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                  📊 Impact Stats Counters ({siteSettings.about?.impactStats?.length || 0})
+                </h4>
+                <button
+                  type="button"
+                  onClick={handleAddImpactStat}
+                  className="px-3 py-1 rounded-lg bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold text-xs cursor-pointer"
+                >
+                  + Add Stat
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                {(siteSettings.about?.impactStats || []).map((stat, idx) => (
+                  <div key={idx} className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImpactStat(idx)}
+                      className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                    <div>
+                      <label className="text-[10px] text-[var(--text-muted)] block">Stat Number</label>
+                      <input
+                        type="text"
+                        value={stat.number}
+                        onChange={(e) => {
+                          const newStats = [...siteSettings.about.impactStats];
+                          newStats[idx].number = e.target.value;
+                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, impactStats: newStats } }));
+                        }}
+                        className="w-full p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-bold text-[var(--color-primary-600)] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[var(--text-muted)] block">Label</label>
+                      <input
+                        type="text"
+                        value={stat.label}
+                        onChange={(e) => {
+                          const newStats = [...siteSettings.about.impactStats];
+                          newStats[idx].label = e.target.value;
+                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, impactStats: newStats } }));
+                        }}
+                        className="w-full p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Core Values Editor */}
+            <div className="space-y-3 pt-2 border-t border-[var(--border-theme)]">
+              <div className="flex items-center justify-between">
+                <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                  💎 Core Values & Platform Pillars ({siteSettings.about?.coreValues?.length || 0})
+                </h4>
+                <button
+                  type="button"
+                  onClick={handleAddCoreValue}
+                  className="px-3 py-1 rounded-lg bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold text-xs cursor-pointer"
+                >
+                  + Add Value
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {(siteSettings.about?.coreValues || []).map((val, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCoreValue(idx)}
+                      className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={val.icon}
+                        onChange={(e) => {
+                          const newVals = [...siteSettings.about.coreValues];
+                          newVals[idx].icon = e.target.value;
+                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
+                        }}
+                        className="w-10 p-1.5 text-center rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-sm focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        value={val.title}
+                        onChange={(e) => {
+                          const newVals = [...siteSettings.about.coreValues];
+                          newVals[idx].title = e.target.value;
+                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
+                        }}
+                        placeholder="Value Title"
+                        className="flex-1 p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-bold text-[var(--text-main)] focus:outline-none"
+                      />
+                    </div>
+                    <textarea
+                      rows="2"
+                      value={val.description}
+                      onChange={(e) => {
+                        const newVals = [...siteSettings.about.coreValues];
+                        newVals[idx].description = e.target.value;
+                        setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
+                      }}
+                      placeholder="Description"
+                      className="w-full p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-secondary)] resize-none focus:outline-none"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. CONTACT US SECTION */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+            <div className="border-b border-[var(--border-theme)] pb-4">
+              <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                <span>📞</span>
+                <span>Contact Us Page & Support Channels</span>
+              </h3>
+              <p className="text-xs font-lato text-[var(--text-muted)]">
+                Configure primary email, phone line, office location, support hours, and social media channels
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-poppins">
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Official Support Email *</label>
+                <input
+                  type="email"
+                  value={siteSettings.contact?.supportEmail || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, supportEmail: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Contact Phone Number</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.phone || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, phone: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Support Working Hours</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.supportHours || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, supportHours: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Headquarters / Office Address</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.headquarters || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, headquarters: e.target.value }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Twitter / X URL</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.socialLinks?.twitter || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, twitter: e.target.value } }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">GitHub URL</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.socialLinks?.github || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, github: e.target.value } }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">LinkedIn URL</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.socialLinks?.linkedin || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, linkedin: e.target.value } }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Discord Server URL</label>
+                <input
+                  type="text"
+                  value={siteSettings.contact?.socialLinks?.discord || ''}
+                  onChange={(e) => setSiteSettings(prev => ({
+                    ...prev,
+                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, discord: e.target.value } }
+                  }))}
+                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 border-t border-[var(--border-theme)]">
+              <button
+                type="submit"
+                disabled={isSavingSettings}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-poppins font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                {isSavingSettings ? '⏳ Saving Site Info...' : '💾 Save All Site Info & Contact Settings'}
+              </button>
+            </div>
+          </div>
+        </form>
+      )}
+
+      {/* TAB: LEGAL PARTNERS & INSTITUTIONAL SPONSORS */}
+      {activeTab === 'partners' && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                  ⚖️ Legal Partners & Sponsors Manager
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                  {partnersList.length} Partners
+                </span>
+              </div>
+              <p className="text-xs font-lato text-[var(--text-muted)]">
+                Manage legal verification councils, academic institutions, and sponsor partners shown across the platform
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenCreatePartnerModal}
+              className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+            >
+              <span>➕ Add Legal Partner / Sponsor</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {partnersList.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-[var(--text-muted)] font-lato bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-6">
+                <span className="text-4xl block mb-2">⚖️</span>
+                <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No partners configured yet.</p>
+                <button
+                  onClick={handleOpenCreatePartnerModal}
+                  className="mt-4 px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-xs font-poppins font-bold cursor-pointer"
+                >
+                  Add First Partner
+                </button>
+              </div>
+            ) : (
+              partnersList.map((partner) => (
+                <div
+                  key={partner._id || partner.id}
+                  className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm">
+                          {partner.logoUrl || '⚖️'}
+                        </div>
+                        <div>
+                          <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1">
+                            {partner.name}
+                          </h4>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold inline-block mt-0.5">
+                            {partner.type}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-3">
+                      {partner.description || 'No description provided.'}
+                    </p>
+
+                    {partner.websiteUrl && (
+                      <a
+                        href={partner.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-mono text-[var(--color-primary-600)] hover:underline inline-block truncate max-w-full"
+                      >
+                        🔗 {partner.websiteUrl}
+                      </a>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
+                    <span className={`text-[10px] font-poppins font-bold px-2 py-0.5 rounded-full ${
+                      partner.status === 'active'
+                        ? 'bg-emerald-500/10 text-emerald-600'
+                        : 'bg-slate-500/10 text-slate-500'
+                    }`}>
+                      {partner.status === 'active' ? '● Active' : '○ Inactive'}
+                    </span>
+
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleOpenEditPartnerModal(partner)}
+                        className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeletePartner(partner._id || partner.id, partner.name)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                      >
+                        🗑️ Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: CONTACT INQUIRIES & MESSAGES HUB */}
+      {activeTab === 'messages' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* TOP KPI COUNTERS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">📬</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
+                {messageStats.totalAll || messagesList.length}
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Total Inquiries</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-rose-500/30 p-4 rounded-2xl text-center shadow-sm bg-rose-500/5">
+              <span className="text-2xl block mb-1">🔴</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-rose-600 dark:text-rose-400">
+                {messageStats.unreadCount}
+              </div>
+              <div className="text-[10px] font-lato text-rose-600 dark:text-rose-400 uppercase font-semibold">Unread Inquiries</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-amber-500/30 p-4 rounded-2xl text-center shadow-sm bg-amber-500/5">
+              <span className="text-2xl block mb-1">🚨</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-600 dark:text-amber-400">
+                {messageStats.urgentCount}
+              </div>
+              <div className="text-[10px] font-lato text-amber-600 dark:text-amber-400 uppercase font-semibold">High / Urgent</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+              <span className="text-2xl block mb-1">⏳</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-secondary-600)]">
+                {messageStats.lastWeekCount}
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Received This Week</div>
+            </div>
+          </div>
+
+          {/* FILTER TOOLBAR: DATE RANGE (last_week default / last_month / all) + READ/UNREAD + PRIORITY + SEARCH */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+              
+              {/* DATE RANGE FILTER BUTTONS (DEFAULT: LAST WEEK) */}
+              <div className="flex items-center space-x-1.5 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
+                <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] px-2 uppercase">Date:</span>
+                {[
+                  { id: 'last_week', label: '📅 Last Week (Default)' },
+                  { id: 'last_month', label: '📅 Last Month' },
+                  { id: 'all', label: '📅 All Time' }
+                ].map((dTab) => (
+                  <button
+                    key={dTab.id}
+                    onClick={() => setMsgDateFilter(dTab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      msgDateFilter === dTab.id
+                        ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                    }`}
+                  >
+                    {dTab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* READ / UNREAD STATUS TABS */}
+              <div className="flex items-center space-x-1.5 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] self-start sm:self-auto">
+                <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] px-2 uppercase">Status:</span>
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'unread', label: '🔴 Unread' },
+                  { id: 'read', label: '🟢 Read' }
+                ].map((rTab) => (
+                  <button
+                    key={rTab.id}
+                    onClick={() => setMsgReadFilter(rTab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold transition-all cursor-pointer ${
+                      msgReadFilter === rTab.id
+                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                    }`}
+                  >
+                    {rTab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* PRIORITY FILTER DROPDOWN */}
+              <div className="flex items-center space-x-2">
+                <label className="text-xs font-poppins font-bold text-[var(--text-muted)] whitespace-nowrap">
+                  Priority:
+                </label>
+                <select
+                  value={msgPriorityFilter}
+                  onChange={(e) => setMsgPriorityFilter(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)]"
+                >
+                  <option value="all">⚡ All Priorities</option>
+                  <option value="urgent">🚨 Urgent Priority</option>
+                  <option value="high">🔥 High Priority</option>
+                  <option value="medium">⚡ Medium Priority</option>
+                  <option value="low">🌱 Low Priority</option>
+                </select>
+              </div>
+
+              {/* SEARCH INPUT */}
+              <div className="relative flex-1 lg:max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Search sender, email, subject..."
+                  value={msgSearchQuery}
+                  onChange={(e) => setMsgSearchQuery(e.target.value)}
+                  className="w-full px-3.5 py-2 pl-9 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                />
+                <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)]">🔍</span>
+                {msgSearchQuery && (
+                  <button
+                    onClick={() => setMsgSearchQuery('')}
+                    className="absolute right-2.5 top-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* MESSAGES LIST / CARDS */}
+          {isLoadingMessages ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] animate-pulse h-28"></div>
+              ))}
+            </div>
+          ) : messagesList.length === 0 ? (
+            <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] p-8">
+              <span className="text-4xl block mb-2">📭</span>
+              <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">No Inquiries Found</h3>
+              <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
+                Try switching date filter to "All Time" or reset read/priority filters.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {messagesList.map((msg) => {
+                const isUrgent = msg.priority === 'urgent';
+                const isHigh = msg.priority === 'high';
+                const isMedium = msg.priority === 'medium';
+                const isUnread = !msg.isRead;
+
+                return (
+                  <div
+                    key={msg._id || msg.id}
+                    className={`p-5 rounded-2xl border transition-all relative ${
+                      isUnread
+                        ? 'bg-[var(--bg-card)] border-blue-500/40 shadow-md shadow-blue-500/5'
+                        : 'bg-[var(--bg-card)] border-[var(--border-theme)] opacity-90'
+                    }`}
+                  >
+                    {/* Top Row: Sender Info, Category, Priority, Date, Quick Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary-600)] to-indigo-600 text-white font-poppins font-bold text-sm flex items-center justify-center shadow-sm shrink-0">
+                          {msg.name ? msg.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-1.5">
+                              <span>{msg.name}</span>
+                              {isUnread && (
+                                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                              )}
+                            </h4>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] font-semibold">
+                              {msg.category || 'Support'}
+                            </span>
+                          </div>
+                          <a
+                            href={`mailto:${msg.email}`}
+                            className="text-xs font-mono text-[var(--color-primary-600)] hover:underline block"
+                          >
+                            {msg.email}
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Priority Badge */}
+                        <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase border ${
+                          isUrgent
+                            ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 animate-pulse'
+                            : isHigh
+                            ? 'bg-orange-500/10 text-orange-600 border-orange-500/30'
+                            : isMedium
+                            ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
+                            : 'bg-slate-500/10 text-slate-600 border-slate-500/30'
+                        }`}>
+                          {msg.priority === 'urgent' && '🚨 Urgent'}
+                          {msg.priority === 'high' && '🔥 High'}
+                          {msg.priority === 'medium' && '⚡ Medium'}
+                          {msg.priority === 'low' && '🌱 Low'}
+                        </span>
+
+                        {/* Date Tag */}
+                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                          {new Date(msg.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Middle: Subject & Message Body */}
+                    <div className="bg-[var(--bg-main)] p-3.5 rounded-xl border border-[var(--border-theme)] mb-3">
+                      <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] mb-1">
+                        📌 {msg.subject}
+                      </div>
+                      <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                        {msg.message}
+                      </p>
+                    </div>
+
+                    {/* Bottom Action Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleOpenMessageModal(msg)}
+                          className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer flex items-center space-x-1"
+                        >
+                          <span>👁️ View Details</span>
+                        </button>
+
+                        <a
+                          href={`mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}`}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer flex items-center space-x-1"
+                        >
+                          <span>✉️ Reply</span>
+                        </a>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleToggleMessageRead(msg._id || msg.id, msg.isRead)}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-poppins font-bold border transition-colors cursor-pointer ${
+                            msg.isRead
+                              ? 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                              : 'bg-blue-500/10 border-blue-500/30 text-[var(--color-primary-600)] hover:bg-blue-500/20'
+                          }`}
+                        >
+                          {msg.isRead ? 'Mark as Unread' : '✓ Mark Read'}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteMessage(msg._id || msg.id, msg.name)}
+                          className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 text-xs font-bold transition-colors cursor-pointer"
+                          title="Delete message"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 7: REWARDS */}
+      {activeTab === 'rewards' && (
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+          <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] border-b border-[var(--border-theme)] pb-3">
+            🏆 Platform Default Reward Tiers & Leaderboards
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
+              <span className="text-3xl block">🥇</span>
+              <div className="font-poppins font-bold text-sm">1st Place Tier</div>
+              <div className="text-xs text-[var(--text-muted)]">$500 Cash + Gold Trophy</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
+              <span className="text-3xl block">🥈</span>
+              <div className="font-poppins font-bold text-sm">2nd Place Tier</div>
+              <div className="text-xs text-[var(--text-muted)]">$250 Cash + Silver Medal</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
+              <span className="text-3xl block">🥉</span>
+              <div className="font-poppins font-bold text-sm">3rd Place Tier</div>
+              <div className="text-xs text-[var(--text-muted)]">$100 Cash + Bronze Medal</div>
+            </div>
+            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
+              <span className="text-3xl block">🏅</span>
+              <div className="font-poppins font-bold text-sm">Ranks 4-10th (Group)</div>
+              <div className="text-xs text-[var(--text-muted)]">Pro Membership & Swag Box</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+        </main>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 🚀 QUIZ CREATOR / BUILDER MODAL WITH REWARDS & RANK GROUPS BUILDER */}
+      {/* ========================================================================= */}
+      {isQuizModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-3xl bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-[32px] p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[92vh] custom-scrollbar relative">
+            <button
+              onClick={() => setIsQuizModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center space-x-3 mb-6">
+              <span className="text-3xl">
+                {quizFormData.quizType === 'code' ? '💻' : '📝'}
+              </span>
+              <div>
+                <h3 className="text-xl font-bold font-poppins">
+                  {editingQuizId ? 'Edit Quiz / Challenge' : 'Create New Assessment Challenge'}
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Configure quiz details, dynamic timings, individual ranks & rank group reward tiers.
+                </p>
+              </div>
+            </div>
+
+            {/* REAL-TIME AUTO STATUS & COUNTDOWN PREVIEW BANNER */}
+            <div className="mb-6 p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] uppercase font-poppins font-bold text-[var(--text-muted)]">
+                  Automatic Dynamic Status:
+                </div>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-poppins font-bold uppercase ${
+                    modalLiveCountdown.status === 'running'
+                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300'
+                      : modalLiveCountdown.status === 'upcoming'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300'
+                      : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border border-slate-300'
+                  }`}>
+                    {modalLiveCountdown.status === 'running' ? '🔴 Live Now' : modalLiveCountdown.status === 'upcoming' ? '⏳ Upcoming' : '🏁 Past / Archived'}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[var(--text-secondary)]">
+                    {modalLiveCountdown.label} {modalLiveCountdown.formattedText}
+                  </span>
+                </div>
+              </div>
+
+              {/* DYNAMIC CALCULATED DURATION BADGE */}
+              <div className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-50)] dark:bg-blue-950/50 border border-[var(--color-primary-300)] text-[var(--color-primary-700)] dark:text-blue-300 text-xs font-poppins font-bold flex items-center space-x-1.5">
+                <span>⏱️ Exam Duration:</span>
+                <span className="underline">{dynamicDuration.formattedDuration}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveQuizSubmit} className="space-y-6 font-lato text-xs sm:text-sm">
+              
+              {/* STEP 1: CATEGORY TYPE SELECTION */}
+              <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 rounded-2xl space-y-3">
+                <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider">
+                  Quiz Category Type *
+                </label>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setQuizFormData({ ...quizFormData, quizType: 'multiple_choice' })}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start space-x-3 ${
+                      quizFormData.quizType === 'multiple_choice'
+                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 dark:bg-blue-950/30'
+                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-blue-400'
+                    }`}
+                  >
+                    <span className="text-2xl mt-0.5">🔘</span>
+                    <div>
+                      <div className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                        Multiple Choice (MCQ)
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                        Multiple choice options with configurable per-question or exam timer.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setQuizFormData({ ...quizFormData, quizType: 'code' })}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start space-x-3 ${
+                      quizFormData.quizType === 'code'
+                        ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/30'
+                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-indigo-400'
+                    }`}
+                  >
+                    <span className="text-2xl mt-0.5">💻</span>
+                    <div>
+                      <div className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                        Code Challenge (Problem Solving)
+                      </div>
+                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
+                        Real-world problem, Code IDE, test cases & Camera/Mic Anti-Cheating.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* TIMING CONFIGURATION MODE */}
+              <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-5 rounded-2xl space-y-4">
+                <div>
+                  <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider">
+                    ⏱️ Question Timing Configuration Mode *
+                  </label>
+                  <span className="text-xs font-lato text-[var(--text-muted)]">
+                    Choose how time countdowns are applied to questions.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div
+                    onClick={() => setQuizFormData({ ...quizFormData, timerType: 'per_question_general' })}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      quizFormData.timerType === 'per_question_general'
+                        ? 'border-amber-500 bg-amber-500/10 text-[var(--text-main)]'
+                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-amber-400'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-lg mb-1">⏱️</div>
+                      <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                        General Time Each Question
+                      </div>
+                      <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
+                        Uniform countdown for every question (e.g. 15s each).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setQuizFormData({ ...quizFormData, timerType: 'per_question_custom' })}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      quizFormData.timerType === 'per_question_custom'
+                        ? 'border-indigo-500 bg-indigo-500/10 text-[var(--text-main)]'
+                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-indigo-400'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-lg mb-1">🎯</div>
+                      <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                        Custom Time Each Question
+                      </div>
+                      <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
+                        Specify individual timer per question (e.g. Q1: 15s, Q2: 45s).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setQuizFormData({ ...quizFormData, timerType: 'total_quiz' })}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                      quizFormData.timerType === 'total_quiz'
+                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 text-[var(--text-main)]'
+                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-blue-400'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-lg mb-1">⏳</div>
+                      <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                        Total Time for Quiz
+                      </div>
+                      <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
+                        Uses dynamically calculated total duration from start/end times.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {quizFormData.timerType === 'per_question_general' && (
+                  <div className="p-3.5 bg-[var(--bg-card)] rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                    <div>
+                      <label className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400 block">
+                        ⚡ General Time Per Question:
+                      </label>
+                      <span className="text-[11px] font-lato text-[var(--text-muted)]">
+                        Configure countdown unit in seconds or minutes per question.
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      {/* Unit Selector Toggle */}
+                      <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setTimerUnit('sec')}
+                          className={`px-2.5 py-1 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                            timerUnit === 'sec'
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                          }`}
+                        >
+                          sec / q
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setTimerUnit('min')}
+                          className={`px-2.5 py-1 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                            timerUnit === 'min'
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                          }`}
+                        >
+                          min / q
+                        </button>
+                      </div>
+
+                      {timerUnit === 'sec' ? (
+                        <div className="flex items-center space-x-1.5">
+                          <input
+                            type="number"
+                            min="5"
+                            max="600"
+                            step="5"
+                            value={quizFormData.generalQuestionTimerSeconds}
+                            onChange={(e) =>
+                              setQuizFormData({
+                                ...quizFormData,
+                                generalQuestionTimerSeconds: Math.max(5, Number(e.target.value)),
+                                quickTimerSeconds: Math.max(5, Number(e.target.value))
+                              })
+                            }
+                            className="w-20 px-2 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-mono font-bold text-center"
+                          />
+                          <span className="text-xs font-poppins text-[var(--text-muted)]">sec</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-1.5">
+                          <input
+                            type="number"
+                            min="0.1"
+                            max="10"
+                            step="0.1"
+                            value={Number((quizFormData.generalQuestionTimerSeconds / 60).toFixed(1))}
+                            onChange={(e) => {
+                              const mins = Number(e.target.value);
+                              const secs = Math.max(5, Math.round(mins * 60));
+                              setQuizFormData({
+                                ...quizFormData,
+                                generalQuestionTimerSeconds: secs,
+                                quickTimerSeconds: secs
+                              });
+                            }}
+                            className="w-20 px-2 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-mono font-bold text-center"
+                          />
+                          <span className="text-xs font-poppins text-[var(--text-muted)]">
+                            min ({quizFormData.generalQuestionTimerSeconds}s)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* BASIC DETAILS (TITLE, CATEGORY, TECH STACK) */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1">Quiz / Challenge Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Next.js Architecture Challenge"
+                    value={quizFormData.title}
+                    onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-poppins font-bold text-xs mb-1">Category</label>
+                    <select
+                      value={quizFormData.category}
+                      onChange={(e) => setQuizFormData({ ...quizFormData, category: e.target.value })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                    >
+                      <option value="Web Dev">Web Dev</option>
+                      <option value="Frontend">Frontend</option>
+                      <option value="Backend">Backend</option>
+                      <option value="CS Algo">CS Algo / Data Structures</option>
+                      <option value="Data & AI">Data & AI</option>
+                      <option value="UI / UX">UI / UX</option>
+                      <option value="DevOps">DevOps</option>
+                      <option value="Cybersecurity">Cybersecurity</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-poppins font-bold text-xs mb-1">Tech Stack (comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="JavaScript, React, Algorithms, Node.js"
+                      value={quizFormData.techStack}
+                      onChange={(e) => setQuizFormData({ ...quizFormData, techStack: e.target.value })}
+                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                    />
+                  </div>
+                </div>
+
+                {/* SCHEDULE TIMINGS WITH REAL-TIME DURATION & AM/PM TOGGLES */}
+                <div className="p-5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-4">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="font-poppins font-bold text-xs uppercase text-[var(--text-main)] block">
+                      Schedule Timings & Auto-Calculated Duration:
+                    </span>
+                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-[var(--color-primary-600)] text-white font-bold">
+                      Calculated Duration: {dynamicDuration.formattedDuration}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    
+                    {/* START DATE & TIME WITH DROPDOWN + AM/PM TOGGLE */}
+                    <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-theme)] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-poppins font-bold text-[var(--text-main)]">
+                          Start Schedule (Default: Current)
+                        </label>
+                        <span className="text-[10px] text-emerald-500 font-mono font-bold">● Starts</span>
+                      </div>
+
+                      {/* Start Date (DD-Mon-YYYY) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-[var(--text-muted)] uppercase">
+                            Start Date (DD-Mon-YYYY)
+                          </label>
+                          <span className="text-[10px] font-mono text-[var(--color-primary-600)] font-semibold">
+                            e.g. 14-Aug-2026
+                          </span>
+                        </div>
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            required
+                            placeholder="DD-Mon-YYYY (e.g. 14-Aug-2026)"
+                            value={quizFormData.startDate}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, startDate: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)]"
+                          />
+                          {/* Interactive calendar picker synced to DD-Mon-YYYY */}
+                          <input
+                            type="date"
+                            tabIndex={-1}
+                            aria-label="Pick start date"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                setQuizFormData({
+                                  ...quizFormData,
+                                  startDate: formatDateToDDMonYYYY(e.target.value)
+                                });
+                              }
+                            }}
+                            className="absolute right-2.5 w-5 h-5 opacity-40 hover:opacity-100 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Start Time Dropdown */}
+                      <div>
+                        <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-1">
+                          Start Time & Period
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <select
+                            value={quizFormData.startTime}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, startTime: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                          >
+                            {!STANDARD_TIME_OPTIONS.includes(quizFormData.startTime) && (
+                              <option value={quizFormData.startTime}>{quizFormData.startTime}</option>
+                            )}
+                            {STANDARD_TIME_OPTIONS.map((tOpt) => (
+                              <option key={tOpt} value={tOpt}>{tOpt}</option>
+                            ))}
+                          </select>
+
+                          <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setQuizFormData({ ...quizFormData, startPeriod: 'AM' })}
+                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                quizFormData.startPeriod === 'AM'
+                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              AM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQuizFormData({ ...quizFormData, startPeriod: 'PM' })}
+                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                quizFormData.startPeriod === 'PM'
+                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              PM
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* END DATE & TIME WITH DROPDOWN + AM/PM TOGGLE */}
+                    <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-theme)] space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-poppins font-bold text-[var(--text-main)]">
+                          End Schedule (Closes Quiz)
+                        </label>
+                        <span className="text-[10px] text-rose-500 font-mono font-bold">■ Ends</span>
+                      </div>
+
+                      {/* End Date (DD-Mon-YYYY) */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] text-[var(--text-muted)] uppercase">
+                            End Date (DD-Mon-YYYY)
+                          </label>
+                          <span className="text-[10px] font-mono text-rose-500 font-semibold">
+                            e.g. 14-Aug-2026
+                          </span>
+                        </div>
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            required
+                            placeholder="DD-Mon-YYYY (e.g. 14-Aug-2026)"
+                            value={quizFormData.endDate}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, endDate: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)]"
+                          />
+                          {/* Interactive calendar picker synced to DD-Mon-YYYY */}
+                          <input
+                            type="date"
+                            tabIndex={-1}
+                            aria-label="Pick end date"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                setQuizFormData({
+                                  ...quizFormData,
+                                  endDate: formatDateToDDMonYYYY(e.target.value)
+                                });
+                              }
+                            }}
+                            className="absolute right-2.5 w-5 h-5 opacity-40 hover:opacity-100 cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      {/* End Time Dropdown */}
+                      <div>
+                        <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-1">
+                          End Time & Period
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          <select
+                            value={quizFormData.endTime}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, endTime: e.target.value })}
+                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                          >
+                            {!STANDARD_TIME_OPTIONS.includes(quizFormData.endTime) && (
+                              <option value={quizFormData.endTime}>{quizFormData.endTime}</option>
+                            )}
+                            {STANDARD_TIME_OPTIONS.map((tOpt) => (
+                              <option key={tOpt} value={tOpt}>{tOpt}</option>
+                            ))}
+                          </select>
+
+                          <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setQuizFormData({ ...quizFormData, endPeriod: 'AM' })}
+                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                quizFormData.endPeriod === 'AM'
+                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              AM
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQuizFormData({ ...quizFormData, endPeriod: 'PM' })}
+                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                quizFormData.endPeriod === 'PM'
+                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              PM
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* ========================================================================= */}
+                {/* 🏆 REWARDS & RANK TIERS (INDIVIDUAL & GROUP OF RANKS BUILDER) */}
+                {/* ========================================================================= */}
+                <div className="p-5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-poppins font-bold text-xs uppercase text-[var(--text-main)] block">
+                        🏆 Competition Rewards & Rank Tiers (Individual & Group Ranges):
+                      </span>
+                      <span className="text-xs font-lato text-[var(--text-muted)]">
+                        Define prizes for top single ranks (1st, 2nd, 3rd) and group ranges (4-10th, 11-50th, Top 100).
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddRewardTier}
+                      className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-poppins font-bold cursor-pointer"
+                    >
+                      ➕ Add Rank / Group Tier
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(quizFormData.rewards || []).map((reward, rIdx) => (
+                      <div
+                        key={rIdx}
+                        className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-3.5 rounded-xl space-y-2 relative"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400">
+                            Tier #{rIdx + 1}: {reward.place} ({reward.badge})
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRewardTier(rIdx)}
+                            className="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+                          >
+                            ✕ Remove
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                              Rank or Group Range
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 1st or 4-10th"
+                              value={reward.place}
+                              onChange={(e) => {
+                                const updated = [...quizFormData.rewards];
+                                updated[rIdx].place = e.target.value;
+                                setQuizFormData({ ...quizFormData, rewards: updated });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-bold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                              Badge Title
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. 🥇 Winner or 🏅 Top 10"
+                              value={reward.badge}
+                              onChange={(e) => {
+                                const updated = [...quizFormData.rewards];
+                                updated[rIdx].badge = e.target.value;
+                                setQuizFormData({ ...quizFormData, rewards: updated });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                              Prize Package
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="e.g. $500 Cash + Trophy"
+                              value={reward.prize}
+                              onChange={(e) => {
+                                const updated = [...quizFormData.rewards];
+                                updated[rIdx].prize = e.target.value;
+                                setQuizFormData({ ...quizFormData, rewards: updated });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                            Description / Perks
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. Top Rank Certificate + Exclusive Swag Kit"
+                            value={reward.description}
+                            onChange={(e) => {
+                              const updated = [...quizFormData.rewards];
+                              updated[rIdx].description = e.target.value;
+                              setQuizFormData({ ...quizFormData, rewards: updated });
+                            }}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1">Quick Overview Summary</label>
+                  <textarea
+                    rows="2"
+                    placeholder="Short description of the challenge..."
+                    value={quizFormData.quickDetails}
+                    onChange={(e) => setQuizFormData({ ...quizFormData, quickDetails: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)] resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* SECTION A: MULTIPLE CHOICE & CODE PATTERN QUESTIONS */}
+              {quizFormData.quizType === 'multiple_choice' && (
+                <div className="space-y-4 pt-4 border-t border-[var(--border-theme)] animate-fadeIn">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div>
+                      <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                        Questions List ({quizFormData.questions.length})
+                      </h4>
+                      <span className="text-xs font-lato text-[var(--text-muted)]">
+                        Add Standard MCQs or Code Pattern / Bug Fix questions with code snippets.
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={downloadQuizQuestionsTemplate}
+                        className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1"
+                        title="Download structured Excel (.xlsx) template for Quiz questions"
+                      >
+                        <span>📥</span>
+                        <span>Excel Template</span>
+                      </button>
+
+                      <label
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 shadow-sm flex items-center space-x-1"
+                        title="Import questions from an Excel (.xlsx/.csv) file into this quiz"
+                      >
+                        <span>📤</span>
+                        <span>Import Excel</span>
+                        <input
+                          type="file"
+                          accept=".xlsx, .xls, .csv"
+                          onChange={(e) => handleExcelQuizQuestionsUpload(e, 'append')}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuestion('mcq')}
+                        className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                      >
+                        ➕ Add MCQ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAddQuestion('pattern')}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                      >
+                        🧩 Add Code Pattern / Bug Fix
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {quizFormData.questions.map((q, qIndex) => (
+                      <div
+                        key={qIndex}
+                        className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 sm:p-5 rounded-2xl space-y-3.5 relative"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-2.5">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-xs font-poppins font-bold text-[var(--color-primary-600)]">
+                              Question #{qIndex + 1}
+                            </span>
+                            
+                            {/* Question Type Switcher */}
+                            <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] p-0.5 text-[11px]">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...quizFormData.questions];
+                                  updated[qIndex].questionType = 'mcq';
+                                  setQuizFormData({ ...quizFormData, questions: updated });
+                                }}
+                                className={`px-2 py-0.5 rounded font-poppins font-semibold cursor-pointer transition-all ${
+                                  (q.questionType || 'mcq') === 'mcq'
+                                    ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                }`}
+                              >
+                                🔘 Standard MCQ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...quizFormData.questions];
+                                  updated[qIndex].questionType = 'pattern';
+                                  if (!updated[qIndex].codeSnippet) {
+                                    updated[qIndex].codeSnippet = '// Code snippet that needs fixing\nfunction calculateTotal(items) {\n  let total = 0;\n  for (let i = 0; i <= items.length; i++) {\n    total += items[i].price;\n  }\n  return total;\n}';
+                                  }
+                                  setQuizFormData({ ...quizFormData, questions: updated });
+                                }}
+                                className={`px-2 py-0.5 rounded font-poppins font-semibold cursor-pointer transition-all ${
+                                  q.questionType === 'pattern'
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                }`}
+                              >
+                                🧩 Code Pattern / Bug Fix
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center space-x-3">
+                            {quizFormData.timerType === 'per_question_custom' && (
+                              <div className="flex items-center space-x-1.5 bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-indigo-400/40">
+                                <span className="text-[11px] font-poppins font-bold text-indigo-600 dark:text-indigo-400">⏱️ Time:</span>
+                                <input
+                                  type="number"
+                                  min="5"
+                                  max="600"
+                                  step="5"
+                                  value={q.timerSeconds || 15}
+                                  onChange={(e) => {
+                                    const updated = [...quizFormData.questions];
+                                    updated[qIndex].timerSeconds = Number(e.target.value);
+                                    setQuizFormData({ ...quizFormData, questions: updated });
+                                  }}
+                                  className="w-14 bg-transparent font-mono text-xs text-center border-b border-indigo-400 focus:outline-none"
+                                />
+                                <span className="text-[10px] text-[var(--text-muted)]">sec</span>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveQuestion(qIndex)}
+                              className="text-rose-500 hover:text-rose-700 text-xs font-poppins font-semibold cursor-pointer"
+                            >
+                              ✕ Remove
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Question Title / Problem Prompt */}
+                        <div>
+                          <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
+                            {q.questionType === 'pattern' ? 'Problem Prompt / Bug Description *' : 'Question Statement *'}
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder={q.questionType === 'pattern' ? "e.g. Find and fix the off-by-one index error in this function to avoid runtime exception:" : "Enter the question text here..."}
+                            value={q.questionText}
+                            onChange={(e) => {
+                              const updated = [...quizFormData.questions];
+                              updated[qIndex].questionText = e.target.value;
+                              setQuizFormData({ ...quizFormData, questions: updated });
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
+                          />
+                        </div>
+
+                        {/* CODE PATTERN SNIPPET EDITOR (When questionType === 'pattern') */}
+                        {q.questionType === 'pattern' && (
+                          <div className="space-y-1.5 p-3 rounded-xl bg-slate-950 border border-indigo-500/30 text-white animate-fadeIn">
+                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 text-[11px] font-poppins">
+                              <span className="flex items-center space-x-1.5 text-indigo-400 font-bold">
+                                <span>🧩</span>
+                                <span>Code Snippet / Pattern to Fix:</span>
+                              </span>
+                              
+                              {/* Language Selector */}
+                              <div className="flex items-center space-x-1.5">
+                                <span className="text-[10px] text-slate-400">Language:</span>
+                                <select
+                                  value={q.language || 'javascript'}
+                                  onChange={(e) => {
+                                    const updated = [...quizFormData.questions];
+                                    updated[qIndex].language = e.target.value;
+                                    setQuizFormData({ ...quizFormData, questions: updated });
+                                  }}
+                                  className="bg-slate-900 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[11px] focus:outline-none cursor-pointer"
+                                >
+                                  <option value="javascript">JavaScript</option>
+                                  <option value="python">Python</option>
+                                  <option value="typescript">TypeScript</option>
+                                  <option value="java">Java</option>
+                                  <option value="cpp">C++</option>
+                                  <option value="csharp">C#</option>
+                                  <option value="php">PHP</option>
+                                  <option value="go">Go</option>
+                                  <option value="html">HTML / CSS</option>
+                                  <option value="sql">SQL</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <textarea
+                              rows="4"
+                              required
+                              placeholder="// Enter code snippet with the pattern/bug that needs fixing..."
+                              value={q.codeSnippet || ''}
+                              onChange={(e) => {
+                                const updated = [...quizFormData.questions];
+                                updated[qIndex].codeSnippet = e.target.value;
+                                setQuizFormData({ ...quizFormData, questions: updated });
+                              }}
+                              className="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-2.5 rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500 custom-scrollbar resize-y"
+                            />
+                            <p className="text-[10px] text-slate-400 font-lato">
+                              💡 Candidates will inspect this code snippet during the exam and select the correct fix or output prediction from the options below.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* 4 FIX / CHOICE OPTIONS */}
+                        <div>
+                          <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
+                            {q.questionType === 'pattern' ? 'Options / Bug Fix Choices (Select radio for correct fix):' : 'Options (Select radio for correct answer):'}
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {q.options.map((opt, optIndex) => (
+                              <div
+                                key={optIndex}
+                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition-colors ${
+                                  q.correctAnswerIndex === optIndex
+                                      ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
+                                      : 'border-[var(--border-theme)] bg-[var(--bg-card)]'
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={`correct-ans-${qIndex}`}
+                                  checked={q.correctAnswerIndex === optIndex}
+                                  onChange={() => {
+                                    const updated = [...quizFormData.questions];
+                                    updated[qIndex].correctAnswerIndex = optIndex;
+                                    setQuizFormData({ ...quizFormData, questions: updated });
+                                  }}
+                                  className="cursor-pointer text-emerald-500 shrink-0"
+                                />
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder={q.questionType === 'pattern' ? `Fix Option ${String.fromCharCode(65 + optIndex)} (e.g. Change i <= to i <)` : `Option ${String.fromCharCode(65 + optIndex)}`}
+                                  value={opt}
+                                  onChange={(e) => {
+                                    const updated = [...quizFormData.questions];
+                                    updated[qIndex].options[optIndex] = e.target.value;
+                                    setQuizFormData({ ...quizFormData, questions: updated });
+                                  }}
+                                  className="w-full bg-transparent text-xs focus:outline-none font-lato"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Question Explanation Field */}
+                        <div className="pt-1">
+                          <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1 flex items-center space-x-1">
+                            <span>💡</span>
+                            <span>Answer Explanation (Optional - Shown to candidates in Post-Exam Review)</span>
+                          </label>
+                          <textarea
+                            rows="2"
+                            placeholder={q.questionType === 'pattern' ? "Explain why this fix is correct (e.g. 'Array indices range from 0 to length - 1, so i <= length causes an out of bounds reference')..." : "Explain why the correct answer is right..."}
+                            value={q.explanation || ''}
+                            onChange={(e) => {
+                              const updated = [...quizFormData.questions];
+                              updated[qIndex].explanation = e.target.value;
+                              setQuizFormData({ ...quizFormData, questions: updated });
+                            }}
+                            className="w-full px-3 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] text-xs focus:outline-none focus:border-[var(--color-primary-600)] resize-none font-lato"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SECTION B: REAL-WORLD CODE CHALLENGE */}
+              {quizFormData.quizType === 'code' && (
+                <div className="space-y-5 pt-4 border-t border-[var(--border-theme)] animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-2">
+                        <span>💻 Real-World Problem & Code IDE Settings</span>
+                      </h4>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-poppins font-bold text-xs mb-1">Target Language</label>
+                      <select
+                        value={quizFormData.codingChallenge?.language || 'JavaScript'}
+                        onChange={(e) =>
+                          setQuizFormData({
+                            ...quizFormData,
+                            codingChallenge: { ...quizFormData.codingChallenge, language: e.target.value }
+                          })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                      >
+                        <option value="JavaScript">JavaScript (Node.js)</option>
+                        <option value="Python">Python 3</option>
+                        <option value="TypeScript">TypeScript</option>
+                        <option value="Java">Java</option>
+                        <option value="C++">C++</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-poppins font-bold text-xs mb-1">Difficulty Level</label>
+                      <select
+                        value={quizFormData.codingChallenge?.difficulty || 'Medium'}
+                        onChange={(e) =>
+                          setQuizFormData({
+                            ...quizFormData,
+                            codingChallenge: { ...quizFormData.codingChallenge, difficulty: e.target.value }
+                          })
+                        }
+                        className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                      >
+                        <option value="Easy">Easy (Fundamentals)</option>
+                        <option value="Medium">Medium (Real-World Architecture)</option>
+                        <option value="Hard">Hard (High-Performance Engine)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block font-poppins font-bold text-xs mb-1">Problem Statement (Markdown) *</label>
+                    <textarea
+                      rows="4"
+                      required
+                      placeholder="Describe the real-world scenario, requirements, and constraints..."
+                      value={quizFormData.codingChallenge?.problemStatement || ''}
+                      onChange={(e) =>
+                        setQuizFormData({
+                          ...quizFormData,
+                          codingChallenge: { ...quizFormData.codingChallenge, problemStatement: e.target.value }
+                        })
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-mono text-xs focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-poppins font-bold text-xs mb-1">Starter Code Template *</label>
+                    <textarea
+                      rows="5"
+                      required
+                      placeholder="// Write starter function signature here..."
+                      value={quizFormData.codingChallenge?.starterCode || ''}
+                      onChange={(e) =>
+                        setQuizFormData({
+                          ...quizFormData,
+                          codingChallenge: { ...quizFormData.codingChallenge, starterCode: e.target.value }
+                        })
+                      }
+                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-slate-900 text-emerald-400 font-mono text-xs focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Test Cases Builder */}
+                  <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase">
+                        Test Cases Suite ({quizFormData.codingChallenge?.testCases?.length || 0})
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={handleAddTestCase}
+                        className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-poppins font-bold cursor-pointer"
+                      >
+                        ➕ Add Test Case
+                      </button>
+                    </div>
+
+                    <div className="space-y-3">
+                      {(quizFormData.codingChallenge?.testCases || []).map((tc, tcIdx) => (
+                        <div
+                          key={tcIdx}
+                          className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-3 rounded-xl space-y-2"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-bold text-indigo-500 font-poppins">Test Case #{tcIdx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTestCase(tcIdx)}
+                              className="text-rose-500 hover:text-rose-700 font-bold"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-[10px] text-[var(--text-muted)]">Input:</span>
+                              <input
+                                type="text"
+                                placeholder="e.g. transactions = [2, 7, 11], target = 9"
+                                value={tc.input}
+                                onChange={(e) => {
+                                  const updated = [...quizFormData.codingChallenge.testCases];
+                                  updated[tcIdx].input = e.target.value;
+                                  setQuizFormData({
+                                    ...quizFormData,
+                                    codingChallenge: { ...quizFormData.codingChallenge, testCases: updated }
+                                  });
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] font-mono text-[11px]"
+                              />
+                            </div>
+
+                            <div>
+                              <span className="text-[10px] text-[var(--text-muted)]">Expected Output:</span>
+                              <input
+                                type="text"
+                                placeholder="e.g. [0, 1]"
+                                value={tc.expectedOutput}
+                                onChange={(e) => {
+                                  const updated = [...quizFormData.codingChallenge.testCases];
+                                  updated[tcIdx].expectedOutput = e.target.value;
+                                  setQuizFormData({
+                                    ...quizFormData,
+                                    codingChallenge: { ...quizFormData.codingChallenge, testCases: updated }
+                                  });
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] font-mono text-[11px]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBMIT BUTTON */}
+              <div className="pt-4 flex items-center justify-end space-x-3 border-t border-[var(--border-theme)]">
+                <button
+                  type="button"
+                  onClick={() => setIsQuizModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer active:scale-95 transition-all"
+                >
+                  {editingQuizId ? 'Save Changes' : 'Publish Quiz Challenge'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIOUS WORK CREATOR / EDITOR MODAL */}
+      {isWorkModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-3xl bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-[32px] p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar relative">
+            <button
+              onClick={() => setIsWorkModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center space-x-3 mb-6">
+              <span className="text-2xl">💼</span>
+              <div>
+                <h3 className="text-xl font-bold font-poppins">
+                  {editingWorkId ? 'Edit Previous Work' : 'Create New Previous Work Showcase'}
+                </h3>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveWorkSubmit} className="space-y-4 font-lato text-xs sm:text-sm">
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1">Work / Quiz Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Next.js Fullstack Master Challenge 2025"
+                  value={workFormData.title}
+                  onChange={(e) => setWorkFormData({ ...workFormData, title: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1">Description *</label>
+                <textarea
+                  rows="2"
+                  required
+                  placeholder="Description..."
+                  value={workFormData.description}
+                  onChange={(e) => setWorkFormData({ ...workFormData, description: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1">Category</label>
+                  <select
+                    value={workFormData.category}
+                    onChange={(e) => setWorkFormData({ ...workFormData, category: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                  >
+                    <option value="Web Dev">Web Dev</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="Backend">Backend</option>
+                    <option value="Data & AI">Data & AI</option>
+                    <option value="UI / UX">UI / UX</option>
+                    <option value="Cybersecurity">Cybersecurity</option>
+                    <option value="DevOps">DevOps</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1">Status Badge</label>
+                  <input
+                    type="text"
+                    value={workFormData.badge}
+                    onChange={(e) => setWorkFormData({ ...workFormData, badge: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1">Top Winner</label>
+                  <input
+                    type="text"
+                    value={workFormData.topWinner}
+                    onChange={(e) => setWorkFormData({ ...workFormData, topWinner: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)]"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsWorkModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs shadow-md cursor-pointer"
+                >
+                  {editingWorkId ? 'Save Changes' : 'Publish Previous Work'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ⚖️ LEGAL PARTNER CREATOR & EDITOR MODAL */}
+      {/* ========================================================================= */}
+      {isPartnerModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-lg bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[92vh] relative">
+            <button
+              onClick={() => setIsPartnerModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center space-x-3 mb-6">
+              <span className="text-3xl">⚖️</span>
+              <div>
+                <h3 className="text-xl font-bold font-poppins text-[var(--text-main)]">
+                  {editingPartnerId ? 'Edit Legal Partner / Sponsor' : 'Add New Legal Partner / Sponsor'}
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Configure partner details, accreditation type, and website links
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSavePartnerSubmit} className="space-y-4 text-xs font-poppins">
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Partner / Sponsor Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. LexisGlobal Legal Verification Council"
+                  value={partnerFormData.name}
+                  onChange={(e) => setPartnerFormData({ ...partnerFormData, name: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Partnership Type</label>
+                  <select
+                    value={partnerFormData.type}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, type: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                  >
+                    <option value="Official Legal & Verification Partner">Official Legal & Verification Partner</option>
+                    <option value="Academic Institution">Academic Institution</option>
+                    <option value="Corporate Sponsor">Corporate Sponsor</option>
+                    <option value="Certification Authority">Certification Authority</option>
+                    <option value="Technology Partner">Technology Partner</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Badge Icon / Logo</label>
+                  <input
+                    type="text"
+                    placeholder="⚖️ or 🎓 or image URL"
+                    value={partnerFormData.logoUrl}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, logoUrl: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Official Website URL</label>
+                <input
+                  type="url"
+                  placeholder="https://partner-website.org"
+                  value={partnerFormData.websiteUrl}
+                  onChange={(e) => setPartnerFormData({ ...partnerFormData, websiteUrl: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Description & Scope</label>
+                <textarea
+                  rows="3"
+                  placeholder="Describe the partner's role, verification authority, or sponsorship grants..."
+                  value={partnerFormData.description}
+                  onChange={(e) => setPartnerFormData({ ...partnerFormData, description: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Display Status</label>
+                  <select
+                    value={partnerFormData.status}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, status: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                  >
+                    <option value="active">Active (Visible)</option>
+                    <option value="inactive">Inactive (Hidden)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Order / Priority</label>
+                  <input
+                    type="number"
+                    value={partnerFormData.order}
+                    onChange={(e) => setPartnerFormData({ ...partnerFormData, order: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPartnerModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95"
+                >
+                  {editingPartnerId ? 'Save Partner' : 'Create Partner'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 📬 FULL INQUIRY & CONTACT MESSAGE VIEWER MODAL */}
+      {/* ========================================================================= */}
+      {selectedMessageModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-2xl bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-[32px] p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[92vh] custom-scrollbar relative space-y-6">
+            <button
+              onClick={() => setSelectedMessageModal(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-start space-x-3.5 pr-8">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--color-primary-600)] to-indigo-600 text-white font-poppins font-bold text-lg flex items-center justify-center shadow-md shrink-0">
+                {selectedMessageModal.name ? selectedMessageModal.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-xl font-bold font-poppins">
+                    {selectedMessageModal.name}
+                  </h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] font-semibold">
+                    {selectedMessageModal.category || 'Support'}
+                  </span>
+                </div>
+                <a
+                  href={`mailto:${selectedMessageModal.email}`}
+                  className="text-xs font-mono text-[var(--color-primary-600)] hover:underline"
+                >
+                  {selectedMessageModal.email}
+                </a>
+              </div>
+            </div>
+
+            {/* Priority and Time Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)]">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-poppins font-bold text-[var(--text-muted)]">Priority:</span>
+                <select
+                  value={selectedMessageModal.priority || 'medium'}
+                  onChange={(e) => handleUpdateMessagePriority(selectedMessageModal._id || selectedMessageModal.id, e.target.value)}
+                  className="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-poppins font-bold text-[var(--text-main)] cursor-pointer"
+                >
+                  <option value="urgent">🚨 Urgent</option>
+                  <option value="high">🔥 High</option>
+                  <option value="medium">⚡ Medium</option>
+                  <option value="low">🌱 Low</option>
+                </select>
+              </div>
+
+              <div className="text-xs font-mono text-[var(--text-muted)]">
+                Received: {new Date(selectedMessageModal.createdAt).toLocaleString('en-GB')}
+              </div>
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-1">
+              <label className="text-xs font-poppins font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                Subject
+              </label>
+              <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] font-poppins font-bold text-sm text-[var(--text-main)]">
+                {selectedMessageModal.subject}
+              </div>
+            </div>
+
+            {/* Message Body */}
+            <div className="space-y-1">
+              <label className="text-xs font-poppins font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                Full Inquiry Message
+              </label>
+              <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] font-lato text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
+                {selectedMessageModal.message}
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[var(--border-theme)]">
+              <div className="flex items-center space-x-2">
+                <a
+                  href={`mailto:${selectedMessageModal.email}?subject=Re: ${encodeURIComponent(selectedMessageModal.subject)}`}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-md transition-all cursor-pointer flex items-center space-x-1.5"
+                >
+                  <span>✉️ Reply via Email</span>
+                </a>
+
+                <button
+                  onClick={() => handleToggleMessageRead(selectedMessageModal._id || selectedMessageModal.id, selectedMessageModal.isRead)}
+                  className="px-3.5 py-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-bold transition-all cursor-pointer"
+                >
+                  {selectedMessageModal.isRead ? 'Mark as Unread' : '✓ Mark Read'}
+                </button>
+              </div>
+
+              <button
+                onClick={() => handleDeleteMessage(selectedMessageModal._id || selectedMessageModal.id, selectedMessageModal.name)}
+                className="px-3.5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-bold transition-all cursor-pointer flex items-center space-x-1 border border-rose-500/20"
+              >
+                <span>🗑️ Delete Message</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default AdminDashboard;

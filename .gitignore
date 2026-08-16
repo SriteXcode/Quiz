@@ -1,0 +1,101 @@
+# ==========================================
+# 🛑 Dependencies
+# ==========================================
+node_modules/
+*/node_modules/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ==========================================
+# 🔒 Environment Variables & Secrets
+# ==========================================
+.env
+.env.*
+!.env.example
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+*.pem
+*.key
+*.cert
+*.pfx
+*.pkcs12
+
+# ==========================================
+# 📦 Production Builds & Cache
+# ==========================================
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.cache/
+.parcel-cache/
+.vite/
+*.tsbuildinfo
+
+# ==========================================
+# 📝 Logs & Diagnostics
+# ==========================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.system_generated/
+
+# ==========================================
+# 🧪 Testing & Code Coverage
+# ==========================================
+coverage/
+.nyc_output/
+*.lcov
+.coverage/
+
+# ==========================================
+# 💻 Operating System & IDE Files
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Visual Studio Code & JetBrains
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+*.tmp
+*.temp
+
+# ==========================================
+# 📁 Local Scratch Scripts
+# ==========================================
+scratch/
+*/scratch/
+tmp/
+temp/
