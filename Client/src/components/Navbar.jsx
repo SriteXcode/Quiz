@@ -12,16 +12,20 @@ export const Navbar = ({
   const { user, isAuthenticated, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navRef = useRef(null);
 
-  // Close profile dropdown when clicking anywhere outside
+  // Close profile dropdown & mobile menu when clicking anywhere outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
+      if (navRef.current && !navRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+      }
     };
 
-    if (isDropdownOpen) {
+    if (isDropdownOpen || isMobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
     }
@@ -30,7 +34,7 @@ export const Navbar = ({
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, isMobileMenuOpen, setIsMobileMenuOpen]);
 
   const navLinks = [
     { id: 'home', label: 'Home' },
@@ -64,7 +68,7 @@ export const Navbar = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-nav)] border-b border-[var(--border-theme)] transition-colors duration-300">
+    <header ref={navRef} className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-nav)] border-b border-[var(--border-theme)] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2">
           
@@ -219,9 +223,18 @@ export const Navbar = ({
         </div>
       </div>
 
+      {/* Mobile Menu Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="md:hidden fixed inset-0 top-16 bg-black/40 backdrop-blur-xs z-40 animate-fadeIn"
+          aria-hidden="true"
+        />
+      )}
+
       {/* Mobile Menu Drawer */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-b border-[var(--border-theme)] bg-[var(--bg-card)] px-4 pt-2 pb-6 space-y-3 animate-fadeIn">
+        <div className="md:hidden relative z-50 border-b border-[var(--border-theme)] bg-[var(--bg-card)] px-4 pt-2 pb-6 space-y-3 animate-fadeIn shadow-2xl">
           <div className="flex flex-col space-y-2">
             {navLinks.map((link) => (
               <button
@@ -282,30 +295,15 @@ export const Navbar = ({
                 </button>
               </>
             ) : (
-              <>
-                <button
-                  onClick={() => {
-                    handleNavClick('login', 'Login');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base bg-[var(--color-primary-600)] text-white cursor-pointer"
-                >
-                  Login
-                </button>
-
-                <button
-                  onClick={() => {
-                    handleNavClick('admin', 'Admin Dashboard');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`text-left px-4 py-2.5 rounded-lg font-poppins font-medium text-xs flex items-center space-x-2 border border-dashed border-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--color-primary-600)] hover:border-[var(--color-primary-400)] transition-colors cursor-pointer ${
-                    activeTab === 'admin' ? 'bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold' : ''
-                  }`}
-                >
-                  <span>🛡️</span>
-                  <span>Admin Control Center</span>
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  handleNavClick('login', 'Login');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base bg-[var(--color-primary-600)] text-white cursor-pointer"
+              >
+                Login
+              </button>
             )}
           </div>
         </div>
