@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { apiGetSiteSettings, apiGetPublicPartners } from '../services/api';
 import { PartnerModal, PartnerSkeletonCard } from '../components/PartnersSection';
 
-export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz }) => {
+export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onExploreLiveQuizzes }) => {
   const [siteSettings, setSiteSettings] = useState({
     about: {
       heroBadge: 'About Brand Platform',
@@ -105,7 +105,9 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz }) =>
   }, []);
 
   const handleExploreClick = () => {
-    if (onExploreQuizzes) {
+    if (onExploreLiveQuizzes) {
+      onExploreLiveQuizzes();
+    } else if (onExploreQuizzes) {
       onExploreQuizzes();
     } else if (onNavigateToQuiz) {
       onNavigateToQuiz();

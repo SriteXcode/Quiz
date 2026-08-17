@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import Skeleton from './Skeleton';
-import { useToast } from '../context/ToastContext';
 import { apiGetPublicPartners } from '../services/api';
 
 export const PartnerSkeletonCard = () => {
@@ -22,7 +21,6 @@ export const PartnerSkeletonCard = () => {
 };
 
 export const PartnerModal = ({ partner, onClose }) => {
-  const { addToast } = useToast();
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -113,7 +111,6 @@ export const PartnerModal = ({ partner, onClose }) => {
               href={partnerUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={() => addToast(`Opening ${partnerName} official portal... 🌐`, 'success')}
               className="flex-1 py-3 px-4 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs sm:text-sm text-center shadow-md shadow-blue-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center space-x-2"
             >
               <span>Visit Official Portal</span>
@@ -121,7 +118,6 @@ export const PartnerModal = ({ partner, onClose }) => {
             </a>
           ) : (
             <button
-              onClick={() => addToast(`Verified accredited partner: ${partnerName}`, 'info')}
               className="flex-1 py-3 px-4 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs sm:text-sm text-center shadow-md"
             >
               Verified Partner ⚖️
@@ -180,7 +176,6 @@ export const PartnersSection = () => {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [partnersList, setPartnersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { addToast } = useToast();
 
   useEffect(() => {
     const fetchPartners = async () => {
@@ -204,7 +199,6 @@ export const PartnersSection = () => {
 
   const handlePartnerClick = (partner) => {
     setSelectedPartner(partner);
-    addToast(`Opened ${partner.name} accreditation details`, 'info');
   };
 
   const rawList = partnersList.length > 0 ? partnersList : DEFAULT_PARTNERS;

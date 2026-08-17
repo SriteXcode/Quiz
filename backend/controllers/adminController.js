@@ -75,14 +75,6 @@ const seedAdminDataIfEmpty = async () => {
         }
       }
     }
-
-    const quizCount = await Quiz.countDocuments();
-    if (quizCount === 0) {
-      const { ensureSeedQuizzes } = require('./quizController');
-      if (typeof ensureSeedQuizzes === 'function') {
-        await ensureSeedQuizzes();
-      }
-    }
   } catch (err) {
     console.warn('[Admin Auto Seed Warning]:', err.message);
   }

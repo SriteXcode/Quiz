@@ -4,79 +4,6 @@ import { apiGetQuizzes } from '../services/api';
 import QuizCountdownBadge from './QuizCountdownBadge';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 
-const DEFAULT_QUIZ_DATA = [
-  {
-    id: 1,
-    title: 'JavaScript ES6+ & Async Architecture Challenge',
-    quizType: 'multiple_choice',
-    mcqSubtype: 'quick',
-    category: 'Web Dev',
-    participants: '1.4k',
-    duration: '15m',
-    startDate: '2026-08-14',
-    startTime: '10:00 AM',
-    endDate: '2026-08-14',
-    endTime: '11:00 AM',
-    rewards: [
-      { place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Trophy' },
-      { place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash' },
-      { place: '3rd', badge: '🥉 3rd Place', prize: '$100 Cash' },
-      { place: '4-10th', badge: '🏅 Top 10', prize: 'Pro Membership' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Algorithm Speedrun: Two Sum & Transaction Balance',
-    quizType: 'code',
-    category: 'CS Algo',
-    participants: '3.2k',
-    duration: '30m',
-    startDate: '2026-08-14',
-    startTime: '10:00 AM',
-    endDate: '2026-08-14',
-    endTime: '12:00 PM',
-    rewards: [
-      { place: '1st', badge: '🥇 Winner', prize: '$1,000 Cash + Swag Kit' },
-      { place: '2nd', badge: '🥈 Runner Up', prize: '$500 Cash' },
-      { place: '3rd', badge: '🥉 3rd Place', prize: '$250 Cash' },
-      { place: '4-10th', badge: '🏅 Top 10', prize: 'Annual Pro Access' }
-    ]
-  },
-  {
-    id: 3,
-    title: 'React 19 & Next.js Architecture Exam',
-    quizType: 'multiple_choice',
-    mcqSubtype: 'standard',
-    category: 'Frontend',
-    participants: '980',
-    duration: '20m',
-    startDate: '2026-08-20',
-    startTime: '02:00 PM',
-    endDate: '2026-08-20',
-    endTime: '03:00 PM',
-    rewards: [
-      { place: '1st', badge: '🥇 Winner', prize: '$300 Cash' },
-      { place: '2nd-5th', badge: '🎖️ Top 5', prize: 'Pro Subscription' }
-    ]
-  },
-  {
-    id: 4,
-    title: 'Node.js & Express API Security',
-    quizType: 'multiple_choice',
-    mcqSubtype: 'standard',
-    category: 'Backend',
-    participants: '750',
-    duration: '25m',
-    startDate: '2026-08-14',
-    startTime: '09:00 AM',
-    endDate: '2026-08-14',
-    endTime: '10:00 AM',
-    rewards: [
-      { place: '1st', badge: '🥇 Winner', prize: '$200 Cash' }
-    ]
-  }
-];
-
 export const LiveQuizSkeletonCard = () => {
   return (
     <div className="w-[220px] sm:w-[260px] md:w-[280px] shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between h-56 skeleton-shimmer">
@@ -98,7 +25,7 @@ export const LiveQuizSkeletonCard = () => {
 };
 
 export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll }) => {
-  const [quizzes, setQuizzes] = useState(DEFAULT_QUIZ_DATA);
+  const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -106,11 +33,11 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
     const fetchLiveQuizzes = async () => {
       try {
         const res = await apiGetQuizzes();
-        if (isMounted && res && res.success && res.quizzes && res.quizzes.length > 0) {
+        if (isMounted && res && res.success && res.quizzes) {
           setQuizzes(res.quizzes);
         }
       } catch (err) {
-        console.warn('[LiveQuizzes API]: Using fallback items', err.message);
+        console.warn('[LiveQuizzes API]: Could not fetch quizzes', err.message);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -149,8 +76,8 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
             Live Quizzes & Challenges
           </h2>
           <span className="flex h-3 w-3 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-secondary-400)] opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--color-secondary-500)]"></span>
+            {/* <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-secondary-400)] opacity-75"></span> */}
+            {/* <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--color-secondary-500)]"></span> */}
           </span>
         </div>
 

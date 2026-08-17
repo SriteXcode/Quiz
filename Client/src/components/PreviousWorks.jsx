@@ -2,61 +2,6 @@ import { useState, useEffect } from 'react';
 import Skeleton from './Skeleton';
 import { apiGetPreviousWorks } from '../services/api';
 
-const DEFAULT_WORKS_DATA = [
-  {
-    id: 1,
-    title: 'Fullstack Web Challenge 2025',
-    description: 'A 50-question competition testing HTML, CSS, React, and Express fundamentals.',
-    category: 'Web Dev',
-    participantsCount: '4,820 Participants',
-    avgScore: '84% Avg Score',
-    topWinner: 'Sarah J. (100%)',
-    badge: 'Completed',
-    gradient: 'from-blue-500 to-indigo-600',
-    techStack: ['HTML5', 'CSS3', 'React', 'Express'],
-    completedDate: 'Dec 2025'
-  },
-  {
-    id: 2,
-    title: 'Python Data Science Speedrun',
-    description: 'Timed algorithm challenge focusing on NumPy, Pandas, and Machine Learning.',
-    category: 'Data & AI',
-    participantsCount: '3,150 Participants',
-    avgScore: '79% Avg Score',
-    topWinner: 'Alex C. (98%)',
-    badge: 'Completed',
-    gradient: 'from-emerald-500 to-teal-600',
-    techStack: ['Python', 'Pandas', 'NumPy', 'Scikit-Learn'],
-    completedDate: 'Nov 2025'
-  },
-  {
-    id: 3,
-    title: 'Cybersecurity & CTF Quiz',
-    description: 'Practical security quiz covering network vulnerabilities and encryption.',
-    category: 'Cybersecurity',
-    participantsCount: '2,940 Participants',
-    avgScore: '72% Avg Score',
-    topWinner: 'Devon V. (96%)',
-    badge: 'Completed',
-    gradient: 'from-violet-500 to-purple-600',
-    techStack: ['Security', 'Cryptography', 'Networks'],
-    completedDate: 'Oct 2025'
-  },
-  {
-    id: 4,
-    title: 'UI/UX Design Master Quiz',
-    description: 'Design system fundamentals, typography rules, and accessibility standards.',
-    category: 'UI / UX',
-    participantsCount: '1,890 Participants',
-    avgScore: '88% Avg Score',
-    topWinner: 'Maya K. (99%)',
-    badge: 'Completed',
-    gradient: 'from-amber-500 to-orange-600',
-    techStack: ['Figma', 'Accessibility', 'Design Systems'],
-    completedDate: 'Sep 2025'
-  }
-];
-
 export const WorkSkeletonCard = () => {
   return (
     <div className="w-[240px] sm:w-[300px] md:w-[340px] shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm skeleton-shimmer space-y-3">
@@ -73,7 +18,7 @@ export const WorkSkeletonCard = () => {
 };
 
 export const PreviousWorks = ({ isLoading: propLoading, onViewAll }) => {
-  const [works, setWorks] = useState(DEFAULT_WORKS_DATA);
+  const [works, setWorks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWork, setSelectedWork] = useState(null);
 
@@ -83,12 +28,11 @@ export const PreviousWorks = ({ isLoading: propLoading, onViewAll }) => {
     const fetchWorks = async () => {
       try {
         const res = await apiGetPreviousWorks();
-        if (isMounted && res && res.success && res.works && res.works.length > 0) {
+        if (isMounted && res && res.success && res.works) {
           setWorks(res.works);
         }
       } catch (err) {
-        // Keep default works on offline/fallback
-        console.warn('[PreviousWorks API]: Using fallback items', err.message);
+        console.warn('[PreviousWorks API]: Could not fetch previous works', err.message);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -103,6 +47,10 @@ export const PreviousWorks = ({ isLoading: propLoading, onViewAll }) => {
 
   const isShowLoading = propLoading || loading;
 
+  if (!isShowLoading && works.length === 0) {
+    return null;
+  }
+
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -110,9 +58,6 @@ export const PreviousWorks = ({ isLoading: propLoading, onViewAll }) => {
           <h2 className="text-xl sm:text-2xl font-bold font-poppins text-[var(--text-main)]">
             Previous Works
           </h2>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-600)] dark:bg-slate-800 dark:text-blue-300">
-            {works.length} Completed
-          </span>
         </div>
 
         <div className="flex items-center space-x-3">

@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import ImageAdjustModal from '../components/ImageAdjustModal';
 
 export const AuthSkeleton = () => {
   return (
@@ -31,6 +32,11 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // Avatar Adjuster State
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState(null);
+  const avatarInputRef = useRef(null);
+
   // Toggle Password Visibility States
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,7 +50,7 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
       setMode(initialMode);
     }, 0);
     return () => clearTimeout(timer);
-  }, [initialMode]);
+  }, [initialMode, isOpen]);
 
   // Close on Escape key
   useEffect(() => {
@@ -80,12 +86,18 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
   };
 
   const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
-      setSelectedFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-      addToast('Profile photo ready for upload', 'success');
+      const src = URL.createObjectURL(file);
+      setRawImageSrc(src);
+      setIsAdjustModalOpen(true);
     }
+  };
+
+  const handleApplyCroppedAvatar = (croppedDataUrl, fileBlob) => {
+    setAvatarPreview(croppedDataUrl);
+    setSelectedFile(fileBlob);
+    setIsAdjustModalOpen(false);
   };
 
   const resetForm = () => {
@@ -202,8 +214,8 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
             {/* Circular Avatar Container */}
             <div className="flex flex-col items-center justify-center mb-3 shrink-0">
               {mode === 'signup' ? (
-                <div className="relative group cursor-pointer">
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
+                <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current && avatarInputRef.current.click()}>
+                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition-transform">
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
                     ) : (
@@ -214,10 +226,10 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                   </div>
 
                   {/* Camera upload badge */}
-                  <label className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border border-[var(--bg-card)] bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] text-white flex items-center justify-center cursor-pointer shadow-sm transition-transform hover:scale-110">
+                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border border-[var(--bg-card)] bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] text-white flex items-center justify-center cursor-pointer shadow-sm transition-transform hover:scale-110">
                     <span className="text-[8px] font-bold">📷</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                  </label>
+                  </div>
+                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                 </div>
               ) : (
                 <div className="w-14 h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
@@ -243,7 +255,7 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                       placeholder="Full Name..."
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-1.5 rounded-xl border border-[var(--color-primary-300)] bg-[var(--color-primary-50)]/60 dark:bg-slate-800/80 text-[var(--text-main)] font-poppins font-medium text-xs placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary-600)] shadow-sm"
+                      className="w-full px-3 py-1.5 rounded-xl border border-[var(--color-primary-300)] bg-white text-slate-900 font-poppins font-medium text-xs placeholder-slate-400 focus:outline-none focus:border-[var(--color-primary-600)] focus:ring-1 focus:ring-[var(--color-primary-600)] shadow-sm"
                     />
                   </div>
 
@@ -494,8 +506,16 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
             </div>
           </>
         )}
-
       </div>
+
+      {/* Profile Image Adjuster / Cropper Modal */}
+      <ImageAdjustModal
+        isOpen={isAdjustModalOpen}
+        imageSrc={rawImageSrc}
+        onClose={() => setIsAdjustModalOpen(false)}
+        onApply={handleApplyCroppedAvatar}
+        title="Adjust Profile Avatar"
+      />
     </div>
   );
 };

@@ -106,133 +106,6 @@ const initialMockUsers = [
   }
 ];
 
-const initialMockQuizzes = [
-  {
-    _id: 'quiz-001',
-    title: 'JavaScript ES6+ & Async Architecture Challenge',
-    quizType: 'multiple_choice',
-    mcqSubtype: 'quick',
-    timerType: 'per_question_general',
-    generalQuestionTimerSeconds: 15,
-    category: 'Web Dev',
-    status: 'running',
-    durationMinutes: 15,
-    quickTimerSeconds: 15,
-    techStack: ['JavaScript', 'ES6+', 'Promises', 'Async/Await'],
-    description: 'Fast-paced 15-second rapid blitz testing modern ECMAScript features and asynchronous architecture.',
-    rewards: [
-      { place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Gold Trophy' },
-      { place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash + Silver Medal' }
-    ],
-    questions: [
-      { questionText: 'What is the primary difference between const and let?', options: ['const is block-scoped immutable binding', 'const is global', 'no difference', 'let cannot reassign'], correctAnswerIndex: 0 }
-    ]
-  },
-  {
-    _id: 'quiz-002',
-    title: 'React 19 Server Components & Concurrent Mode',
-    quizType: 'multiple_choice',
-    mcqSubtype: 'standard',
-    timerType: 'overall',
-    durationMinutes: 30,
-    category: 'Frontend',
-    status: 'upcoming',
-    techStack: ['React 19', 'Next.js', 'SSR', 'RSC'],
-    description: 'Deep dive into React 19 Actions, optimistic state mutations, and Server Actions.',
-    rewards: [
-      { place: '1st', badge: '🥇 Winner', prize: '$400 Cash + Trophy' }
-    ],
-    questions: [
-      { questionText: 'How do React Server Components communicate with Client Components?', options: ['Via serialized JSON over the wire', 'Direct DOM sharing', 'Window globals', 'WebSockets only'], correctAnswerIndex: 0 }
-    ]
-  },
-  {
-    _id: 'quiz-003',
-    title: 'Fullstack Microservices & Distributed Caching Challenge',
-    quizType: 'code',
-    category: 'Backend',
-    status: 'running',
-    durationMinutes: 45,
-    techStack: ['Node.js', 'Redis', 'Kafka', 'Docker'],
-    description: 'Practical coding simulation implementing LRU caching, rate limiters, and idempotency keys.',
-    codingChallenge: {
-      problemStatement: 'Implement a thread-safe distributed cache invalidation webhook handler in Node.js.',
-      starterCode: 'function handleInvalidation(key, ttl) {\n  // Write implementation here\n}',
-      language: 'javascript'
-    }
-  },
-  {
-    _id: 'quiz-004',
-    title: 'CS Data Structures & Graph Algorithms Speedrun',
-    quizType: 'multiple_choice',
-    mcqSubtype: 'quick',
-    category: 'CS Algo',
-    status: 'upcoming',
-    durationMinutes: 20,
-    techStack: ['Algorithms', 'Graphs', 'Dynamic Programming'],
-    description: 'Timed speedrun testing graph traversals, Dijkstra, topological sort, and Big-O efficiency.'
-  }
-];
-
-const initialMockPreviousWorks = [
-  {
-    _id: 'work-001',
-    title: 'Fullstack Web Architecture Challenge 2025',
-    description: 'A 50-question competition testing HTML, CSS, React, and Express fundamentals.',
-    category: 'Web Dev',
-    participantsCount: '4,820 Participants',
-    avgScore: '84% Avg Score',
-    topWinner: 'Sarah J. (100%)',
-    badge: 'Completed',
-    gradient: 'from-blue-500 to-indigo-600',
-    techStack: ['HTML5', 'CSS3', 'React', 'Express'],
-    completedDate: 'Dec 2025',
-    totalQuestions: 50
-  },
-  {
-    _id: 'work-002',
-    title: 'Python Data Science Speedrun',
-    description: 'Timed algorithm challenge focusing on NumPy, Pandas, and Machine Learning.',
-    category: 'Data & AI',
-    participantsCount: '3,150 Participants',
-    avgScore: '79% Avg Score',
-    topWinner: 'Alex C. (98%)',
-    badge: 'Completed',
-    gradient: 'from-emerald-500 to-teal-600',
-    techStack: ['Python', 'Pandas', 'NumPy', 'Scikit-Learn'],
-    completedDate: 'Nov 2025',
-    totalQuestions: 40
-  },
-  {
-    _id: 'work-003',
-    title: 'Cybersecurity & CTF Code Championship',
-    description: 'Practical security quiz covering network vulnerabilities, JWT validation, and cryptography.',
-    category: 'CS Algo',
-    participantsCount: '2,940 Participants',
-    avgScore: '72% Avg Score',
-    topWinner: 'Devon V. (96%)',
-    badge: 'Completed',
-    gradient: 'from-violet-500 to-purple-600',
-    techStack: ['Security', 'Cryptography', 'Networks'],
-    completedDate: 'Oct 2025',
-    totalQuestions: 35
-  },
-  {
-    _id: 'work-004',
-    title: 'UI/UX Design Master Quiz',
-    description: 'Design system fundamentals, typography scales, contrast ratios, and WCAG accessibility standards.',
-    category: 'UI / UX',
-    participantsCount: '1,890 Participants',
-    avgScore: '88% Avg Score',
-    topWinner: 'Maya K. (99%)',
-    badge: 'Completed',
-    gradient: 'from-amber-500 to-orange-600',
-    techStack: ['Figma', 'Accessibility', 'Design Systems'],
-    completedDate: 'Sep 2025',
-    totalQuestions: 45
-  }
-];
-
 const initialMockPartners = [
   {
     _id: 'partner-001',
@@ -276,66 +149,6 @@ const initialMockPartners = [
   }
 ];
 
-const initialMockMessages = [
-  {
-    _id: 'msg-001',
-    name: 'Devon Vance',
-    email: 'devon.vance@techcorp.io',
-    category: 'Partnership',
-    subject: 'Institutional Hackathon Sponsorship & Quiz Hosting',
-    message: 'Hello Admin Team, We would like to sponsor the upcoming Algorithm Speedrun championship and provide $2,500 in cloud credits for all top 10 finishers. Please let us know the onboarding process.',
-    priority: 'urgent',
-    isRead: false,
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'msg-002',
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@mit.edu',
-    category: 'Support',
-    subject: 'Certificate Verification QR Code query for React 19 Exam',
-    message: 'Hi, I passed the React 19 architecture test yesterday with 94% accuracy. My certificate PDF downloaded with a verification ID, but I wanted to know if this integrates with LinkedIn certifications directly?',
-    priority: 'high',
-    isRead: false,
-    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'msg-003',
-    name: 'Alex Rivera',
-    email: 'arivera.dev@gmail.com',
-    category: 'Bug Report',
-    subject: 'Code Editor dark mode syntax theme contrast in Firefox',
-    message: 'On Firefox v128, the code editor syntax highlight tokens for TypeScript interfaces have a slightly low contrast when in dark mode. Everything else is ultra fast!',
-    priority: 'medium',
-    isRead: true,
-    readAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'msg-004',
-    name: 'Priya Sharma',
-    email: 'priya.sharma@edutech.org',
-    category: 'Prize Inquiry',
-    subject: 'Prize Escrow Settlement for JavaScript Speedrun Challenge',
-    message: 'Greetings! I secured 2nd place in the JavaScript ES6+ challenge on August 14th. Could you guide me on the UPI/PayPal payout verification form?',
-    priority: 'urgent',
-    isRead: false,
-    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString()
-  },
-  {
-    _id: 'msg-005',
-    name: 'Marcus Brody',
-    email: 'm.brody@cloudsolutions.net',
-    category: 'General',
-    subject: 'Inquiry on Enterprise Team Assessment Tiers',
-    message: 'We are looking to test 85 engineers across our backend engineering divisions. Do you support custom private quiz cohorts with private leaderboards?',
-    priority: 'medium',
-    isRead: true,
-    readAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
-  }
-];
-
 export const AdminDashboard = () => {
   const { isAdmin, login } = useAuth();
   const { addToast } = useToast();
@@ -345,19 +158,21 @@ export const AdminDashboard = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
-    totalUsers: 24,
-    totalStudents: 22,
-    totalAdmins: 2,
-    totalQuizzes: 8,
-    activeLiveQuizzes: 3,
-    totalPreviousWorks: 4,
-    totalRewardsDistributed: 125,
-    totalXPPointsAwarded: '48,500'
+    totalUsers: 0,
+    totalStudents: 0,
+    totalAdmins: 0,
+    totalQuizzes: 0,
+    activeLiveQuizzes: 0,
+    totalPreviousWorks: 0,
+    totalRewardsDistributed: 0,
+    totalXPPointsAwarded: '0'
   });
 
   const [usersList, setUsersList] = useState(initialMockUsers);
-  const [quizzesList, setQuizzesList] = useState(initialMockQuizzes);
-  const [previousWorksList, setPreviousWorksList] = useState(initialMockPreviousWorks);
+  const [userCurrentPage, setUserCurrentPage] = useState(1);
+  const USERS_PER_PAGE = 8;
+  const [quizzesList, setQuizzesList] = useState([]);
+  const [previousWorksList, setPreviousWorksList] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [workCategoryFilter, setWorkCategoryFilter] = useState('all');
@@ -367,8 +182,8 @@ export const AdminDashboard = () => {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Contact Messages & Inquiries State
-  const [messagesList, setMessagesList] = useState(initialMockMessages);
-  const [messageStats, setMessageStats] = useState({ totalAll: 5, unreadCount: 3, urgentCount: 3, lastWeekCount: 3 });
+  const [messagesList, setMessagesList] = useState([]);
+  const [messageStats, setMessageStats] = useState({ totalAll: 0, unreadCount: 0, urgentCount: 0, lastWeekCount: 0 });
   const [msgDateFilter, setMsgDateFilter] = useState('last_week'); // 'last_week' (default) | 'last_month' | 'all'
   const [msgReadFilter, setMsgReadFilter] = useState('all'); // 'all' | 'unread' | 'read'
   const [msgPriorityFilter, setMsgPriorityFilter] = useState('all'); // 'all' | 'urgent' | 'high' | 'medium' | 'low'
@@ -601,6 +416,8 @@ export const AdminDashboard = () => {
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState(null);
   const [timerUnit, setTimerUnit] = useState('sec'); // 'sec' | 'min'
+  // Accordion Toggle Section: 'category_tags' | 'timings_schedule' | 'rewards_tiers' | 'questions_suite'
+  const [openQuizSection, setOpenQuizSection] = useState('category_tags');
   const [quizFormData, setQuizFormData] = useState({
     title: '',
     quizType: 'multiple_choice',
@@ -785,6 +602,7 @@ You are building a high-frequency financial settlement engine. Given an array of
         proctoringRequired: true
       }
     });
+    setOpenQuizSection('category_tags');
     setIsQuizModalOpen(true);
   };
 
@@ -850,6 +668,7 @@ You are building a high-frequency financial settlement engine. Given an array of
         proctoringRequired: true
       }
     });
+    setOpenQuizSection('category_tags');
     setIsQuizModalOpen(true);
   };
 
@@ -1502,6 +1321,34 @@ You are building a high-frequency financial settlement engine. Given an array of
         </div>
       </div>
 
+      {/* 📱 MOBILE HORIZONTAL SCROLLABLE TAB SELECTOR */}
+      <div className="lg:hidden flex items-center space-x-2 overflow-x-auto pb-2 pt-0.5 custom-scrollbar snap-x snap-mandatory">
+        {adminNavTabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`shrink-0 px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center space-x-1.5 transition-all cursor-pointer snap-start ${
+                isActive
+                  ? 'bg-[var(--color-primary-600)] text-white shadow-md shadow-blue-500/20 font-bold'
+                  : 'bg-[var(--bg-card)] border border-[var(--border-theme)] text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              {tab.badge !== undefined && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                  isActive ? 'bg-white/20 text-white' : tab.badgeColor
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ========================================================================= */}
       {/* MAIN TWO-COLUMN LAYOUT: SIDEBAR (LEFT) + FULL PAGE CANVAS (RIGHT) */}
       {/* ========================================================================= */}
@@ -1781,13 +1628,19 @@ You are building a high-frequency financial settlement engine. Given an array of
                 type="text"
                 placeholder="Search name, email, school..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setUserCurrentPage(1);
+                }}
                 className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)]"
               />
 
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setUserCurrentPage(1);
+                }}
                 className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
               >
                 <option value="all">All Roles</option>
@@ -1797,62 +1650,117 @@ You are building a high-frequency financial settlement engine. Given an array of
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left font-lato text-xs sm:text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
-                  <th className="py-3 px-2">User</th>
-                  <th className="py-3 px-2">Email</th>
-                  <th className="py-3 px-2">Role</th>
-                  <th className="py-3 px-2">School / College</th>
-                  <th className="py-3 px-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-theme)]">
-                {usersList.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="py-8 text-center text-[var(--text-muted)]">
-                      No users found.
-                    </td>
-                  </tr>
-                ) : (
-                  usersList.map((u) => (
-                    <tr key={u._id || u.email} className="hover:bg-[var(--bg-main)] transition-colors">
-                      <td className="py-3 px-2 font-bold text-[var(--text-main)] flex items-center space-x-2">
-                        <span>{u.role === 'admin' ? '🛡️' : '🎓'}</span>
-                        <span>{u.name}</span>
-                      </td>
-                      <td className="py-3 px-2 text-[var(--text-secondary)]">{u.email}</td>
-                      <td className="py-3 px-2">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold uppercase ${
-                          u.role === 'admin'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2 text-[var(--text-muted)]">{u.school || 'N/A'}</td>
-                      <td className="py-3 px-2 text-right space-x-2">
+          {/* PAGINATED USERS TABLE */}
+          {(() => {
+            const totalUserPages = Math.ceil(usersList.length / USERS_PER_PAGE) || 1;
+            const validUserPage = Math.min(Math.max(1, userCurrentPage), totalUserPages);
+            const startUserIdx = (validUserPage - 1) * USERS_PER_PAGE;
+            const paginatedUsers = usersList.slice(startUserIdx, startUserIdx + USERS_PER_PAGE);
+
+            return (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-lato text-xs sm:text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
+                        <th className="py-3 px-2">User</th>
+                        <th className="py-3 px-2">Email</th>
+                        <th className="py-3 px-2">Role</th>
+                        <th className="py-3 px-2">School / College</th>
+                        <th className="py-3 px-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-theme)]">
+                      {paginatedUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="py-8 text-center text-[var(--text-muted)]">
+                            No users found.
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedUsers.map((u) => (
+                          <tr key={u._id || u.email} className="hover:bg-[var(--bg-main)] transition-colors">
+                            <td className="py-3 px-2 font-bold text-[var(--text-main)] flex items-center space-x-2">
+                              <span>{u.role === 'admin' ? '🛡️' : '🎓'}</span>
+                              <span>{u.name}</span>
+                            </td>
+                            <td className="py-3 px-2 text-[var(--text-secondary)]">{u.email}</td>
+                            <td className="py-3 px-2">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold uppercase ${
+                                u.role === 'admin'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                              }`}>
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-[var(--text-muted)]">{u.school || 'N/A'}</td>
+                            <td className="py-3 px-2 text-right space-x-2">
+                              <button
+                                onClick={() => handleToggleRole(u)}
+                                className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                              >
+                                {u.role === 'admin' ? 'Demote to Student' : 'Promote to Admin'}
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(u._id, u.name)}
+                                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* USER DIRECTORY PAGINATION CONTROLS */}
+                {usersList.length > USERS_PER_PAGE && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[var(--border-theme)] mt-2">
+                    <span className="text-xs font-lato text-[var(--text-muted)]">
+                      Showing <span className="font-bold text-[var(--text-main)]">{startUserIdx + 1}</span> to{' '}
+                      <span className="font-bold text-[var(--text-main)]">{Math.min(startUserIdx + USERS_PER_PAGE, usersList.length)}</span> of{' '}
+                      <span className="font-bold text-[var(--text-main)]">{usersList.length}</span> registered users
+                    </span>
+
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        onClick={() => setUserCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={validUserPage <= 1}
+                        className="px-3 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                      >
+                        ← Prev
+                      </button>
+
+                      {Array.from({ length: totalUserPages }, (_, i) => i + 1).map((pg) => (
                         <button
-                          onClick={() => handleToggleRole(u)}
-                          className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                          key={pg}
+                          onClick={() => setUserCurrentPage(pg)}
+                          className={`w-7 h-7 rounded-lg text-xs font-poppins font-bold transition-all cursor-pointer ${
+                            validUserPage === pg
+                              ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                              : 'border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                          }`}
                         >
-                          {u.role === 'admin' ? 'Demote to Student' : 'Promote to Admin'}
+                          {pg}
                         </button>
-                        <button
-                          onClick={() => handleDeleteUser(u._id, u.name)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                      ))}
+
+                      <button
+                        onClick={() => setUserCurrentPage((p) => Math.min(totalUserPages, p + 1))}
+                        disabled={validUserPage >= totalUserPages}
+                        className="px-3 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                      >
+                        Next →
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -2958,1043 +2866,1268 @@ You are building a high-frequency financial settlement engine. Given an array of
               </div>
             </div>
 
-            <form onSubmit={handleSaveQuizSubmit} className="space-y-6 font-lato text-xs sm:text-sm">
+            <form onSubmit={handleSaveQuizSubmit} className="space-y-4 font-lato text-xs sm:text-sm">
               
-              {/* STEP 1: CATEGORY TYPE SELECTION */}
-              <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 rounded-2xl space-y-3">
-                <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider">
-                  Quiz Category Type *
-                </label>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div
-                    onClick={() => setQuizFormData({ ...quizFormData, quizType: 'multiple_choice' })}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start space-x-3 ${
-                      quizFormData.quizType === 'multiple_choice'
-                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 dark:bg-blue-950/30'
-                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-blue-400'
-                    }`}
-                  >
-                    <span className="text-2xl mt-0.5">🔘</span>
-                    <div>
-                      <div className="font-poppins font-bold text-sm text-[var(--text-main)]">
-                        Multiple Choice (MCQ)
-                      </div>
-                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                        Multiple choice options with configurable per-question or exam timer.
-                      </div>
+              {/* ========================================================================= */}
+              {/* 🏷️ SECTION 1: CHALLENGES, CATEGORY & TAGS (UNWRAPPED INITIALLY) */}
+              {/* ========================================================================= */}
+              <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                openQuizSection === 'category_tags'
+                  ? 'border-[var(--color-primary-500)] shadow-md ring-1 ring-blue-500/20 bg-[var(--bg-card)]'
+                  : 'border-[var(--border-theme)] hover:border-[var(--color-primary-300)] bg-[var(--bg-main)]/60'
+              }`}>
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => setOpenQuizSection(openQuizSection === 'category_tags' ? null : 'category_tags')}
+                  className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left cursor-pointer transition-colors hover:bg-[var(--color-primary-50)]/30 dark:hover:bg-slate-800/40"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-[var(--color-primary-600)] to-blue-500 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      1
                     </div>
-                  </div>
-
-                  <div
-                    onClick={() => setQuizFormData({ ...quizFormData, quizType: 'code' })}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start space-x-3 ${
-                      quizFormData.quizType === 'code'
-                        ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/30'
-                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-indigo-400'
-                    }`}
-                  >
-                    <span className="text-2xl mt-0.5">💻</span>
-                    <div>
-                      <div className="font-poppins font-bold text-sm text-[var(--text-main)]">
-                        Code Challenge (Problem Solving)
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                          🏷️ Challenges, Category & Tags
+                        </span>
+                        <span className="text-[10px] font-poppins font-bold px-2 py-0.5 rounded-full bg-[var(--color-primary-50)] dark:bg-blue-950/60 text-[var(--color-primary-600)] border border-[var(--color-primary-200)] dark:border-blue-800">
+                          {quizFormData.quizType === 'code' ? '💻 Coding Challenge' : '🔘 MCQ Assessment'}
+                        </span>
                       </div>
-                      <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                        Real-world problem, Code IDE, test cases & Camera/Mic Anti-Cheating.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* TIMING CONFIGURATION MODE */}
-              <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-5 rounded-2xl space-y-4">
-                <div>
-                  <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider">
-                    ⏱️ Question Timing Configuration Mode *
-                  </label>
-                  <span className="text-xs font-lato text-[var(--text-muted)]">
-                    Choose how time countdowns are applied to questions.
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div
-                    onClick={() => setQuizFormData({ ...quizFormData, timerType: 'per_question_general' })}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                      quizFormData.timerType === 'per_question_general'
-                        ? 'border-amber-500 bg-amber-500/10 text-[var(--text-main)]'
-                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-amber-400'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-lg mb-1">⏱️</div>
-                      <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
-                        General Time Each Question
-                      </div>
-                      <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
-                        Uniform countdown for every question (e.g. 15s each).
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        Category: <strong className="text-[var(--text-main)]">{quizFormData.category || 'Web Dev'}</strong> • {quizFormData.title ? quizFormData.title : 'Assessment Title & Overview'}
                       </p>
                     </div>
                   </div>
 
-                  <div
-                    onClick={() => setQuizFormData({ ...quizFormData, timerType: 'per_question_custom' })}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                      quizFormData.timerType === 'per_question_custom'
-                        ? 'border-indigo-500 bg-indigo-500/10 text-[var(--text-main)]'
-                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-indigo-400'
-                    }`}
-                  >
-                    <div>
-                      <div className="text-lg mb-1">🎯</div>
-                      <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
-                        Custom Time Each Question
-                      </div>
-                      <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
-                        Specify individual timer per question (e.g. Q1: 15s, Q2: 45s).
-                      </p>
-                    </div>
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <span className="hidden sm:inline-block text-[11px] font-poppins font-medium text-[var(--text-muted)]">
+                      {openQuizSection === 'category_tags' ? 'Open' : 'Configure'}
+                    </span>
+                    <span className={`text-xs font-bold transition-transform duration-200 inline-block ${openQuizSection === 'category_tags' ? 'rotate-180 text-[var(--color-primary-600)]' : 'text-[var(--text-muted)]'}`}>
+                      ▼
+                    </span>
                   </div>
+                </button>
 
-                  <div
-                    onClick={() => setQuizFormData({ ...quizFormData, timerType: 'total_quiz' })}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                      quizFormData.timerType === 'total_quiz'
-                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 text-[var(--text-main)]'
-                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-blue-400'
-                    }`}
-                  >
+                {/* Accordion Body */}
+                {openQuizSection === 'category_tags' && (
+                  <div className="px-4 sm:px-5 pb-5 pt-3 space-y-4 border-t border-[var(--border-theme)] animate-fadeIn">
+                    
+                    {/* Category Type Selection (MCQ vs Code) */}
                     <div>
-                      <div className="text-lg mb-1">⏳</div>
-                      <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
-                        Total Time for Quiz
-                      </div>
-                      <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
-                        Uses dynamically calculated total duration from start/end times.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {quizFormData.timerType === 'per_question_general' && (
-                  <div className="p-3.5 bg-[var(--bg-card)] rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
-                    <div>
-                      <label className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400 block">
-                        ⚡ General Time Per Question:
+                      <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-2">
+                        Quiz Category Type *
                       </label>
-                      <span className="text-[11px] font-lato text-[var(--text-muted)]">
-                        Configure countdown unit in seconds or minutes per question.
-                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div
+                          onClick={() => setQuizFormData({ ...quizFormData, quizType: 'multiple_choice' })}
+                          className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start space-x-3 ${
+                            quizFormData.quizType === 'multiple_choice'
+                              ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/50 dark:bg-blue-950/40 shadow-xs'
+                              : 'border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-blue-400'
+                          }`}
+                        >
+                          <span className="text-2xl mt-0.5">🔘</span>
+                          <div>
+                            <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)]">
+                              Multiple Choice (MCQ)
+                            </div>
+                            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                              Standard MCQs, Code Patterns & Bug Fixes with flexible timers.
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          onClick={() => setQuizFormData({ ...quizFormData, quizType: 'code' })}
+                          className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start space-x-3 ${
+                            quizFormData.quizType === 'code'
+                              ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/40 shadow-xs'
+                              : 'border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-indigo-400'
+                          }`}
+                        >
+                          <span className="text-2xl mt-0.5">💻</span>
+                          <div>
+                            <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)]">
+                              Code Challenge (Problem Solving)
+                            </div>
+                            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                              Real-world coding scenario with interactive IDE & test cases.
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      {/* Unit Selector Toggle */}
-                      <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => setTimerUnit('sec')}
-                          className={`px-2.5 py-1 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
-                            timerUnit === 'sec'
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                          }`}
-                        >
-                          sec / q
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setTimerUnit('min')}
-                          className={`px-2.5 py-1 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
-                            timerUnit === 'min'
-                              ? 'bg-amber-500 text-white shadow-sm'
-                              : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                          }`}
-                        >
-                          min / q
-                        </button>
+                    {/* Basic Challenge Info */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block font-poppins font-bold text-xs mb-1">
+                          Quiz / Challenge Title *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Next.js Architecture Challenge"
+                          value={quizFormData.title}
+                          onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                        />
                       </div>
 
-                      {timerUnit === 'sec' ? (
-                        <div className="flex items-center space-x-1.5">
-                          <input
-                            type="number"
-                            min="5"
-                            max="600"
-                            step="5"
-                            value={quizFormData.generalQuestionTimerSeconds}
-                            onChange={(e) =>
-                              setQuizFormData({
-                                ...quizFormData,
-                                generalQuestionTimerSeconds: Math.max(5, Number(e.target.value)),
-                                quickTimerSeconds: Math.max(5, Number(e.target.value))
-                              })
-                            }
-                            className="w-20 px-2 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-mono font-bold text-center"
-                          />
-                          <span className="text-xs font-poppins text-[var(--text-muted)]">sec</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block font-poppins font-bold text-xs mb-1">Category *</label>
+                          <select
+                            value={quizFormData.category}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, category: e.target.value })}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                          >
+                            <option value="Web Dev">Web Dev</option>
+                            <option value="Frontend">Frontend</option>
+                            <option value="Backend">Backend</option>
+                            <option value="CS Algo">CS Algo / Data Structures</option>
+                            <option value="Data & AI">Data & AI</option>
+                            <option value="UI / UX">UI / UX</option>
+                            <option value="DevOps">DevOps</option>
+                            <option value="Cybersecurity">Cybersecurity</option>
+                          </select>
                         </div>
-                      ) : (
-                        <div className="flex items-center space-x-1.5">
+
+                        <div>
+                          <label className="block font-poppins font-bold text-xs mb-1">Tech Stack Tags (comma separated)</label>
                           <input
-                            type="number"
-                            min="0.1"
-                            max="10"
-                            step="0.1"
-                            value={Number((quizFormData.generalQuestionTimerSeconds / 60).toFixed(1))}
-                            onChange={(e) => {
-                              const mins = Number(e.target.value);
-                              const secs = Math.max(5, Math.round(mins * 60));
-                              setQuizFormData({
-                                ...quizFormData,
-                                generalQuestionTimerSeconds: secs,
-                                quickTimerSeconds: secs
-                              });
-                            }}
-                            className="w-20 px-2 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-mono font-bold text-center"
+                            type="text"
+                            placeholder="JavaScript, React, Algorithms, Node.js"
+                            value={quizFormData.techStack}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, techStack: e.target.value })}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
                           />
-                          <span className="text-xs font-poppins text-[var(--text-muted)]">
-                            min ({quizFormData.generalQuestionTimerSeconds}s)
-                          </span>
                         </div>
-                      )}
+                      </div>
+
+                      <div>
+                        <label className="block font-poppins font-bold text-xs mb-1">Quick Overview Summary</label>
+                        <textarea
+                          rows="2"
+                          placeholder="Short description of the challenge and learning outcomes..."
+                          value={quizFormData.quickDetails}
+                          onChange={(e) => setQuizFormData({ ...quizFormData, quickDetails: e.target.value })}
+                          className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)] resize-none"
+                        />
+                      </div>
                     </div>
+
+                    {/* Step Advance Button */}
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenQuizSection('timings_schedule')}
+                        className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
+                      >
+                        <span>Next: Timings & Schedule</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+
                   </div>
                 )}
               </div>
 
-              {/* BASIC DETAILS (TITLE, CATEGORY, TECH STACK) */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block font-poppins font-bold text-xs mb-1">Quiz / Challenge Title *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Next.js Architecture Challenge"
-                    value={quizFormData.title}
-                    onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block font-poppins font-bold text-xs mb-1">Category</label>
-                    <select
-                      value={quizFormData.category}
-                      onChange={(e) => setQuizFormData({ ...quizFormData, category: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
-                    >
-                      <option value="Web Dev">Web Dev</option>
-                      <option value="Frontend">Frontend</option>
-                      <option value="Backend">Backend</option>
-                      <option value="CS Algo">CS Algo / Data Structures</option>
-                      <option value="Data & AI">Data & AI</option>
-                      <option value="UI / UX">UI / UX</option>
-                      <option value="DevOps">DevOps</option>
-                      <option value="Cybersecurity">Cybersecurity</option>
-                    </select>
+              {/* ========================================================================= */}
+              {/* ⏱️ SECTION 2: TIMING MODE & SCHEDULE */}
+              {/* ========================================================================= */}
+              <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                openQuizSection === 'timings_schedule'
+                  ? 'border-amber-500 shadow-md ring-1 ring-amber-500/20 bg-[var(--bg-card)]'
+                  : 'border-[var(--border-theme)] hover:border-amber-400 bg-[var(--bg-main)]/60'
+              }`}>
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => setOpenQuizSection(openQuizSection === 'timings_schedule' ? null : 'timings_schedule')}
+                  className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left cursor-pointer transition-colors hover:bg-amber-500/10"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      2
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                          ⏱️ Timing Mode & Exam Schedule
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          {quizFormData.timerType === 'per_question_general'
+                            ? `General ${quizFormData.generalQuestionTimerSeconds}s/q`
+                            : quizFormData.timerType === 'per_question_custom'
+                            ? 'Custom Timer per Question'
+                            : 'Total Exam Time'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        Schedule: <strong className="text-[var(--text-main)]">{quizFormData.startDate} {quizFormData.startTime} {quizFormData.startPeriod}</strong> • Duration: <strong className="text-[var(--color-primary-600)]">{dynamicDuration.formattedDuration}</strong>
+                      </p>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block font-poppins font-bold text-xs mb-1">Tech Stack (comma separated)</label>
-                    <input
-                      type="text"
-                      placeholder="JavaScript, React, Algorithms, Node.js"
-                      value={quizFormData.techStack}
-                      onChange={(e) => setQuizFormData({ ...quizFormData, techStack: e.target.value })}
-                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
-                    />
-                  </div>
-                </div>
-
-                {/* SCHEDULE TIMINGS WITH REAL-TIME DURATION & AM/PM TOGGLES */}
-                <div className="p-5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="font-poppins font-bold text-xs uppercase text-[var(--text-main)] block">
-                      Schedule Timings & Auto-Calculated Duration:
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <span className="hidden sm:inline-block text-[11px] font-poppins font-medium text-[var(--text-muted)]">
+                      {openQuizSection === 'timings_schedule' ? 'Open' : 'Configure'}
                     </span>
-                    <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-[var(--color-primary-600)] text-white font-bold">
-                      Calculated Duration: {dynamicDuration.formattedDuration}
+                    <span className={`text-xs font-bold transition-transform duration-200 inline-block ${openQuizSection === 'timings_schedule' ? 'rotate-180 text-amber-500' : 'text-[var(--text-muted)]'}`}>
+                      ▼
                     </span>
                   </div>
+                </button>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Accordion Body */}
+                {openQuizSection === 'timings_schedule' && (
+                  <div className="px-4 sm:px-5 pb-5 pt-3 space-y-4 border-t border-[var(--border-theme)] animate-fadeIn">
                     
-                    {/* START DATE & TIME WITH DROPDOWN + AM/PM TOGGLE */}
-                    <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-theme)] space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-poppins font-bold text-[var(--text-main)]">
-                          Start Schedule (Default: Current)
-                        </label>
-                        <span className="text-[10px] text-emerald-500 font-mono font-bold">● Starts</span>
-                      </div>
-
-                      {/* Start Date (DD-Mon-YYYY) */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] text-[var(--text-muted)] uppercase">
-                            Start Date (DD-Mon-YYYY)
-                          </label>
-                          <span className="text-[10px] font-mono text-[var(--color-primary-600)] font-semibold">
-                            e.g. 14-Aug-2026
-                          </span>
-                        </div>
-                        <div className="relative flex items-center">
-                          <input
-                            type="text"
-                            required
-                            placeholder="DD-Mon-YYYY (e.g. 14-Aug-2026)"
-                            value={quizFormData.startDate}
-                            onChange={(e) => setQuizFormData({ ...quizFormData, startDate: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)]"
-                          />
-                          {/* Interactive calendar picker synced to DD-Mon-YYYY */}
-                          <input
-                            type="date"
-                            tabIndex={-1}
-                            aria-label="Pick start date"
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                setQuizFormData({
-                                  ...quizFormData,
-                                  startDate: formatDateToDDMonYYYY(e.target.value)
-                                });
-                              }
-                            }}
-                            className="absolute right-2.5 w-5 h-5 opacity-40 hover:opacity-100 cursor-pointer"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Start Time Dropdown */}
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-1">
-                          Start Time & Period
-                        </label>
-                        <div className="flex items-center space-x-2">
-                          <select
-                            value={quizFormData.startTime}
-                            onChange={(e) => setQuizFormData({ ...quizFormData, startTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
-                          >
-                            {!STANDARD_TIME_OPTIONS.includes(quizFormData.startTime) && (
-                              <option value={quizFormData.startTime}>{quizFormData.startTime}</option>
-                            )}
-                            {STANDARD_TIME_OPTIONS.map((tOpt) => (
-                              <option key={tOpt} value={tOpt}>{tOpt}</option>
-                            ))}
-                          </select>
-
-                          <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setQuizFormData({ ...quizFormData, startPeriod: 'AM' })}
-                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
-                                quizFormData.startPeriod === 'AM'
-                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                              }`}
-                            >
-                              AM
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setQuizFormData({ ...quizFormData, startPeriod: 'PM' })}
-                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
-                                quizFormData.startPeriod === 'PM'
-                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                              }`}
-                            >
-                              PM
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* END DATE & TIME WITH DROPDOWN + AM/PM TOGGLE */}
-                    <div className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-theme)] space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-poppins font-bold text-[var(--text-main)]">
-                          End Schedule (Closes Quiz)
-                        </label>
-                        <span className="text-[10px] text-rose-500 font-mono font-bold">■ Ends</span>
-                      </div>
-
-                      {/* End Date (DD-Mon-YYYY) */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <label className="text-[10px] text-[var(--text-muted)] uppercase">
-                            End Date (DD-Mon-YYYY)
-                          </label>
-                          <span className="text-[10px] font-mono text-rose-500 font-semibold">
-                            e.g. 14-Aug-2026
-                          </span>
-                        </div>
-                        <div className="relative flex items-center">
-                          <input
-                            type="text"
-                            required
-                            placeholder="DD-Mon-YYYY (e.g. 14-Aug-2026)"
-                            value={quizFormData.endDate}
-                            onChange={(e) => setQuizFormData({ ...quizFormData, endDate: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)]"
-                          />
-                          {/* Interactive calendar picker synced to DD-Mon-YYYY */}
-                          <input
-                            type="date"
-                            tabIndex={-1}
-                            aria-label="Pick end date"
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                setQuizFormData({
-                                  ...quizFormData,
-                                  endDate: formatDateToDDMonYYYY(e.target.value)
-                                });
-                              }
-                            }}
-                            className="absolute right-2.5 w-5 h-5 opacity-40 hover:opacity-100 cursor-pointer"
-                          />
-                        </div>
-                      </div>
-
-                      {/* End Time Dropdown */}
-                      <div>
-                        <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-1">
-                          End Time & Period
-                        </label>
-                        <div className="flex items-center space-x-2">
-                          <select
-                            value={quizFormData.endTime}
-                            onChange={(e) => setQuizFormData({ ...quizFormData, endTime: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
-                          >
-                            {!STANDARD_TIME_OPTIONS.includes(quizFormData.endTime) && (
-                              <option value={quizFormData.endTime}>{quizFormData.endTime}</option>
-                            )}
-                            {STANDARD_TIME_OPTIONS.map((tOpt) => (
-                              <option key={tOpt} value={tOpt}>{tOpt}</option>
-                            ))}
-                          </select>
-
-                          <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => setQuizFormData({ ...quizFormData, endPeriod: 'AM' })}
-                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
-                                quizFormData.endPeriod === 'AM'
-                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                              }`}
-                            >
-                              AM
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setQuizFormData({ ...quizFormData, endPeriod: 'PM' })}
-                              className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
-                                quizFormData.endPeriod === 'PM'
-                                  ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                              }`}
-                            >
-                              PM
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* ========================================================================= */}
-                {/* 🏆 REWARDS & RANK TIERS (INDIVIDUAL & GROUP OF RANKS BUILDER) */}
-                {/* ========================================================================= */}
-                <div className="p-5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-4">
-                  <div className="flex items-center justify-between">
+                    {/* Timing Mode Cards */}
                     <div>
-                      <span className="font-poppins font-bold text-xs uppercase text-[var(--text-main)] block">
-                        🏆 Competition Rewards & Rank Tiers (Individual & Group Ranges):
-                      </span>
-                      <span className="text-xs font-lato text-[var(--text-muted)]">
-                        Define prizes for top single ranks (1st, 2nd, 3rd) and group ranges (4-10th, 11-50th, Top 100).
-                      </span>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAddRewardTier}
-                      className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-poppins font-bold cursor-pointer"
-                    >
-                      ➕ Add Rank / Group Tier
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {(quizFormData.rewards || []).map((reward, rIdx) => (
-                      <div
-                        key={rIdx}
-                        className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-3.5 rounded-xl space-y-2 relative"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400">
-                            Tier #{rIdx + 1}: {reward.place} ({reward.badge})
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveRewardTier(rIdx)}
-                            className="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
-                          >
-                            ✕ Remove
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <div>
-                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
-                              Rank or Group Range
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. 1st or 4-10th"
-                              value={reward.place}
-                              onChange={(e) => {
-                                const updated = [...quizFormData.rewards];
-                                updated[rIdx].place = e.target.value;
-                                setQuizFormData({ ...quizFormData, rewards: updated });
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-bold"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
-                              Badge Title
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. 🥇 Winner or 🏅 Top 10"
-                              value={reward.badge}
-                              onChange={(e) => {
-                                const updated = [...quizFormData.rewards];
-                                updated[rIdx].badge = e.target.value;
-                                setQuizFormData({ ...quizFormData, rewards: updated });
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
-                              Prize Package
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder="e.g. $500 Cash + Trophy"
-                              value={reward.prize}
-                              onChange={(e) => {
-                                const updated = [...quizFormData.rewards];
-                                updated[rIdx].prize = e.target.value;
-                                setQuizFormData({ ...quizFormData, rewards: updated });
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-bold text-emerald-600 dark:text-emerald-400"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
-                            Description / Perks
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Top Rank Certificate + Exclusive Swag Kit"
-                            value={reward.description}
-                            onChange={(e) => {
-                              const updated = [...quizFormData.rewards];
-                              updated[rIdx].description = e.target.value;
-                              setQuizFormData({ ...quizFormData, rewards: updated });
-                            }}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-poppins font-bold text-xs mb-1">Quick Overview Summary</label>
-                  <textarea
-                    rows="2"
-                    placeholder="Short description of the challenge..."
-                    value={quizFormData.quickDetails}
-                    onChange={(e) => setQuizFormData({ ...quizFormData, quickDetails: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)] resize-none"
-                  />
-                </div>
-              </div>
-
-              {/* SECTION A: MULTIPLE CHOICE & CODE PATTERN QUESTIONS */}
-              {quizFormData.quizType === 'multiple_choice' && (
-                <div className="space-y-4 pt-4 border-t border-[var(--border-theme)] animate-fadeIn">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <div>
-                      <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
-                        Questions List ({quizFormData.questions.length})
-                      </h4>
-                      <span className="text-xs font-lato text-[var(--text-muted)]">
-                        Add Standard MCQs or Code Pattern / Bug Fix questions with code snippets.
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={downloadQuizQuestionsTemplate}
-                        className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1"
-                        title="Download structured Excel (.xlsx) template for Quiz questions"
-                      >
-                        <span>📥</span>
-                        <span>Excel Template</span>
-                      </button>
-
-                      <label
-                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 shadow-sm flex items-center space-x-1"
-                        title="Import questions from an Excel (.xlsx/.csv) file into this quiz"
-                      >
-                        <span>📤</span>
-                        <span>Import Excel</span>
-                        <input
-                          type="file"
-                          accept=".xlsx, .xls, .csv"
-                          onChange={(e) => handleExcelQuizQuestionsUpload(e, 'append')}
-                          className="hidden"
-                        />
+                      <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-2">
+                        Question Timing Configuration Mode *
                       </label>
-
-                      <button
-                        type="button"
-                        onClick={() => handleAddQuestion('mcq')}
-                        className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
-                      >
-                        ➕ Add MCQ
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleAddQuestion('pattern')}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
-                      >
-                        🧩 Add Code Pattern / Bug Fix
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {quizFormData.questions.map((q, qIndex) => (
-                      <div
-                        key={qIndex}
-                        className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 sm:p-5 rounded-2xl space-y-3.5 relative"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-2.5">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-xs font-poppins font-bold text-[var(--color-primary-600)]">
-                              Question #{qIndex + 1}
-                            </span>
-                            
-                            {/* Question Type Switcher */}
-                            <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] p-0.5 text-[11px]">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...quizFormData.questions];
-                                  updated[qIndex].questionType = 'mcq';
-                                  setQuizFormData({ ...quizFormData, questions: updated });
-                                }}
-                                className={`px-2 py-0.5 rounded font-poppins font-semibold cursor-pointer transition-all ${
-                                  (q.questionType || 'mcq') === 'mcq'
-                                    ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                                }`}
-                              >
-                                🔘 Standard MCQ
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...quizFormData.questions];
-                                  updated[qIndex].questionType = 'pattern';
-                                  if (!updated[qIndex].codeSnippet) {
-                                    updated[qIndex].codeSnippet = '// Code snippet that needs fixing\nfunction calculateTotal(items) {\n  let total = 0;\n  for (let i = 0; i <= items.length; i++) {\n    total += items[i].price;\n  }\n  return total;\n}';
-                                  }
-                                  setQuizFormData({ ...quizFormData, questions: updated });
-                                }}
-                                className={`px-2 py-0.5 rounded font-poppins font-semibold cursor-pointer transition-all ${
-                                  q.questionType === 'pattern'
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                                }`}
-                              >
-                                🧩 Code Pattern / Bug Fix
-                              </button>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div
+                          onClick={() => setQuizFormData({ ...quizFormData, timerType: 'per_question_general' })}
+                          className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                            quizFormData.timerType === 'per_question_general'
+                              ? 'border-amber-500 bg-amber-500/10 text-[var(--text-main)] shadow-xs'
+                              : 'border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:border-amber-400'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-lg mb-1">⏱️</div>
+                            <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                              General Time Each Question
                             </div>
-                          </div>
-
-                          <div className="flex items-center space-x-3">
-                            {quizFormData.timerType === 'per_question_custom' && (
-                              <div className="flex items-center space-x-1.5 bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-indigo-400/40">
-                                <span className="text-[11px] font-poppins font-bold text-indigo-600 dark:text-indigo-400">⏱️ Time:</span>
-                                <input
-                                  type="number"
-                                  min="5"
-                                  max="600"
-                                  step="5"
-                                  value={q.timerSeconds || 15}
-                                  onChange={(e) => {
-                                    const updated = [...quizFormData.questions];
-                                    updated[qIndex].timerSeconds = Number(e.target.value);
-                                    setQuizFormData({ ...quizFormData, questions: updated });
-                                  }}
-                                  className="w-14 bg-transparent font-mono text-xs text-center border-b border-indigo-400 focus:outline-none"
-                                />
-                                <span className="text-[10px] text-[var(--text-muted)]">sec</span>
-                              </div>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveQuestion(qIndex)}
-                              className="text-rose-500 hover:text-rose-700 text-xs font-poppins font-semibold cursor-pointer"
-                            >
-                              ✕ Remove
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Question Title / Problem Prompt */}
-                        <div>
-                          <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
-                            {q.questionType === 'pattern' ? 'Problem Prompt / Bug Description *' : 'Question Statement *'}
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder={q.questionType === 'pattern' ? "e.g. Find and fix the off-by-one index error in this function to avoid runtime exception:" : "Enter the question text here..."}
-                            value={q.questionText}
-                            onChange={(e) => {
-                              const updated = [...quizFormData.questions];
-                              updated[qIndex].questionText = e.target.value;
-                              setQuizFormData({ ...quizFormData, questions: updated });
-                            }}
-                            className="w-full px-3 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
-                          />
-                        </div>
-
-                        {/* CODE PATTERN SNIPPET EDITOR (When questionType === 'pattern') */}
-                        {q.questionType === 'pattern' && (
-                          <div className="space-y-1.5 p-3 rounded-xl bg-slate-950 border border-indigo-500/30 text-white animate-fadeIn">
-                            <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 text-[11px] font-poppins">
-                              <span className="flex items-center space-x-1.5 text-indigo-400 font-bold">
-                                <span>🧩</span>
-                                <span>Code Snippet / Pattern to Fix:</span>
-                              </span>
-                              
-                              {/* Language Selector */}
-                              <div className="flex items-center space-x-1.5">
-                                <span className="text-[10px] text-slate-400">Language:</span>
-                                <select
-                                  value={q.language || 'javascript'}
-                                  onChange={(e) => {
-                                    const updated = [...quizFormData.questions];
-                                    updated[qIndex].language = e.target.value;
-                                    setQuizFormData({ ...quizFormData, questions: updated });
-                                  }}
-                                  className="bg-slate-900 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[11px] focus:outline-none cursor-pointer"
-                                >
-                                  <option value="javascript">JavaScript</option>
-                                  <option value="python">Python</option>
-                                  <option value="typescript">TypeScript</option>
-                                  <option value="java">Java</option>
-                                  <option value="cpp">C++</option>
-                                  <option value="csharp">C#</option>
-                                  <option value="php">PHP</option>
-                                  <option value="go">Go</option>
-                                  <option value="html">HTML / CSS</option>
-                                  <option value="sql">SQL</option>
-                                </select>
-                              </div>
-                            </div>
-
-                            <textarea
-                              rows="4"
-                              required
-                              placeholder="// Enter code snippet with the pattern/bug that needs fixing..."
-                              value={q.codeSnippet || ''}
-                              onChange={(e) => {
-                                const updated = [...quizFormData.questions];
-                                updated[qIndex].codeSnippet = e.target.value;
-                                setQuizFormData({ ...quizFormData, questions: updated });
-                              }}
-                              className="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-2.5 rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500 custom-scrollbar resize-y"
-                            />
-                            <p className="text-[10px] text-slate-400 font-lato">
-                              💡 Candidates will inspect this code snippet during the exam and select the correct fix or output prediction from the options below.
+                            <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
+                              Uniform countdown for every question (e.g. 15s each).
                             </p>
                           </div>
-                        )}
+                        </div>
 
-                        {/* 4 FIX / CHOICE OPTIONS */}
-                        <div>
-                          <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
-                            {q.questionType === 'pattern' ? 'Options / Bug Fix Choices (Select radio for correct fix):' : 'Options (Select radio for correct answer):'}
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {q.options.map((opt, optIndex) => (
-                              <div
-                                key={optIndex}
-                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition-colors ${
-                                  q.correctAnswerIndex === optIndex
-                                      ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
-                                      : 'border-[var(--border-theme)] bg-[var(--bg-card)]'
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name={`correct-ans-${qIndex}`}
-                                  checked={q.correctAnswerIndex === optIndex}
-                                  onChange={() => {
-                                    const updated = [...quizFormData.questions];
-                                    updated[qIndex].correctAnswerIndex = optIndex;
-                                    setQuizFormData({ ...quizFormData, questions: updated });
-                                  }}
-                                  className="cursor-pointer text-emerald-500 shrink-0"
-                                />
-                                <input
-                                  type="text"
-                                  required
-                                  placeholder={q.questionType === 'pattern' ? `Fix Option ${String.fromCharCode(65 + optIndex)} (e.g. Change i <= to i <)` : `Option ${String.fromCharCode(65 + optIndex)}`}
-                                  value={opt}
-                                  onChange={(e) => {
-                                    const updated = [...quizFormData.questions];
-                                    updated[qIndex].options[optIndex] = e.target.value;
-                                    setQuizFormData({ ...quizFormData, questions: updated });
-                                  }}
-                                  className="w-full bg-transparent text-xs focus:outline-none font-lato"
-                                />
-                              </div>
-                            ))}
+                        <div
+                          onClick={() => setQuizFormData({ ...quizFormData, timerType: 'per_question_custom' })}
+                          className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                            quizFormData.timerType === 'per_question_custom'
+                              ? 'border-indigo-500 bg-indigo-500/10 text-[var(--text-main)] shadow-xs'
+                              : 'border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:border-indigo-400'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-lg mb-1">🎯</div>
+                            <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                              Custom Time Each Question
+                            </div>
+                            <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
+                              Specify individual timer per question (e.g. Q1: 15s, Q2: 45s).
+                            </p>
                           </div>
                         </div>
 
-                        {/* Question Explanation Field */}
-                        <div className="pt-1">
-                          <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1 flex items-center space-x-1">
-                            <span>💡</span>
-                            <span>Answer Explanation (Optional - Shown to candidates in Post-Exam Review)</span>
-                          </label>
-                          <textarea
-                            rows="2"
-                            placeholder={q.questionType === 'pattern' ? "Explain why this fix is correct (e.g. 'Array indices range from 0 to length - 1, so i <= length causes an out of bounds reference')..." : "Explain why the correct answer is right..."}
-                            value={q.explanation || ''}
-                            onChange={(e) => {
-                              const updated = [...quizFormData.questions];
-                              updated[qIndex].explanation = e.target.value;
-                              setQuizFormData({ ...quizFormData, questions: updated });
-                            }}
-                            className="w-full px-3 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] text-xs focus:outline-none focus:border-[var(--color-primary-600)] resize-none font-lato"
-                          />
+                        <div
+                          onClick={() => setQuizFormData({ ...quizFormData, timerType: 'total_quiz' })}
+                          className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                            quizFormData.timerType === 'total_quiz'
+                              ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 text-[var(--text-main)] shadow-xs'
+                              : 'border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:border-blue-400'
+                          }`}
+                        >
+                          <div>
+                            <div className="text-lg mb-1">⏳</div>
+                            <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                              Total Time for Quiz
+                            </div>
+                            <p className="text-[11px] font-lato text-[var(--text-muted)] mt-1">
+                              Uses dynamically calculated total duration from start/end times.
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* SECTION B: REAL-WORLD CODE CHALLENGE */}
-              {quizFormData.quizType === 'code' && (
-                <div className="space-y-5 pt-4 border-t border-[var(--border-theme)] animate-fadeIn">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-2">
-                        <span>💻 Real-World Problem & Code IDE Settings</span>
-                      </h4>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-poppins font-bold text-xs mb-1">Target Language</label>
-                      <select
-                        value={quizFormData.codingChallenge?.language || 'JavaScript'}
-                        onChange={(e) =>
-                          setQuizFormData({
-                            ...quizFormData,
-                            codingChallenge: { ...quizFormData.codingChallenge, language: e.target.value }
-                          })
-                        }
-                        className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                    {/* General Timer Input if per_question_general */}
+                    {quizFormData.timerType === 'per_question_general' && (
+                      <div className="p-3.5 bg-[var(--bg-main)] rounded-xl border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                        <div>
+                          <label className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400 block">
+                            ⚡ General Time Per Question:
+                          </label>
+                          <span className="text-[11px] font-lato text-[var(--text-muted)]">
+                            Configure countdown unit in seconds or minutes per question.
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] p-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setTimerUnit('sec')}
+                              className={`px-2.5 py-1 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                timerUnit === 'sec'
+                                  ? 'bg-amber-500 text-white shadow-xs'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              sec / q
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTimerUnit('min')}
+                              className={`px-2.5 py-1 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                timerUnit === 'min'
+                                  ? 'bg-amber-500 text-white shadow-xs'
+                                  : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                              }`}
+                            >
+                              min / q
+                            </button>
+                          </div>
+
+                          {timerUnit === 'sec' ? (
+                            <div className="flex items-center space-x-1.5">
+                              <input
+                                type="number"
+                                min="5"
+                                max="600"
+                                step="5"
+                                value={quizFormData.generalQuestionTimerSeconds}
+                                onChange={(e) =>
+                                  setQuizFormData({
+                                    ...quizFormData,
+                                    generalQuestionTimerSeconds: Math.max(5, Number(e.target.value)),
+                                    quickTimerSeconds: Math.max(5, Number(e.target.value))
+                                  })
+                                }
+                                className="w-20 px-2 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs font-mono font-bold text-center"
+                              />
+                              <span className="text-xs font-poppins text-[var(--text-muted)]">sec</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1.5">
+                              <input
+                                type="number"
+                                min="0.1"
+                                max="10"
+                                step="0.1"
+                                value={Number((quizFormData.generalQuestionTimerSeconds / 60).toFixed(1))}
+                                onChange={(e) => {
+                                  const mins = Number(e.target.value);
+                                  const secs = Math.max(5, Math.round(mins * 60));
+                                  setQuizFormData({
+                                    ...quizFormData,
+                                    generalQuestionTimerSeconds: secs,
+                                    quickTimerSeconds: secs
+                                  });
+                                }}
+                                className="w-20 px-2 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs font-mono font-bold text-center"
+                              />
+                              <span className="text-xs font-poppins text-[var(--text-muted)]">
+                                min ({quizFormData.generalQuestionTimerSeconds}s)
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Schedule Timings Builder */}
+                    <div className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-3">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="font-poppins font-bold text-xs uppercase text-[var(--text-main)] block">
+                          Schedule Timings & Auto-Calculated Duration:
+                        </span>
+                        <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-lg bg-[var(--color-primary-600)] text-white font-bold">
+                          Calculated Duration: {dynamicDuration.formattedDuration}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Start Schedule */}
+                        <div className="bg-[var(--bg-card)] p-3.5 rounded-xl border border-[var(--border-theme)] space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-poppins font-bold text-[var(--text-main)]">
+                              Start Schedule (Default: Current)
+                            </label>
+                            <span className="text-[10px] text-emerald-500 font-mono font-bold">● Starts</span>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] text-[var(--text-muted)] uppercase">
+                                Start Date (DD-Mon-YYYY)
+                              </label>
+                              <span className="text-[10px] font-mono text-[var(--color-primary-600)] font-semibold">
+                                e.g. 14-Aug-2026
+                              </span>
+                            </div>
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                required
+                                placeholder="DD-Mon-YYYY (e.g. 14-Aug-2026)"
+                                value={quizFormData.startDate}
+                                onChange={(e) => setQuizFormData({ ...quizFormData, startDate: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)]"
+                              />
+                              <input
+                                type="date"
+                                tabIndex={-1}
+                                aria-label="Pick start date"
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    setQuizFormData({
+                                      ...quizFormData,
+                                      startDate: formatDateToDDMonYYYY(e.target.value)
+                                    });
+                                  }
+                                }}
+                                className="absolute right-2.5 w-5 h-5 opacity-40 hover:opacity-100 cursor-pointer"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-1">
+                              Start Time & Period
+                            </label>
+                            <div className="flex items-center space-x-2">
+                              <select
+                                value={quizFormData.startTime}
+                                onChange={(e) => setQuizFormData({ ...quizFormData, startTime: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                              >
+                                {!STANDARD_TIME_OPTIONS.includes(quizFormData.startTime) && (
+                                  <option value={quizFormData.startTime}>{quizFormData.startTime}</option>
+                                )}
+                                {STANDARD_TIME_OPTIONS.map((tOpt) => (
+                                  <option key={tOpt} value={tOpt}>{tOpt}</option>
+                                ))}
+                              </select>
+
+                              <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizFormData({ ...quizFormData, startPeriod: 'AM' })}
+                                  className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                    quizFormData.startPeriod === 'AM'
+                                      ? 'bg-[var(--color-primary-600)] text-white shadow-xs'
+                                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                  }`}
+                                >
+                                  AM
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizFormData({ ...quizFormData, startPeriod: 'PM' })}
+                                  className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                    quizFormData.startPeriod === 'PM'
+                                      ? 'bg-[var(--color-primary-600)] text-white shadow-xs'
+                                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                  }`}
+                                >
+                                  PM
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* End Schedule */}
+                        <div className="bg-[var(--bg-card)] p-3.5 rounded-xl border border-[var(--border-theme)] space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-poppins font-bold text-[var(--text-main)]">
+                              End Schedule (Closes Quiz)
+                            </label>
+                            <span className="text-[10px] text-rose-500 font-mono font-bold">■ Ends</span>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[10px] text-[var(--text-muted)] uppercase">
+                                End Date (DD-Mon-YYYY)
+                              </label>
+                              <span className="text-[10px] font-mono text-rose-500 font-semibold">
+                                e.g. 14-Aug-2026
+                              </span>
+                            </div>
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                required
+                                placeholder="DD-Mon-YYYY (e.g. 14-Aug-2026)"
+                                value={quizFormData.endDate}
+                                onChange={(e) => setQuizFormData({ ...quizFormData, endDate: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)]"
+                              />
+                              <input
+                                type="date"
+                                tabIndex={-1}
+                                aria-label="Pick end date"
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    setQuizFormData({
+                                      ...quizFormData,
+                                      endDate: formatDateToDDMonYYYY(e.target.value)
+                                    });
+                                  }
+                                }}
+                                className="absolute right-2.5 w-5 h-5 opacity-40 hover:opacity-100 cursor-pointer"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-1">
+                              End Time & Period
+                            </label>
+                            <div className="flex items-center space-x-2">
+                              <select
+                                value={quizFormData.endTime}
+                                onChange={(e) => setQuizFormData({ ...quizFormData, endTime: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-mono font-bold focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                              >
+                                {!STANDARD_TIME_OPTIONS.includes(quizFormData.endTime) && (
+                                  <option value={quizFormData.endTime}>{quizFormData.endTime}</option>
+                                )}
+                                {STANDARD_TIME_OPTIONS.map((tOpt) => (
+                                  <option key={tOpt} value={tOpt}>{tOpt}</option>
+                                ))}
+                              </select>
+
+                              <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] p-0.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizFormData({ ...quizFormData, endPeriod: 'AM' })}
+                                  className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                    quizFormData.endPeriod === 'AM'
+                                      ? 'bg-[var(--color-primary-600)] text-white shadow-xs'
+                                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                  }`}
+                                >
+                                  AM
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizFormData({ ...quizFormData, endPeriod: 'PM' })}
+                                  className={`px-3 py-1.5 rounded-md text-xs font-poppins font-bold transition-all cursor-pointer ${
+                                    quizFormData.endPeriod === 'PM'
+                                      ? 'bg-[var(--color-primary-600)] text-white shadow-xs'
+                                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                  }`}
+                                >
+                                  PM
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Step Advance Button */}
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenQuizSection('rewards_tiers')}
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-poppins font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
                       >
-                        <option value="JavaScript">JavaScript (Node.js)</option>
-                        <option value="Python">Python 3</option>
-                        <option value="TypeScript">TypeScript</option>
-                        <option value="Java">Java</option>
-                        <option value="C++">C++</option>
-                      </select>
+                        <span>Next: Competition Rewards & Tiers</span>
+                        <span>→</span>
+                      </button>
                     </div>
 
-                    <div>
-                      <label className="block font-poppins font-bold text-xs mb-1">Difficulty Level</label>
-                      <select
-                        value={quizFormData.codingChallenge?.difficulty || 'Medium'}
-                        onChange={(e) =>
-                          setQuizFormData({
-                            ...quizFormData,
-                            codingChallenge: { ...quizFormData.codingChallenge, difficulty: e.target.value }
-                          })
-                        }
-                        className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
-                      >
-                        <option value="Easy">Easy (Fundamentals)</option>
-                        <option value="Medium">Medium (Real-World Architecture)</option>
-                        <option value="Hard">Hard (High-Performance Engine)</option>
-                      </select>
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* 🏆 SECTION 3: REWARDS & RANK TIERS */}
+              {/* ========================================================================= */}
+              <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                openQuizSection === 'rewards_tiers'
+                  ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500/20 bg-[var(--bg-card)]'
+                  : 'border-[var(--border-theme)] hover:border-emerald-400 bg-[var(--bg-main)]/60'
+              }`}>
+                {/* Accordion Header */}
+                <button
+                  type="button"
+                  onClick={() => setOpenQuizSection(openQuizSection === 'rewards_tiers' ? null : 'rewards_tiers')}
+                  className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left cursor-pointer transition-colors hover:bg-emerald-500/10"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      3
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                          🏆 Competition Rewards & Rank Tiers
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                          {(quizFormData.rewards || []).length} Tiers Configured
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        Top Prizes: <strong className="text-emerald-600 dark:text-emerald-400">{quizFormData.rewards?.[0]?.prize || 'Prizes'}</strong> • 1st, 2nd, 3rd & Group Ranks
+                      </p>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block font-poppins font-bold text-xs mb-1">Problem Statement (Markdown) *</label>
-                    <textarea
-                      rows="4"
-                      required
-                      placeholder="Describe the real-world scenario, requirements, and constraints..."
-                      value={quizFormData.codingChallenge?.problemStatement || ''}
-                      onChange={(e) =>
-                        setQuizFormData({
-                          ...quizFormData,
-                          codingChallenge: { ...quizFormData.codingChallenge, problemStatement: e.target.value }
-                        })
-                      }
-                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-mono text-xs focus:outline-none"
-                    />
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <span className="hidden sm:inline-block text-[11px] font-poppins font-medium text-[var(--text-muted)]">
+                      {openQuizSection === 'rewards_tiers' ? 'Open' : 'Configure'}
+                    </span>
+                    <span className={`text-xs font-bold transition-transform duration-200 inline-block ${openQuizSection === 'rewards_tiers' ? 'rotate-180 text-emerald-500' : 'text-[var(--text-muted)]'}`}>
+                      ▼
+                    </span>
                   </div>
+                </button>
 
-                  <div>
-                    <label className="block font-poppins font-bold text-xs mb-1">Starter Code Template *</label>
-                    <textarea
-                      rows="5"
-                      required
-                      placeholder="// Write starter function signature here..."
-                      value={quizFormData.codingChallenge?.starterCode || ''}
-                      onChange={(e) =>
-                        setQuizFormData({
-                          ...quizFormData,
-                          codingChallenge: { ...quizFormData.codingChallenge, starterCode: e.target.value }
-                        })
-                      }
-                      className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-slate-900 text-emerald-400 font-mono text-xs focus:outline-none"
-                    />
-                  </div>
-
-                  {/* Test Cases Builder */}
-                  <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 rounded-2xl space-y-3">
+                {/* Accordion Body */}
+                {openQuizSection === 'rewards_tiers' && (
+                  <div className="px-4 sm:px-5 pb-5 pt-3 space-y-4 border-t border-[var(--border-theme)] animate-fadeIn">
+                    
                     <div className="flex items-center justify-between">
-                      <label className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase">
-                        Test Cases Suite ({quizFormData.codingChallenge?.testCases?.length || 0})
-                      </label>
+                      <div>
+                        <span className="font-poppins font-bold text-xs uppercase text-[var(--text-main)] block">
+                          Rank Tiers & Group Ranges:
+                        </span>
+                        <span className="text-xs font-lato text-[var(--text-muted)]">
+                          Define prizes for individual top ranks and group tiers.
+                        </span>
+                      </div>
 
                       <button
                         type="button"
-                        onClick={handleAddTestCase}
-                        className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-poppins font-bold cursor-pointer"
+                        onClick={handleAddRewardTier}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-xs"
                       >
-                        ➕ Add Test Case
+                        ➕ Add Rank / Group Tier
                       </button>
                     </div>
 
                     <div className="space-y-3">
-                      {(quizFormData.codingChallenge?.testCases || []).map((tc, tcIdx) => (
+                      {(quizFormData.rewards || []).map((reward, rIdx) => (
                         <div
-                          key={tcIdx}
-                          className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-3 rounded-xl space-y-2"
+                          key={rIdx}
+                          className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-3.5 rounded-xl space-y-2 relative"
                         >
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="font-bold text-indigo-500 font-poppins">Test Case #{tcIdx + 1}</span>
+                          <div className="flex items-center justify-between">
+                            <span className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400">
+                              Tier #{rIdx + 1}: {reward.place} ({reward.badge})
+                            </span>
+
                             <button
                               type="button"
-                              onClick={() => handleRemoveTestCase(tcIdx)}
-                              className="text-rose-500 hover:text-rose-700 font-bold"
+                              onClick={() => handleRemoveRewardTier(rIdx)}
+                              className="text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
                             >
-                              ✕
+                              ✕ Remove
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
-                              <span className="text-[10px] text-[var(--text-muted)]">Input:</span>
+                              <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                                Rank or Group Range
+                              </label>
                               <input
                                 type="text"
-                                placeholder="e.g. transactions = [2, 7, 11], target = 9"
-                                value={tc.input}
+                                required
+                                placeholder="e.g. 1st or 4-10th"
+                                value={reward.place}
                                 onChange={(e) => {
-                                  const updated = [...quizFormData.codingChallenge.testCases];
-                                  updated[tcIdx].input = e.target.value;
-                                  setQuizFormData({
-                                    ...quizFormData,
-                                    codingChallenge: { ...quizFormData.codingChallenge, testCases: updated }
-                                  });
+                                  const updated = [...quizFormData.rewards];
+                                  updated[rIdx].place = e.target.value;
+                                  setQuizFormData({ ...quizFormData, rewards: updated });
                                 }}
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] font-mono text-[11px]"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs font-poppins font-bold"
                               />
                             </div>
 
                             <div>
-                              <span className="text-[10px] text-[var(--text-muted)]">Expected Output:</span>
+                              <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                                Badge Title
+                              </label>
                               <input
                                 type="text"
-                                placeholder="e.g. [0, 1]"
-                                value={tc.expectedOutput}
+                                required
+                                placeholder="e.g. 🥇 Winner or 🏅 Top 10"
+                                value={reward.badge}
                                 onChange={(e) => {
-                                  const updated = [...quizFormData.codingChallenge.testCases];
-                                  updated[tcIdx].expectedOutput = e.target.value;
-                                  setQuizFormData({
-                                    ...quizFormData,
-                                    codingChallenge: { ...quizFormData.codingChallenge, testCases: updated }
-                                  });
+                                  const updated = [...quizFormData.rewards];
+                                  updated[rIdx].badge = e.target.value;
+                                  setQuizFormData({ ...quizFormData, rewards: updated });
                                 }}
-                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] font-mono text-[11px]"
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs"
                               />
                             </div>
+
+                            <div>
+                              <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                                Prize Package
+                              </label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. $500 Cash + Trophy"
+                                value={reward.prize}
+                                onChange={(e) => {
+                                  const updated = [...quizFormData.rewards];
+                                  updated[rIdx].prize = e.target.value;
+                                  setQuizFormData({ ...quizFormData, rewards: updated });
+                                }}
+                                className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] text-[var(--text-muted)] uppercase mb-0.5">
+                              Description / Perks
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Top Rank Certificate + Exclusive Swag Kit"
+                              value={reward.description}
+                              onChange={(e) => {
+                                  const updated = [...quizFormData.rewards];
+                                  updated[rIdx].description = e.target.value;
+                                  setQuizFormData({ ...quizFormData, rewards: updated });
+                              }}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs"
+                            />
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                </div>
-              )}
 
-              {/* SUBMIT BUTTON */}
-              <div className="pt-4 flex items-center justify-end space-x-3 border-t border-[var(--border-theme)]">
+                    {/* Step Advance Button */}
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenQuizSection('questions_suite')}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold flex items-center space-x-1.5 cursor-pointer shadow-xs active:scale-95 transition-all"
+                      >
+                        <span>Next: Questions & Challenge Suite</span>
+                        <span>→</span>
+                      </button>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* 📝 SECTION 4: QUESTIONS & CHALLENGE SUITE */}
+              {/* ========================================================================= */}
+              <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                openQuizSection === 'questions_suite'
+                  ? 'border-indigo-500 shadow-md ring-1 ring-indigo-500/20 bg-[var(--bg-card)]'
+                  : 'border-[var(--border-theme)] hover:border-indigo-400 bg-[var(--bg-main)]/60'
+              }`}>
+                {/* Accordion Header */}
                 <button
                   type="button"
-                  onClick={() => setIsQuizModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                  onClick={() => setOpenQuizSection(openQuizSection === 'questions_suite' ? null : 'questions_suite')}
+                  className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left cursor-pointer transition-colors hover:bg-indigo-500/10"
                 >
-                  Cancel
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      4
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                          {quizFormData.quizType === 'multiple_choice' ? '📝 Multiple Choice Questions Suite' : '💻 Code Problem Statement & IDE Test Cases'}
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                          {quizFormData.quizType === 'multiple_choice'
+                            ? `${(quizFormData.questions || []).length} Questions`
+                            : `${quizFormData.codingChallenge?.language || 'JavaScript'} (${quizFormData.codingChallenge?.difficulty || 'Medium'})`}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        {quizFormData.quizType === 'multiple_choice'
+                          ? 'Standard MCQs, Code Snippets, Explanations & Excel Import'
+                          : 'Starter Code, Markdown Problem Statement & Test Cases Suite'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 shrink-0">
+                    <span className="hidden sm:inline-block text-[11px] font-poppins font-medium text-[var(--text-muted)]">
+                      {openQuizSection === 'questions_suite' ? 'Open' : 'Configure'}
+                    </span>
+                    <span className={`text-xs font-bold transition-transform duration-200 inline-block ${openQuizSection === 'questions_suite' ? 'rotate-180 text-indigo-500' : 'text-[var(--text-muted)]'}`}>
+                      ▼
+                    </span>
+                  </div>
                 </button>
 
-                <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer active:scale-95 transition-all"
-                >
-                  {editingQuizId ? 'Save Changes' : 'Publish Quiz Challenge'}
-                </button>
+                {/* Accordion Body */}
+                {openQuizSection === 'questions_suite' && (
+                  <div className="px-4 sm:px-5 pb-5 pt-3 space-y-4 border-t border-[var(--border-theme)] animate-fadeIn">
+                    
+                    {/* Multiple Choice MCQ Mode */}
+                    {quizFormData.quizType === 'multiple_choice' && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                          <div>
+                            <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                              Questions List ({quizFormData.questions.length})
+                            </h4>
+                            <span className="text-xs font-lato text-[var(--text-muted)]">
+                              Add Standard MCQs or Code Pattern / Bug Fix questions with code snippets.
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={downloadQuizQuestionsTemplate}
+                              className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1"
+                              title="Download structured Excel (.xlsx) template for Quiz questions"
+                            >
+                              <span>📥</span>
+                              <span>Excel Template</span>
+                            </button>
+
+                            <label
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 shadow-sm flex items-center space-x-1"
+                              title="Import questions from an Excel (.xlsx/.csv) file into this quiz"
+                            >
+                              <span>📤</span>
+                              <span>Import Excel</span>
+                              <input
+                                type="file"
+                                accept=".xlsx, .xls, .csv"
+                                onChange={(e) => handleExcelQuizQuestionsUpload(e, 'append')}
+                                className="hidden"
+                              />
+                            </label>
+
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuestion('mcq')}
+                              className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                            >
+                              ➕ Add MCQ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAddQuestion('pattern')}
+                              className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
+                            >
+                              🧩 Add Code Pattern / Bug Fix
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {quizFormData.questions.map((q, qIndex) => (
+                            <div
+                              key={qIndex}
+                              className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 sm:p-5 rounded-2xl space-y-3.5 relative"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-2.5">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs font-poppins font-bold text-[var(--color-primary-600)]">
+                                    Question #{qIndex + 1}
+                                  </span>
+                                  
+                                  {/* Question Type Switcher */}
+                                  <div className="inline-flex rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] p-0.5 text-[11px]">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...quizFormData.questions];
+                                        updated[qIndex].questionType = 'mcq';
+                                        setQuizFormData({ ...quizFormData, questions: updated });
+                                      }}
+                                      className={`px-2 py-0.5 rounded font-poppins font-semibold cursor-pointer transition-all ${
+                                        (q.questionType || 'mcq') === 'mcq'
+                                          ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                          : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                      }`}
+                                    >
+                                      🔘 Standard MCQ
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...quizFormData.questions];
+                                        updated[qIndex].questionType = 'pattern';
+                                        if (!updated[qIndex].codeSnippet) {
+                                          updated[qIndex].codeSnippet = '// Code snippet that needs fixing\nfunction calculateTotal(items) {\n  let total = 0;\n  for (let i = 0; i <= items.length; i++) {\n    total += items[i].price;\n  }\n  return total;\n}';
+                                        }
+                                        setQuizFormData({ ...quizFormData, questions: updated });
+                                      }}
+                                      className={`px-2 py-0.5 rounded font-poppins font-semibold cursor-pointer transition-all ${
+                                        q.questionType === 'pattern'
+                                          ? 'bg-indigo-600 text-white shadow-sm'
+                                          : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                                      }`}
+                                    >
+                                      🧩 Code Pattern / Bug Fix
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-3">
+                                  {quizFormData.timerType === 'per_question_custom' && (
+                                    <div className="flex items-center space-x-1.5 bg-[var(--bg-card)] px-2.5 py-1 rounded-lg border border-indigo-400/40">
+                                      <span className="text-[11px] font-poppins font-bold text-indigo-600 dark:text-indigo-400">⏱️ Time:</span>
+                                      <input
+                                        type="number"
+                                        min="5"
+                                        max="600"
+                                        step="5"
+                                        value={q.timerSeconds || 15}
+                                        onChange={(e) => {
+                                          const updated = [...quizFormData.questions];
+                                          updated[qIndex].timerSeconds = Number(e.target.value);
+                                          setQuizFormData({ ...quizFormData, questions: updated });
+                                        }}
+                                        className="w-14 bg-transparent font-mono text-xs text-center border-b border-indigo-400 focus:outline-none"
+                                      />
+                                      <span className="text-[10px] text-[var(--text-muted)]">sec</span>
+                                    </div>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveQuestion(qIndex)}
+                                    className="text-rose-500 hover:text-rose-700 text-xs font-poppins font-semibold cursor-pointer"
+                                  >
+                                    ✕ Remove
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Question Statement */}
+                              <div>
+                                <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
+                                  {q.questionType === 'pattern' ? 'Problem Prompt / Bug Description *' : 'Question Statement *'}
+                                </label>
+                                <input
+                                  type="text"
+                                  required
+                                  placeholder={q.questionType === 'pattern' ? "e.g. Find and fix the off-by-one index error in this function:" : "Enter the question text here..."}
+                                  value={q.questionText}
+                                  onChange={(e) => {
+                                    const updated = [...quizFormData.questions];
+                                    updated[qIndex].questionText = e.target.value;
+                                    setQuizFormData({ ...quizFormData, questions: updated });
+                                  }}
+                                  className="w-full px-3 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
+                                />
+                              </div>
+
+                              {/* Code Snippet Editor for Pattern */}
+                              {q.questionType === 'pattern' && (
+                                <div className="space-y-1.5 p-3 rounded-xl bg-slate-950 border border-indigo-500/30 text-white animate-fadeIn">
+                                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800 text-[11px] font-poppins">
+                                    <span className="flex items-center space-x-1.5 text-indigo-400 font-bold">
+                                      <span>🧩</span>
+                                      <span>Code Snippet / Pattern to Fix:</span>
+                                    </span>
+                                    
+                                    <div className="flex items-center space-x-1.5">
+                                      <span className="text-[10px] text-slate-400">Language:</span>
+                                      <select
+                                        value={q.language || 'javascript'}
+                                        onChange={(e) => {
+                                          const updated = [...quizFormData.questions];
+                                          updated[qIndex].language = e.target.value;
+                                          setQuizFormData({ ...quizFormData, questions: updated });
+                                        }}
+                                        className="bg-slate-900 text-slate-200 border border-slate-700 px-2 py-0.5 rounded text-[11px] focus:outline-none cursor-pointer"
+                                      >
+                                        <option value="javascript">JavaScript</option>
+                                        <option value="python">Python</option>
+                                        <option value="typescript">TypeScript</option>
+                                        <option value="java">Java</option>
+                                        <option value="cpp">C++</option>
+                                        <option value="csharp">C#</option>
+                                        <option value="php">PHP</option>
+                                        <option value="go">Go</option>
+                                        <option value="html">HTML / CSS</option>
+                                        <option value="sql">SQL</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <textarea
+                                    rows="4"
+                                    required
+                                    placeholder="// Enter code snippet with the pattern/bug that needs fixing..."
+                                    value={q.codeSnippet || ''}
+                                    onChange={(e) => {
+                                      const updated = [...quizFormData.questions];
+                                      updated[qIndex].codeSnippet = e.target.value;
+                                      setQuizFormData({ ...quizFormData, questions: updated });
+                                    }}
+                                    className="w-full bg-slate-900 text-emerald-400 font-mono text-xs p-2.5 rounded-lg border border-slate-800 focus:outline-none focus:border-indigo-500 custom-scrollbar resize-y"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Options with Radio for Correct Answer */}
+                              <div>
+                                <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
+                                  {q.questionType === 'pattern' ? 'Options / Bug Fix Choices (Select radio for correct fix):' : 'Options (Select radio for correct answer):'}
+                                </label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {q.options.map((opt, optIndex) => (
+                                    <div
+                                      key={optIndex}
+                                      className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition-colors ${
+                                        q.correctAnswerIndex === optIndex
+                                            ? 'border-emerald-500 bg-emerald-500/10 shadow-sm'
+                                            : 'border-[var(--border-theme)] bg-[var(--bg-card)]'
+                                      }`}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={`correct-ans-${qIndex}`}
+                                        checked={q.correctAnswerIndex === optIndex}
+                                        onChange={() => {
+                                          const updated = [...quizFormData.questions];
+                                          updated[qIndex].correctAnswerIndex = optIndex;
+                                          setQuizFormData({ ...quizFormData, questions: updated });
+                                        }}
+                                        className="cursor-pointer text-emerald-500 shrink-0"
+                                      />
+                                      <input
+                                        type="text"
+                                        required
+                                        placeholder={q.questionType === 'pattern' ? `Fix Option ${String.fromCharCode(65 + optIndex)}` : `Option ${String.fromCharCode(65 + optIndex)}`}
+                                        value={opt}
+                                        onChange={(e) => {
+                                          const updated = [...quizFormData.questions];
+                                          updated[qIndex].options[optIndex] = e.target.value;
+                                          setQuizFormData({ ...quizFormData, questions: updated });
+                                        }}
+                                        className="w-full bg-transparent text-xs focus:outline-none font-lato"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* Question Explanation */}
+                              <div className="pt-1">
+                                <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1 flex items-center space-x-1">
+                                  <span>💡</span>
+                                  <span>Answer Explanation (Optional - Shown in Post-Exam Review)</span>
+                                </label>
+                                <textarea
+                                  rows="2"
+                                  placeholder="Explain why the correct answer is right..."
+                                  value={q.explanation || ''}
+                                  onChange={(e) => {
+                                    const updated = [...quizFormData.questions];
+                                    updated[qIndex].explanation = e.target.value;
+                                    setQuizFormData({ ...quizFormData, questions: updated });
+                                  }}
+                                  className="w-full px-3 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] text-xs focus:outline-none focus:border-[var(--color-primary-600)] resize-none font-lato"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Coding Challenge Mode */}
+                    {quizFormData.quizType === 'code' && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block font-poppins font-bold text-xs mb-1">Target Language</label>
+                            <select
+                              value={quizFormData.codingChallenge?.language || 'JavaScript'}
+                              onChange={(e) =>
+                                setQuizFormData({
+                                  ...quizFormData,
+                                  codingChallenge: { ...quizFormData.codingChallenge, language: e.target.value }
+                                })
+                              }
+                              className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                            >
+                              <option value="JavaScript">JavaScript (Node.js)</option>
+                              <option value="Python">Python 3</option>
+                              <option value="TypeScript">TypeScript</option>
+                              <option value="Java">Java</option>
+                              <option value="C++">C++</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block font-poppins font-bold text-xs mb-1">Difficulty Level</label>
+                            <select
+                              value={quizFormData.codingChallenge?.difficulty || 'Medium'}
+                              onChange={(e) =>
+                                setQuizFormData({
+                                  ...quizFormData,
+                                  codingChallenge: { ...quizFormData.codingChallenge, difficulty: e.target.value }
+                                })
+                              }
+                              className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                            >
+                              <option value="Easy">Easy (Fundamentals)</option>
+                              <option value="Medium">Medium (Real-World Architecture)</option>
+                              <option value="Hard">Hard (High-Performance Engine)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block font-poppins font-bold text-xs mb-1">Problem Statement (Markdown) *</label>
+                          <textarea
+                            rows="4"
+                            required
+                            placeholder="Describe the real-world scenario, requirements, and constraints..."
+                            value={quizFormData.codingChallenge?.problemStatement || ''}
+                            onChange={(e) =>
+                              setQuizFormData({
+                                ...quizFormData,
+                                codingChallenge: { ...quizFormData.codingChallenge, problemStatement: e.target.value }
+                              })
+                            }
+                            className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-mono text-xs focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block font-poppins font-bold text-xs mb-1">Starter Code Template *</label>
+                          <textarea
+                            rows="5"
+                            required
+                            placeholder="// Write starter function signature here..."
+                            value={quizFormData.codingChallenge?.starterCode || ''}
+                            onChange={(e) =>
+                              setQuizFormData({
+                                ...quizFormData,
+                                codingChallenge: { ...quizFormData.codingChallenge, starterCode: e.target.value }
+                              })
+                            }
+                            className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-theme)] bg-slate-900 text-emerald-400 font-mono text-xs focus:outline-none"
+                          />
+                        </div>
+
+                        {/* Test Cases Builder */}
+                        <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-4 rounded-2xl space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase">
+                              Test Cases Suite ({quizFormData.codingChallenge?.testCases?.length || 0})
+                            </label>
+
+                            <button
+                              type="button"
+                              onClick={handleAddTestCase}
+                              className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-poppins font-bold cursor-pointer"
+                            >
+                              ➕ Add Test Case
+                            </button>
+                          </div>
+
+                          <div className="space-y-3">
+                            {(quizFormData.codingChallenge?.testCases || []).map((tc, tcIdx) => (
+                              <div
+                                key={tcIdx}
+                                className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-3 rounded-xl space-y-2"
+                              >
+                                <div className="flex items-center justify-between text-xs">
+                                  <span className="font-bold text-indigo-500 font-poppins">Test Case #{tcIdx + 1}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveTestCase(tcIdx)}
+                                    className="text-rose-500 hover:text-rose-700 font-bold"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                  <div>
+                                    <span className="text-[10px] text-[var(--text-muted)]">Input:</span>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. transactions = [2, 7, 11], target = 9"
+                                      value={tc.input}
+                                      onChange={(e) => {
+                                        const updated = [...quizFormData.codingChallenge.testCases];
+                                        updated[tcIdx].input = e.target.value;
+                                        setQuizFormData({
+                                          ...quizFormData,
+                                          codingChallenge: { ...quizFormData.codingChallenge, testCases: updated }
+                                        });
+                                      }}
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] font-mono text-[11px]"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <span className="text-[10px] text-[var(--text-muted)]">Expected Output:</span>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. [0, 1]"
+                                      value={tc.expectedOutput}
+                                      onChange={(e) => {
+                                        const updated = [...quizFormData.codingChallenge.testCases];
+                                        updated[tcIdx].expectedOutput = e.target.value;
+                                        setQuizFormData({
+                                          ...quizFormData,
+                                          codingChallenge: { ...quizFormData.codingChallenge, testCases: updated }
+                                        });
+                                      }}
+                                      className="w-full px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] font-mono text-[11px]"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                )}
+              </div>
+
+              {/* SUBMIT BUTTON BAR */}
+              <div className="pt-4 flex items-center justify-between border-t border-[var(--border-theme)]">
+                <div className="flex items-center space-x-1.5 text-xs text-[var(--text-muted)]">
+                  <span>💡</span>
+                  <span className="hidden sm:inline">Tap any section header to review details before saving.</span>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuizModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer active:scale-95 transition-all"
+                  >
+                    {editingQuizId ? 'Save Changes' : 'Publish Quiz Challenge'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

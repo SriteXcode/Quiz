@@ -1,88 +1,21 @@
 const PreviousWork = require('../models/PreviousWork');
 
-// Default initial previous works seed data
-const DEFAULT_WORKS = [
-  {
-    title: 'Fullstack Web Challenge 2025',
-    description: 'A 50-question competition testing HTML, CSS, React, and Express fundamentals.',
-    category: 'Web Dev',
-    participantsCount: '4,820 Participants',
-    avgScore: '84% Avg Score',
-    topWinner: 'Sarah J. (100%)',
-    badge: 'Completed',
-    gradient: 'from-blue-500 to-indigo-600',
-    techStack: ['HTML5', 'CSS3', 'React', 'Express'],
-    completedDate: 'Dec 2025'
-  },
-  {
-    title: 'Python Data Science Speedrun',
-    description: 'Timed algorithm challenge focusing on NumPy, Pandas, and Machine Learning.',
-    category: 'Data & AI',
-    participantsCount: '3,150 Participants',
-    avgScore: '79% Avg Score',
-    topWinner: 'Alex C. (98%)',
-    badge: 'Completed',
-    gradient: 'from-emerald-500 to-teal-600',
-    techStack: ['Python', 'Pandas', 'NumPy', 'Scikit-Learn'],
-    completedDate: 'Nov 2025'
-  },
-  {
-    title: 'Cybersecurity & CTF Quiz',
-    description: 'Practical security quiz covering network vulnerabilities and encryption.',
-    category: 'Cybersecurity',
-    participantsCount: '2,940 Participants',
-    avgScore: '72% Avg Score',
-    topWinner: 'Devon V. (96%)',
-    badge: 'Completed',
-    gradient: 'from-violet-500 to-purple-600',
-    techStack: ['Security', 'Cryptography', 'Networks'],
-    completedDate: 'Oct 2025'
-  },
-  {
-    title: 'UI/UX Design Master Quiz',
-    description: 'Design system fundamentals, typography rules, and accessibility standards.',
-    category: 'UI / UX',
-    participantsCount: '1,890 Participants',
-    avgScore: '88% Avg Score',
-    topWinner: 'Maya K. (99%)',
-    badge: 'Completed',
-    gradient: 'from-amber-500 to-orange-600',
-    techStack: ['Figma', 'Accessibility', 'Design Systems'],
-    completedDate: 'Sep 2025'
-  }
-];
-
-// Seed initial default works if collection is empty
-const ensureSeedData = async () => {
-  try {
-    const count = await PreviousWork.countDocuments();
-    if (count === 0) {
-      await PreviousWork.insertMany(DEFAULT_WORKS);
-    }
-  } catch (err) {
-    console.warn('[Seed Warning]: Could not seed initial PreviousWorks:', err.message);
-  }
-};
-
 // @route   GET /api/previous-works
 // @desc    Get all previous works list (Public)
 // @access  Public
 const getAllPreviousWorks = async (req, res) => {
   try {
-    await ensureSeedData();
     const works = await PreviousWork.find().sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       count: works.length,
-      works: works.length > 0 ? works : DEFAULT_WORKS
+      works: works
     });
-  } catch (error) {
-    // If DB is offline or errored, return fallback default items
+  } catch (_error) {
     res.status(200).json({
       success: true,
-      count: DEFAULT_WORKS.length,
-      works: DEFAULT_WORKS,
-      fallback: true
+      count: 0,
+      works: []
     });
   }
 };

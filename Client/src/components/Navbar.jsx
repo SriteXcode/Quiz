@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 
 export const Navbar = ({
   theme,
@@ -11,7 +10,6 @@ export const Navbar = ({
   setIsMobileMenuOpen
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { addToast } = useToast();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -42,14 +40,9 @@ export const Navbar = ({
     { id: 'contact', label: 'Contact Us' }
   ];
 
-  const handleNavClick = (id, label) => {
+  const handleNavClick = (id) => {
     setActiveTab(id);
     setIsDropdownOpen(false);
-    if (id === 'signup' || id === 'login') {
-      addToast('Opened Login window', 'info');
-    } else {
-      addToast(`Navigated to ${label}`, 'info');
-    }
   };
 
   const handleLogout = () => {
@@ -68,8 +61,6 @@ export const Navbar = ({
 
   const handleThemeToggle = () => {
     toggleTheme();
-    const nextTheme = theme === 'light' ? 'Dark Mode (Diya Flame)' : 'Light Mode (Bulb)';
-    addToast(`Switched to ${nextTheme}! 🪔`, 'success');
   };
 
   return (
@@ -261,6 +252,28 @@ export const Navbar = ({
                   👤 My Profile ({user.name})
                 </button>
 
+                {user.role === 'admin' && (
+                  <button
+                    onClick={() => {
+                      handleNavClick('admin', 'Admin Dashboard');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`text-left px-4 py-3 rounded-lg font-poppins font-bold text-base flex items-center justify-between cursor-pointer transition-all ${
+                      activeTab === 'admin'
+                        ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <span>🛡️</span>
+                      <span>Admin Portal</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-black/10 dark:bg-white/15">
+                      Control
+                    </span>
+                  </button>
+                )}
+
                 <button
                   onClick={handleMobileLogout}
                   className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
@@ -269,15 +282,30 @@ export const Navbar = ({
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => {
-                  handleNavClick('login', 'Login');
-                  setIsMobileMenuOpen(false);
-                }}
-                className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base bg-[var(--color-primary-600)] text-white cursor-pointer"
-              >
-                Login
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    handleNavClick('login', 'Login');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base bg-[var(--color-primary-600)] text-white cursor-pointer"
+                >
+                  Login
+                </button>
+
+                <button
+                  onClick={() => {
+                    handleNavClick('admin', 'Admin Dashboard');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`text-left px-4 py-2.5 rounded-lg font-poppins font-medium text-xs flex items-center space-x-2 border border-dashed border-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--color-primary-600)] hover:border-[var(--color-primary-400)] transition-colors cursor-pointer ${
+                    activeTab === 'admin' ? 'bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold' : ''
+                  }`}
+                >
+                  <span>🛡️</span>
+                  <span>Admin Control Center</span>
+                </button>
+              </>
             )}
           </div>
         </div>

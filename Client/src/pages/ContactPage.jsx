@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { apiGetSiteSettings, apiSubmitContactMessage } from '../services/api';
 
 export const ContactPage = () => {
+  const { user } = useAuth();
   const { addToast } = useToast();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    name: user?.name || '',
+    email: user?.email || '',
     category: 'Support',
     subject: '',
     message: ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData((prev) => ({
+        ...prev,
+        name: prev.name || user.name || '',
+        email: prev.email || user.email || ''
+      }));
+    }
+  }, [user]);
 
   const [siteSettings, setSiteSettings] = useState({
     contact: {
@@ -60,7 +72,13 @@ export const ContactPage = () => {
       const res = await apiSubmitContactMessage(formData);
       if (res.success) {
         addToast(res.message || 'Thank you for reaching out! Your message was sent successfully. ✉️', 'success');
-        setFormData({ name: '', email: '', category: 'Support', subject: '', message: '' });
+        setFormData({
+          name: user?.name || '',
+          email: user?.email || '',
+          category: 'Support',
+          subject: '',
+          message: ''
+        });
       } else {
         addToast(res.message || 'Failed to send message. Please try again.', 'error');
       }

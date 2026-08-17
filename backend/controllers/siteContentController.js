@@ -275,68 +275,6 @@ exports.deletePartner = async (req, res) => {
 
 const ContactMessage = require('../models/ContactMessage');
 
-// Seed sample contact inquiries if empty
-const seedMessagesIfEmpty = async () => {
-  const count = await ContactMessage.countDocuments();
-  if (count === 0) {
-    const now = Date.now();
-    await ContactMessage.insertMany([
-      {
-        name: 'Devon Vance',
-        email: 'devon.vance@techcorp.io',
-        category: 'Partnership',
-        subject: 'Institutional Hackathon Sponsorship & Quiz Hosting',
-        message: 'Hello Admin Team, We would like to sponsor the upcoming Algorithm Speedrun championship and provide $2,500 in cloud credits for all top 10 finishers. Please let us know the onboarding process.',
-        priority: 'urgent',
-        isRead: false,
-        createdAt: new Date(now - 2 * 24 * 60 * 60 * 1000) // 2 days ago (last week)
-      },
-      {
-        name: 'Sarah Jenkins',
-        email: 'sarah.j@mit.edu',
-        category: 'Support',
-        subject: 'Certificate Verification QR Code query for React 19 Exam',
-        message: 'Hi, I passed the React 19 architecture test yesterday with 94% accuracy. My certificate PDF downloaded with a verification ID, but I wanted to know if this integrates with LinkedIn certifications directly?',
-        priority: 'high',
-        isRead: false,
-        createdAt: new Date(now - 4 * 24 * 60 * 60 * 1000) // 4 days ago (last week)
-      },
-      {
-        name: 'Alex Rivera',
-        email: 'arivera.dev@gmail.com',
-        category: 'Bug Report',
-        subject: 'Code Editor dark mode syntax theme contrast in Firefox',
-        message: 'On Firefox v128, the code editor syntax highlight tokens for TypeScript interfaces have a slightly low contrast when in dark mode. Everything else is ultra fast!',
-        priority: 'medium',
-        isRead: true,
-        readAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(now - 5 * 24 * 60 * 60 * 1000) // 5 days ago (last week)
-      },
-      {
-        name: 'Priya Sharma',
-        email: 'priya.sharma@edutech.org',
-        category: 'Prize Inquiry',
-        subject: 'Prize Escrow Settlement for JavaScript Speedrun Challenge',
-        message: 'Greetings! I secured 2nd place in the JavaScript ES6+ challenge on August 14th. Could you guide me on the UPI/PayPal payout verification form?',
-        priority: 'urgent',
-        isRead: false,
-        createdAt: new Date(now - 12 * 24 * 60 * 60 * 1000) // 12 days ago (last month)
-      },
-      {
-        name: 'Marcus Brody',
-        email: 'm.brody@cloudsolutions.net',
-        category: 'General',
-        subject: 'Inquiry on Enterprise Team Assessment Tiers',
-        message: 'We are looking to test 85 engineers across our backend engineering divisions. Do you support custom private quiz cohorts with private leaderboards?',
-        priority: 'medium',
-        isRead: true,
-        readAt: new Date(now - 8 * 24 * 60 * 60 * 1000),
-        createdAt: new Date(now - 20 * 24 * 60 * 60 * 1000) // 20 days ago (last month)
-      }
-    ]);
-  }
-};
-
 // @desc    Submit Public Contact Message
 // @route   POST /api/site/messages
 // @access  Public
@@ -386,8 +324,6 @@ exports.submitContactMessage = async (req, res) => {
 // @access  Private (Admin Only)
 exports.getAdminMessages = async (req, res) => {
   try {
-    await seedMessagesIfEmpty();
-
     const { dateFilter = 'last_week', readFilter = 'all', priorityFilter = 'all', search } = req.query;
 
     const query = {};

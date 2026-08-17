@@ -53,6 +53,7 @@ export const QuizDetailPage = ({ quiz, onBack, onStartQuiz, onRequireLogin, isLo
   const timerType = quiz?.timerType || (isQuick ? 'per_question_general' : 'total_quiz');
   const autoStatus = getQuizAutoStatus(quiz);
   const isEnded = autoStatus === 'past';
+  const isUpcoming = autoStatus === 'upcoming';
 
   const title = quiz?.title || 'JavaScript ES6+ & Async Architecture Challenge';
   const category = quiz?.category || 'Web Dev';
@@ -64,7 +65,7 @@ export const QuizDetailPage = ({ quiz, onBack, onStartQuiz, onRequireLogin, isLo
   const startTime = quiz?.startTime || '10:00 AM';
   const endDate = quiz?.endDate || quiz?.startDate || '2026-08-14';
   const endTime = quiz?.endTime || '11:00 AM';
-  const description = quiz?.description || `Welcome to the official ${title}!
+  const description = quiz?.description || `Welcome to the live ${title}!
 
 This competition is designed to evaluate your deep technical comprehension and problem-solving speed. Participants will encounter real-world scenarios, algorithmic logic, and state management challenges.
 
@@ -78,7 +79,7 @@ Rules & Guidelines:
       : `⏳ Total Quiz Duration: ${quiz?.durationMinutes || 30} minutes total exam timer.`
   }
 3. ${isCode ? '🛡️ Live Camera & Microphone Anti-Cheating Proctoring with Tab Lockout is strictly active.' : 'Option choices with instant scoring.'}
-4. 🏆 Leaderboard Rule: Candidate's 1st attempt is recorded on the official leaderboard. Subsequent replays are recorded as Practice Mode without disrupting official rankings.
+4. 🏆 Leaderboard Rule: Candidate's 1st attempt is recorded on the Live Quiz leaderboard. Subsequent replays are recorded as Practice Mode without disrupting live quiz rankings.
 5. 🎯 Post-Exam Practice: After the quiz has ended, you can replay and practice with all questions freely.`;
 
   const rewards = quiz?.rewards && quiz.rewards.length > 0 ? quiz.rewards : [
@@ -96,11 +97,11 @@ Rules & Guidelines:
       return;
     }
 
-    if (isEnded) {
-      addToast(`Opening Practice Mode with Questions 🎯`, 'info');
-    } else {
-      addToast(isCode ? `Code Challenge Initialized! Opening IDE & Proctoring 🛡️` : `Quiz Initialized! Countdown starting. 🚀`, 'success');
+    if (isUpcoming) {
+      addToast(`⏳ Live Quiz is scheduled for ${startDate} at ${startTime}. Entry will unlock at the exact start time!`, 'warning');
+      return;
     }
+
     if (onStartQuiz) onStartQuiz(isEnded);
   };
 
@@ -127,7 +128,6 @@ Rules & Guidelines:
   };
 
   const handleBack = () => {
-    addToast('Returned to Quiz list', 'info');
     if (onBack) onBack();
   };
 
@@ -292,18 +292,23 @@ Rules & Guidelines:
         {/* Practice or Start Assessment */}
         <button
           onClick={handleStart}
-          className={`h-full py-4 px-5 rounded-2xl text-white font-poppins font-bold text-sm sm:text-base shadow-lg transition-all active:scale-95 cursor-pointer border flex items-center justify-center space-x-2 ${
+          disabled={isUpcoming}
+          className={`h-full py-4 px-5 rounded-2xl text-white font-poppins font-bold text-sm sm:text-base shadow-lg transition-all border flex items-center justify-center space-x-2 ${
             isEnded
-              ? 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 shadow-indigo-500/20'
-              : 'bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] border-emerald-400 shadow-emerald-500/20'
+              ? 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 shadow-indigo-500/20 active:scale-95 cursor-pointer'
+              : isUpcoming
+              ? 'bg-slate-700/80 border-slate-600/60 text-slate-300 opacity-90 cursor-not-allowed shadow-none'
+              : 'bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] border-emerald-400 shadow-emerald-500/20 active:scale-95 cursor-pointer'
           }`}
         >
           <span>
             {isEnded
-              ? '🎯 Practice with Questions'
+              ? '🎯 Practice Quiz'
+              : isUpcoming
+              ? `🔒 Live Quiz Locked (Starts at ${startTime})`
               : isCode
               ? 'Start Code Challenge 🚀'
-              : 'Start Assessment 🚀'}
+              : 'Start Live Assessment 🚀'}
           </span>
         </button>
 
@@ -313,7 +318,7 @@ Rules & Guidelines:
             onClick={handleOpenLeaderboard}
             className="h-full py-4 px-5 rounded-2xl text-amber-950 dark:text-amber-200 font-poppins font-extrabold text-sm sm:text-base shadow-lg transition-all active:scale-95 cursor-pointer border bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 dark:from-amber-900 dark:via-amber-800 dark:to-yellow-900 border-amber-400/60 shadow-amber-500/20 flex items-center justify-center space-x-2"
           >
-            <span>🏆 Official Leaderboard</span>
+            <span>🏆 Live Quiz Leaderboard</span>
           </button>
         )}
 
@@ -397,7 +402,7 @@ Rules & Guidelines:
       </div>
 
       {/* ========================================================================= */}
-      {/* 🏆 DEDICATED OFFICIAL LEADERBOARD MODAL WITH PAGINATION */}
+      {/* 🏆 DEDICATED LIVE QUIZ LEADERBOARD MODAL WITH PAGINATION */}
       {/* ========================================================================= */}
       {isLeaderboardModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
@@ -419,7 +424,7 @@ Rules & Guidelines:
               </div>
               <div>
                 <h3 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)]">
-                  Official Final Leaderboard
+                  Live Quiz Final Leaderboard
                 </h3>
                 <p className="text-xs font-lato text-[var(--text-muted)]">
                   {title} • Verified Single-Entry Rank List
@@ -432,7 +437,7 @@ Rules & Guidelines:
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-lato space-y-1.5 shadow-sm">
                 <div className="font-poppins font-bold flex items-center space-x-1.5 uppercase text-xs tracking-wider">
                   <span>⭐</span>
-                  <span>Your Official Attempt Verified:</span>
+                  <span>Your Live Quiz Attempt Verified:</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-poppins font-bold">
                   {userRank && <span>Rank: <span className="text-amber-500">#{userRank}</span></span>}
@@ -451,7 +456,7 @@ Rules & Guidelines:
                   <span>Attendance Notice:</span>
                 </div>
                 <p className="leading-relaxed">
-                  You didn't attend this quiz during the official competition window. You can still review the official rank list below or click <strong>Practice Mode</strong> to test yourself with all questions freely!
+                  You didn't attend this quiz during the live quiz competition window. You can still review the live leaderboard rank list below or click <strong>Practice Mode</strong> to test yourself with all questions freely!
                 </p>
               </div>
             )}
@@ -459,12 +464,12 @@ Rules & Guidelines:
             {/* LEADERBOARD TABLE WITH PAGINATION */}
             {isLoadingLeaderboard ? (
               <div className="text-center py-12 text-xs font-lato text-[var(--text-muted)]">
-                Loading official leaderboard ranks...
+                Loading live quiz leaderboard ranks...
               </div>
             ) : leaderboardList.length === 0 ? (
               <div className="text-center py-12 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] p-6 text-xs font-lato text-[var(--text-muted)] space-y-2">
                 <span className="text-3xl block">📋</span>
-                <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No Official Submissions Recorded Yet</p>
+                <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No Live Quiz Submissions Recorded Yet</p>
                 <p>Be the first to practice with this completed challenge!</p>
               </div>
             ) : (

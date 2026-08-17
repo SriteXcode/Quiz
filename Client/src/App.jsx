@@ -7,6 +7,7 @@ import { LiveQuizzes } from './components/LiveQuizzes';
 import { PreviousWorks } from './components/PreviousWorks';
 import { ReviewSection } from './components/ReviewSection';
 import Footer from './components/Footer';
+import PwaInstallCard from './components/PwaInstallCard';
 
 // Pages
 import QuizDetailPage from './pages/QuizDetailPage';
@@ -21,6 +22,10 @@ import { AuthPage } from './pages/AuthPage';
 
 // Admin Portal
 import AdminDashboard from './admin/AdminDashboard';
+
+// Services & Utils
+import { apiGetQuizzes } from './services/api';
+import { getQuizAutoStatus } from './utils/dateUtils';
 
 // Contexts
 import { useAuth } from './context/AuthContext';
@@ -127,6 +132,22 @@ export const App = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleExploreLiveQuizzes = async () => {
+    try {
+      const res = await apiGetQuizzes();
+      const allQuizzes = (res && res.success && Array.isArray(res.quizzes)) ? res.quizzes : [];
+      const liveQuizzes = allQuizzes.filter((q) => getQuizAutoStatus(q) === 'running');
+
+      if (liveQuizzes.length === 0) {
+        addToast('No quizzes are currently live right now.', 'info');
+      }
+    } catch {
+      addToast('No quizzes are currently live right now.', 'info');
+    }
+
+    handleNavigateToQuizPage();
+  };
+
   const handleBackToHome = () => {
     setSelectedQuiz(null);
     setIsExecutingQuiz(false);
@@ -209,7 +230,8 @@ export const App = () => {
         ) : activeTab === 'about' ? (
           <AboutPage
             onNavigateToQuiz={handleNavigateToQuizPage}
-            onExploreQuizzes={handleNavigateToQuizPage}
+            onExploreQuizzes={handleExploreLiveQuizzes}
+            onExploreLiveQuizzes={handleExploreLiveQuizzes}
             onNavigate={(tab) => {
               if (tab === 'quiz') handleNavigateToQuizPage();
               else setActiveTab(tab);
@@ -224,7 +246,7 @@ export const App = () => {
         ) : (
           <div className="space-y-12">
             {/* Hero Banner */}
-            <HeroBanner />
+            <HeroBanner onExploreLiveQuizzes={handleExploreLiveQuizzes} />
 
             {/* Live Quizzes Section */}
             <LiveQuizzes
@@ -253,6 +275,14 @@ export const App = () => {
           onNavigatePolicy={handleNavigatePolicy}
           onNavigateHome={handleBackToHome}
           onNavigateQuiz={handleNavigateToQuizPage}
+          onNavigateAdmin={() => {
+            setSelectedQuiz(null);
+            setIsExecutingQuiz(false);
+            setIsPracticeMode(false);
+            setActivePolicy(null);
+            setActiveTab('admin');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
         />
       )}
 
@@ -266,6 +296,9 @@ export const App = () => {
           }}
         />
       )}
+
+      {/* PWA Install & Notification Permission Floating Card */}
+      <PwaInstallCard />
 
     </div>
   );

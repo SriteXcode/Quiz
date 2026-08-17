@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import CertificateModal from '../components/CertificateModal';
+import ImageAdjustModal from '../components/ImageAdjustModal';
 import { apiGetUserCertificates, apiUpdateProfile, apiGetUserProfileStats } from '../services/api';
 
 export const ProfileSkeleton = () => {
@@ -29,6 +30,14 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
   const [isLoadingCertificates, setIsLoadingCertificates] = useState(false);
   const [selectedCert, setSelectedCert] = useState(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
+
+  // Avatar Direct Upload & Adjuster State
+  const headerAvatarInputRef = useRef(null);
+  const modalAvatarInputRef = useRef(null);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [adjustImageSrc, setAdjustImageSrc] = useState(null);
+  const [adjustTarget, setAdjustTarget] = useState('direct'); // 'direct' | 'modal'
+  const [isUploadingDirectAvatar, setIsUploadingDirectAvatar] = useState(false);
 
   // Dynamic Profile Stats & Ranking State
   const [profileStats, setProfileStats] = useState({
@@ -69,38 +78,145 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
     avatarPreview: ''
   });
 
-  // Fetch dynamic profile statistics, ranking & certificates from DB on mount
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!user) return;
-      setIsLoadingStats(true);
-      setIsLoadingCertificates(true);
+  // Handle direct file selection from header avatar circle
+  const handleHeaderAvatarSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const src = URL.createObjectURL(file);
+      setAdjustImageSrc(src);
+      setAdjustTarget('direct');
+      setIsAdjustModalOpen(true);
+    }
+  };
 
-      try {
-        const [statsRes, certsRes] = await Promise.allSettled([
-          apiGetUserProfileStats(user._id || user.id),
-          apiGetUserCertificates(user._id || user.id)
-        ]);
+  // Handle file selection from inside the Edit Profile Modal
+  const handleModalAvatarSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const src = URL.createObjectURL(file);
+      setAdjustImageSrc(src);
+      setAdjustTarget('modal');
+      setIsAdjustModalOpen(true);
+    }
+  };
 
-        if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value?.stats) {
-          setProfileStats(statsRes.value.stats);
+  // Handle cropped/adjusted image result from ImageAdjustModal
+  const handleApplyAdjustedAvatar = async (croppedDataUrl, fileBlob) => {
+    setIsAdjustModalOpen(false);
+
+    if (adjustTarget === 'modal') {
+      setEditForm((prev) => ({
+        ...prev,
+        avatarFile: fileBlob,
+        avatarPreview: croppedDataUrl
+      }));
+      return;
+    }
+
+    // If direct upload from circle, save immediately to backend
+    setIsUploadingDirectAvatar(true);
+    try {
+      const formData = new FormData();
+      if (user?.name) formData.append('name', user.name);
+      formData.append('avatar', fileBlob);
+
+      const res = await apiUpdateProfile(formData);
+      if (res.success && res.user) {
+        if (updateUserData) {
+          updateUserData(res.user);
         }
-
-        if (certsRes.status === 'fulfilled' && certsRes.value?.success && certsRes.value?.certificates) {
-          setCertificates(certsRes.value.certificates);
-        } else {
-          setCertificates([]);
-        }
-      } catch (err) {
-        console.warn('Profile fetch warning:', err.message);
-      } finally {
-        setIsLoadingStats(false);
-        setIsLoadingCertificates(false);
+        addToast('🎉 Profile photo updated successfully!', 'success');
       }
+    } catch (err) {
+      addToast(err.message || 'Failed to update profile photo', 'error');
+    } finally {
+      setIsUploadingDirectAvatar(false);
+    }
+  };
+
+  // Network Connectivity State (Online / Offline)
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [wasOffline, setWasOffline] = useState(false);
+  const [showReconnectedBanner, setShowReconnectedBanner] = useState(false);
+
+  // Fetch dynamic profile statistics, ranking & certificates from DB or cache
+  const fetchProfileData = useCallback(async () => {
+    if (!user) return;
+    const userId = user._id || user.id;
+
+    // Load cached stats and certs if available
+    try {
+      const cachedStats = localStorage.getItem(`cached_profile_stats_${userId}`);
+      if (cachedStats) {
+        setProfileStats((prev) => ({ ...prev, ...JSON.parse(cachedStats) }));
+      }
+      const cachedCerts = localStorage.getItem(`cached_profile_certs_${userId}`);
+      if (cachedCerts) {
+        setCertificates(JSON.parse(cachedCerts));
+      }
+    } catch {
+      // ignore parse err
+    }
+
+    if (!navigator.onLine) {
+      return;
+    }
+
+    setIsLoadingStats(true);
+    setIsLoadingCertificates(true);
+
+    try {
+      const [statsRes, certsRes] = await Promise.allSettled([
+        apiGetUserProfileStats(userId),
+        apiGetUserCertificates(userId)
+      ]);
+
+      if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value?.stats) {
+        setProfileStats(statsRes.value.stats);
+        localStorage.setItem(`cached_profile_stats_${userId}`, JSON.stringify(statsRes.value.stats));
+      }
+
+      if (certsRes.status === 'fulfilled' && certsRes.value?.success && certsRes.value?.certificates) {
+        setCertificates(certsRes.value.certificates);
+        localStorage.setItem(`cached_profile_certs_${userId}`, JSON.stringify(certsRes.value.certificates));
+      } else if (certsRes.status === 'fulfilled') {
+        setCertificates([]);
+      }
+    } catch (err) {
+      console.warn('Profile fetch warning:', err.message);
+    } finally {
+      setIsLoadingStats(false);
+      setIsLoadingCertificates(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchProfileData();
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowReconnectedBanner(true);
+      fetchProfileData();
+      const timer = setTimeout(() => {
+        setShowReconnectedBanner(false);
+      }, 5000);
+      return () => clearTimeout(timer);
     };
 
-    fetchProfileData();
-  }, [user]);
+    const handleOffline = () => {
+      setIsOnline(false);
+      setWasOffline(true);
+      setShowReconnectedBanner(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [fetchProfileData]);
 
   // Compute Unlocked Badges count dynamically
   const unlockedBadgesCount = useMemo(() => {
@@ -113,7 +229,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
   const filteredHistory = useMemo(() => {
     const history = profileStats.recentHistory || [];
     if (historyFilter === 'official') {
-      return history.filter(h => h.badge === 'Official');
+      return history.filter(h => h.badge === 'Official' || h.badge === 'Live Quiz');
     }
     if (historyFilter === 'practice') {
       return history.filter(h => h.badge === 'Practice' || h.badge === 'Replay');
@@ -146,18 +262,6 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
       avatarPreview: user.avatarUrl || ''
     });
     setIsEditModalOpen(true);
-  };
-
-  // Handle avatar file selection & live preview
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setEditForm((prev) => ({
-        ...prev,
-        avatarFile: file,
-        avatarPreview: URL.createObjectURL(file)
-      }));
-    }
   };
 
   // Handle saving updated profile
@@ -208,20 +312,92 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 animate-fadeIn space-y-8">
       
+      {/* OFFLINE STATUS NOTE */}
+      {!isOnline && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:bg-amber-950/40 border border-amber-500/40 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shrink-0 border border-amber-500/30">
+              📡
+            </div>
+            <div>
+              <div className="font-poppins font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200 flex items-center space-x-2">
+                <span>You are currently offline</span>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+              </div>
+              <p className="font-lato text-xs text-amber-800/90 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                Connect to the internet to sync your real-time score statistics, rank upgrades, and official certificates.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+            <span className="px-3 py-1 rounded-xl text-[11px] font-mono font-bold uppercase bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/30">
+              Offline Cache
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* RECONNECTED ONLINE STATUS NOTE */}
+      {isOnline && (showReconnectedBanner || wasOffline) && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:bg-emerald-950/40 border border-emerald-500/40 text-emerald-950 dark:text-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0 border border-emerald-500/30">
+              🟢
+            </div>
+            <div>
+              <div className="font-poppins font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 flex items-center space-x-2">
+                <span>We are online!</span>
+                <span className="inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </div>
+              <p className="font-lato text-xs text-emerald-800/90 dark:text-emerald-300/90 mt-0.5 leading-relaxed">
+                Internet connection restored. Your profile data, certificates, and leaderboard rankings have been synced.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+            <span className="px-3 py-1 rounded-xl text-[11px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-900 dark:text-emerald-200 border border-emerald-500/30">
+              ✓ Synced
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* PROFILE HEADER HERO BANNER CARD */}
       <div className="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-secondary-600)] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-white/10 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
           
-          {/* Avatar Picture */}
+          {/* Avatar Picture - Clickable with Live Crop & Adjust */}
           <div className="relative">
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white/30 bg-white text-[var(--color-primary-600)] flex items-center justify-center font-bold text-4xl shadow-xl overflow-hidden shrink-0">
+            <div
+              onClick={() => headerAvatarInputRef.current && headerAvatarInputRef.current.click()}
+              className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white/30 bg-white text-[var(--color-primary-600)] flex items-center justify-center font-bold text-4xl shadow-xl overflow-hidden shrink-0 cursor-pointer group relative hover:scale-105 transition-transform"
+              title="Click avatar circle to change & adjust photo"
+            >
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
               ) : (
                 <span>{user.name ? user.name.charAt(0).toUpperCase() : '👤'}</span>
               )}
+
+              {/* Hover Camera Overlay Badge */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-poppins font-bold space-y-0.5 backdrop-blur-[1px]">
+                <span className="text-lg">📷</span>
+                <span>{isUploadingDirectAvatar ? 'Saving...' : 'Update'}</span>
+              </div>
             </div>
-            <span className="absolute bottom-1 right-1 px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-amber-400 text-slate-900 shadow-md">
+
+            <input
+              ref={headerAvatarInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleHeaderAvatarSelect}
+            />
+
+            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-amber-400 text-slate-900 shadow-md whitespace-nowrap z-10 pointer-events-none">
               {user.role === 'admin' ? '🛡️ Admin' : '🎓 Student'}
             </span>
           </div>
@@ -402,10 +578,10 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
               <div>
                 <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
                   <span>🎓</span>
-                  <span>Official Verified Certificates ({certificates.length})</span>
+                  <span>Live Quiz Verified Certificates ({certificates.length})</span>
                 </h3>
                 <p className="text-xs font-lato text-[var(--text-muted)]">
-                  All certificates earned from completed official assessments. Download in 4K resolution or print anytime.
+                  All certificates earned from completed live quiz assessments. Download in 4K resolution or print anytime.
                 </p>
               </div>
               <button
@@ -423,9 +599,9 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
             ) : certificates.length === 0 ? (
               <div className="text-center py-12 space-y-3">
                 <span className="text-4xl block">📜</span>
-                <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">No Official Certificates Yet</h4>
+                <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">No Live Quiz Certificates Yet</h4>
                 <p className="text-xs font-lato text-[var(--text-muted)] max-w-sm mx-auto">
-                  Take and complete any official quiz assessment to earn your verified certificate of achievement.
+                  Take and complete any live quiz assessment to earn your verified certificate of achievement.
                 </p>
                 <button
                   onClick={onNavigateToQuiz}
@@ -521,7 +697,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
               <div className="font-poppins font-bold text-lg text-[var(--color-primary-600)]">
                 {profileStats.officialCount || 0} / {profileStats.practiceCount || 0}
               </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)]">Official / Practice</div>
+              <div className="text-[11px] font-lato text-[var(--text-muted)]">Live Quiz / Practice</div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] shadow-sm text-center">
@@ -595,7 +771,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
                 <span>Recent Assessment History ({profileStats.recentHistory?.length || 0})</span>
               </h3>
               <p className="text-xs font-lato text-[var(--text-muted)]">
-                Chronological record of all official and practice assessments taken
+                Chronological record of all live quiz and practice assessments taken
               </p>
             </div>
 
@@ -603,7 +779,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
             <div className="flex items-center space-x-1.5 bg-[var(--bg-main)] p-1 rounded-xl border border-[var(--border-theme)]">
               {[
                 { id: 'all', label: `All (${profileStats.recentHistory?.length || 0})` },
-                { id: 'official', label: `Official (${profileStats.officialCount || 0})` },
+                { id: 'official', label: `Live Quiz (${profileStats.officialCount || 0})` },
                 { id: 'practice', label: `Practice (${profileStats.practiceCount || 0})` }
               ].map((filter) => (
                 <button
@@ -629,13 +805,13 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
                     <div className="font-bold text-[var(--text-main)] font-poppins flex items-center space-x-2">
                       <span>{item.title}</span>
                       <span className={`text-[10px] font-mono px-2 py-0.2 rounded font-semibold ${
-                        item.badge === 'Official'
+                        item.badge === 'Official' || item.badge === 'Live Quiz'
                           ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
                           : item.badge === 'Practice'
                           ? 'bg-blue-500/10 text-blue-600 border border-blue-500/30'
                           : 'bg-purple-500/10 text-purple-600 border border-purple-500/30'
                       }`}>
-                        {item.badge}
+                        {item.badge === 'Official' ? 'Live Quiz' : item.badge}
                       </span>
                     </div>
                     <div className="text-[11px] text-[var(--text-muted)] flex flex-wrap items-center gap-2">
@@ -716,7 +892,11 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
               
               {/* Avatar Upload Preview */}
               <div className="flex items-center space-x-4 p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)]">
-                <div className="w-16 h-16 rounded-full overflow-hidden bg-[var(--color-primary-100)] text-[var(--color-primary-600)] flex items-center justify-center font-bold text-2xl border-2 border-[var(--color-primary-400)] shrink-0">
+                <div
+                  onClick={() => modalAvatarInputRef.current && modalAvatarInputRef.current.click()}
+                  className="w-16 h-16 rounded-full overflow-hidden bg-[var(--color-primary-100)] text-[var(--color-primary-600)] flex items-center justify-center font-bold text-2xl border-2 border-[var(--color-primary-400)] shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                  title="Click to change and adjust photo"
+                >
                   {editForm.avatarPreview ? (
                     <img src={editForm.avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -726,16 +906,21 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
 
                 <div className="space-y-1">
                   <label className="font-bold text-[var(--text-main)] block">Profile Avatar</label>
-                  <label className="inline-block px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-bold cursor-pointer transition-all shadow-sm">
-                    <span>Upload New Photo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </label>
-                  <span className="text-[10px] text-[var(--text-muted)] block">JPG, PNG or WEBP</span>
+                  <button
+                    type="button"
+                    onClick={() => modalAvatarInputRef.current && modalAvatarInputRef.current.click()}
+                    className="inline-block px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-bold cursor-pointer transition-all shadow-sm"
+                  >
+                    <span>Upload & Adjust Photo</span>
+                  </button>
+                  <input
+                    ref={modalAvatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleModalAvatarSelect}
+                    className="hidden"
+                  />
+                  <span className="text-[10px] text-[var(--text-muted)] block">Click circle or button to crop & adjust photo</span>
                 </div>
               </div>
 
@@ -847,6 +1032,15 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
           user={user}
         />
       )}
+
+      {/* AVATAR CROP & ADJUSTER MODAL */}
+      <ImageAdjustModal
+        isOpen={isAdjustModalOpen}
+        imageSrc={adjustImageSrc}
+        onClose={() => setIsAdjustModalOpen(false)}
+        onApply={handleApplyAdjustedAvatar}
+        title="Adjust & Position Profile Photo"
+      />
 
     </div>
   );

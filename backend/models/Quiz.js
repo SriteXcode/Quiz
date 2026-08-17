@@ -64,7 +64,7 @@ function parseDateHelper(dateStr, timeStr) {
     }
 
     return new Date(year, month, day, hours, minutes, 0, 0);
-  } catch (err) {
+  } catch (_err) {
     return null;
   }
 }

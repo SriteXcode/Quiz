@@ -1,15 +1,9 @@
-import { useToast } from '../context/ToastContext';
-
 export const NotFoundPage = ({ onNavigate }) => {
-  const { addToast } = useToast();
-
   const handleGoHome = () => {
-    addToast('Returned to Home Page', 'info');
     if (onNavigate) onNavigate('home');
   };
 
   const handleGoQuiz = () => {
-    addToast('Redirected to Quiz Learning Hub', 'info');
     if (onNavigate) onNavigate('quiz');
   };
 

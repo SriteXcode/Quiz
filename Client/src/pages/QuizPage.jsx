@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import Skeleton from '../components/Skeleton';
-import { useToast } from '../context/ToastContext';
 import { apiGetPreviousWorks, apiGetQuizzes } from '../services/api';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
@@ -44,7 +43,6 @@ export const QuizPageSkeleton = () => {
 };
 
 export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
-  const { addToast } = useToast();
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'running' | 'upcoming' | 'past'
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
@@ -111,65 +109,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
     };
   }, []);
 
-  const defaultQuizzes = [
-    {
-      id: 1,
-      title: 'JavaScript ES6+ & Async Architecture Challenge',
-      category: 'Web Dev',
-      quizType: 'multiple_choice',
-      mcqSubtype: 'quick',
-      participants: '1.4k',
-      duration: '15m',
-      startDate: '2026-08-14',
-      startTime: '10:00 AM',
-      endDate: '2026-08-14',
-      endTime: '11:00 AM',
-      techStack: ['JavaScript', 'ES6+', 'Async/Await', 'Promises', 'Vite']
-    },
-    {
-      id: 2,
-      title: 'Real-World Algorithm: Two Sum Settlement Engine',
-      category: 'CS Algo',
-      quizType: 'code',
-      participants: '3.2k',
-      duration: '30m',
-      startDate: '2026-08-14',
-      startTime: '10:00 AM',
-      endDate: '2026-08-14',
-      endTime: '12:00 PM',
-      techStack: ['Algorithms', 'Data Structures', 'JavaScript', 'HashMaps']
-    },
-    {
-      id: 3,
-      title: 'React 19 & Next.js Architecture Exam',
-      category: 'Frontend',
-      quizType: 'multiple_choice',
-      mcqSubtype: 'standard',
-      participants: '980',
-      duration: '20m',
-      startDate: '2026-08-20',
-      startTime: '02:00 PM',
-      endDate: '2026-08-20',
-      endTime: '03:00 PM',
-      techStack: ['React 19', 'Next.js', 'Server Actions', 'SSR']
-    },
-    {
-      id: 4,
-      title: 'Node.js & Express API Security',
-      category: 'Backend',
-      quizType: 'multiple_choice',
-      mcqSubtype: 'standard',
-      participants: '750',
-      duration: '25m',
-      startDate: '2026-08-14',
-      startTime: '09:00 AM',
-      endDate: '2026-08-14',
-      endTime: '10:00 AM',
-      techStack: ['Node.js', 'Express', 'JWT', 'Security', 'MongoDB']
-    }
-  ];
-
-  const sourceQuizzes = dynamicQuizzes.length > 0 ? dynamicQuizzes : defaultQuizzes;
+  const sourceQuizzes = dynamicQuizzes;
 
   const allQuizzes = [
     ...sourceQuizzes.map((q) => ({
@@ -191,14 +131,12 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
   const categories = ['All', 'Web Dev', 'Frontend', 'Backend', 'CS Algo', 'Data & AI', 'UI / UX', 'DevOps'];
 
-  const handleFilterClick = (tabId, label) => {
+  const handleFilterClick = (tabId) => {
     setActiveFilter(tabId);
-    addToast(`Viewing ${label}`, 'info');
   };
 
   const handleCategoryClick = (cat) => {
     setSelectedCategory(cat);
-    addToast(`Filtered by category: ${cat}`, 'info');
   };
 
   const handleQuizClick = (quiz) => {

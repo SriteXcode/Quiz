@@ -179,7 +179,6 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
 
   const handleKeepSessionAccuracy = () => {
     setShowSessionPromptModal(false);
-    addToast('🎯 Previous session accuracy preserved!', 'success');
   };
 
   const handleResetSessionAccuracy = () => {
@@ -189,7 +188,6 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     sessionStorage.removeItem('shorts_gyaan_active_step');
     setActiveCardIndex(0);
     setShowSessionPromptModal(false);
-    addToast('🔄 Session accuracy reset! Starting fresh at 0%.', 'info');
   };
 
   // Persist category and step index across page reloads
@@ -222,12 +220,12 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     timerSeconds: 30
   });
 
-  // DOM Container & Card Refs for Discrete Step-Scrolling
+  // DOM Container & Card Refs for Smooth Reel Scrolling
   const feedContainerRef = useRef(null);
   const cardRefs = useRef([]);
   const observerRef = useRef(null);
-  const isStepScrollingRef = useRef(false);
-  const touchStartY = useRef(null);
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollUnlockTimerRef = useRef(null);
 
   // -------------------------------------------------------------
   // AUDIO EFFECT HELPER (Web Audio API Synthesizer)
@@ -319,11 +317,10 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
       }
     } catch (err) {
       console.warn('[Short Gyaan Fetch Error]:', err.message);
-      addToast('Loaded offline Short Gyaan cards', 'info');
     } finally {
       setIsLoading(false);
     }
-  }, [activeCategory, searchQuery, addToast]);
+  }, [activeCategory, searchQuery]);
 
   useEffect(() => {
     fetchInitialShorts();
@@ -343,8 +340,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
       feedContainerRef.current.scrollTop = 0;
     }
     await fetchInitialShorts();
-    addToast('🔄 Short Gyaan reset! Fresh questions & randomized options ready.', 'success');
-  }, [fetchInitialShorts, playSoundEffect, addToast]);
+  }, [fetchInitialShorts, playSoundEffect]);
 
   // -------------------------------------------------------------
   // 2. INFINITE SCROLL: LOAD NEXT BATCH
@@ -381,17 +377,16 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   }, [page, hasMore, isLoadingMore, activeCategory, searchQuery]);
 
   // -------------------------------------------------------------
-  // 3. STEP NAVIGATION FUNCTIONS (Scroll Exactly 1 Card at a Time)
+  // 3. STEP NAVIGATION FUNCTIONS (Smooth Scroll Exactly 1 Card at a Time)
   // -------------------------------------------------------------
-  const scrollCooldownTimerRef = useRef(null);
-
   const scrollToStepIndex = useCallback((targetIndex) => {
     if (targetIndex < 0 || targetIndex >= shorts.length) return;
     const targetCard = cardRefs.current[targetIndex];
     const container = feedContainerRef.current;
     if (targetCard && container) {
-      isStepScrollingRef.current = true;
-      targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      isProgrammaticScrollRef.current = true;
+      const targetTop = targetCard.offsetTop - container.offsetTop;
+      container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
       setActiveCardIndex(targetIndex);
       playSoundEffect('step');
       setExplanationBufferTimer(null);
@@ -401,10 +396,10 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
         loadMoreShorts();
       }
 
-      if (scrollCooldownTimerRef.current) clearTimeout(scrollCooldownTimerRef.current);
-      scrollCooldownTimerRef.current = setTimeout(() => {
-        isStepScrollingRef.current = false;
-      }, 550);
+      if (scrollUnlockTimerRef.current) clearTimeout(scrollUnlockTimerRef.current);
+      scrollUnlockTimerRef.current = setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 350);
     }
   }, [shorts.length, loadMoreShorts, playSoundEffect]);
 
@@ -423,126 +418,78 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   }, [activeCardIndex, scrollToStepIndex]);
 
   // -------------------------------------------------------------
-  // 4. WHEEL & TOUCH STEP-BY-STEP SCROLL INTERCEPTION
+  // 4. PRECISION MOUSE WHEEL & TRACKPAD INTERCEPTION (Desktop)
   // -------------------------------------------------------------
   useEffect(() => {
     const container = feedContainerRef.current;
     if (!container) return;
 
-    let wheelAccumulator = 0;
-    let wheelTimeout = null;
+    let wheelDeltaAccumulator = 0;
+    let wheelResetTimer = null;
+    let isWheelingLocked = false;
 
-    // Intercept mouse wheel & trackpad to step strictly 1 question card at a time,
-    // WHILE allowing natural scrolling inside a card's inner content if overflowed!
-    const handleWheelStep = (e) => {
+    const handleWheel = (e) => {
       if (isAdminModalOpen) return;
 
-      // Check if mouse is hovering over an inner scrollable card content box
+      // 1. Check if user is hovering inside an inner scrollable card content box
       const scrollableInner = e.target.closest('.card-scroll-content');
       if (scrollableInner) {
         const { scrollTop, scrollHeight, clientHeight } = scrollableInner;
-        const hasOverflow = scrollHeight > clientHeight + 2;
+        const hasOverflow = scrollHeight > clientHeight + 4;
 
         if (hasOverflow) {
           const delta = e.deltaY;
-          // Scrolling down and not yet at bottom of inner card content -> allow inner scroll
-          if (delta > 0 && scrollTop + clientHeight < scrollHeight - 3) {
+          // Scrolling down and not yet at bottom -> let inner content scroll naturally
+          if (delta > 0 && scrollTop + clientHeight < scrollHeight - 6) {
             return;
           }
-          // Scrolling up and not yet at top of inner card content -> allow inner scroll
-          if (delta < 0 && scrollTop > 3) {
+          // Scrolling up and not yet at top -> let inner content scroll naturally
+          if (delta < 0 && scrollTop > 6) {
             return;
           }
         }
       }
 
+      // 2. Prevent default outer window jitter while stepping between cards
       e.preventDefault();
 
-      if (isStepScrollingRef.current) return;
+      if (isWheelingLocked || isProgrammaticScrollRef.current) return;
 
-      wheelAccumulator += e.deltaY;
+      wheelDeltaAccumulator += e.deltaY;
 
-      if (wheelTimeout) clearTimeout(wheelTimeout);
-      wheelTimeout = setTimeout(() => {
-        wheelAccumulator = 0;
-      }, 150);
+      if (wheelResetTimer) clearTimeout(wheelResetTimer);
+      wheelResetTimer = setTimeout(() => {
+        wheelDeltaAccumulator = 0;
+      }, 120);
 
-      if (Math.abs(wheelAccumulator) >= 20) {
-        const moveDown = wheelAccumulator > 0;
-        wheelAccumulator = 0;
+      // Threshold for a deliberate wheel roll or trackpad swipe
+      if (Math.abs(wheelDeltaAccumulator) >= 28) {
+        const moveDown = wheelDeltaAccumulator > 0;
+        wheelDeltaAccumulator = 0;
+        isWheelingLocked = true;
 
         if (moveDown) {
           scrollToNextCard();
         } else {
           scrollToPrevCard();
         }
+
+        setTimeout(() => {
+          isWheelingLocked = false;
+        }, 320);
       }
     };
 
-    container.addEventListener('wheel', handleWheelStep, { passive: false });
+    container.addEventListener('wheel', handleWheel, { passive: false });
     return () => {
-      container.removeEventListener('wheel', handleWheelStep);
-      if (wheelTimeout) clearTimeout(wheelTimeout);
+      container.removeEventListener('wheel', handleWheel);
+      if (wheelResetTimer) clearTimeout(wheelResetTimer);
     };
   }, [scrollToNextCard, scrollToPrevCard, isAdminModalOpen]);
 
-  // Touch Swipe Steps (Strictly 1 question at a time, allowing inner card scrolling if overflowed)
-  const handleTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchMove = (e) => {
-    const scrollableInner = e.target.closest('.card-scroll-content');
-    if (scrollableInner) {
-      const { scrollHeight, clientHeight } = scrollableInner;
-      if (scrollHeight > clientHeight + 2) {
-        // Inner card is scrollable, allow natural finger drag
-        return;
-      }
-    }
-    if (isStepScrollingRef.current && e.cancelable) {
-      e.preventDefault();
-    }
-  };
-
-  const handleTouchEnd = (e) => {
-    if (!touchStartY.current || isStepScrollingRef.current) {
-      touchStartY.current = null;
-      return;
-    }
-    const touchEndY = e.changedTouches[0].clientY;
-    const diff = touchStartY.current - touchEndY;
-
-    // If swiping inside an inner scrollable card content box that is not at its limit, don't flip card
-    const scrollableInner = e.target.closest('.card-scroll-content');
-    if (scrollableInner) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollableInner;
-      const isScrollAtBottom = scrollTop + clientHeight >= scrollHeight - 2;
-      const isScrollAtTop = scrollTop <= 2;
-
-      // Swiping up (moving forward) but inner content has not reached bottom
-      if (diff > 0 && !isScrollAtBottom) {
-        touchStartY.current = null;
-        return;
-      }
-      // Swiping down (moving backward) but inner content is not at top
-      if (diff < 0 && !isScrollAtTop) {
-        touchStartY.current = null;
-        return;
-      }
-    }
-
-    if (Math.abs(diff) > 45) {
-      if (diff > 45) {
-        scrollToNextCard(); // Swipe Up -> Next Question
-      } else if (diff < -45) {
-        scrollToPrevCard(); // Swipe Down -> Prev Question
-      }
-    }
-    touchStartY.current = null;
-  };
-
-  // Keyboard navigation (Arrow Up, Arrow Down, J, K)
+  // -------------------------------------------------------------
+  // 5. KEYBOARD ARROW CONTROLS (Up, Down, PageUp, PageDown, J, K)
+  // -------------------------------------------------------------
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isAdminModalOpen || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -561,31 +508,36 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   }, [scrollToNextCard, scrollToPrevCard, isAdminModalOpen]);
 
   // -------------------------------------------------------------
-  // 5. INTERSECTION OBSERVER (Keeps Active Index Synced on Free Drag)
+  // 6. INTERSECTION OBSERVER (Keeps Active Index Synced on Native Drag)
   // -------------------------------------------------------------
   useEffect(() => {
-    if (!feedContainerRef.current || shorts.length === 0) return;
+    const container = feedContainerRef.current;
+    if (!container || shorts.length === 0) return;
 
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
 
     const options = {
-      root: feedContainerRef.current,
+      root: container,
       rootMargin: '0px',
-      threshold: 0.6
+      threshold: 0.65
     };
 
     observerRef.current = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const index = Number(entry.target.getAttribute('data-index'));
-          if (!isNaN(index) && index !== activeCardIndex) {
-            setActiveCardIndex(index);
-
-            if (index >= shorts.length - 3) {
-              loadMoreShorts();
-            }
+          if (!isNaN(index)) {
+            setActiveCardIndex((prev) => {
+              if (prev !== index) {
+                if (index >= shorts.length - 3) {
+                  loadMoreShorts();
+                }
+                return index;
+              }
+              return prev;
+            });
           }
         }
       });
@@ -598,7 +550,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
     };
-  }, [shorts, activeCardIndex, loadMoreShorts]);
+  }, [shorts, loadMoreShorts]);
 
   const activeShort = shorts[activeCardIndex] || null;
   const currentShortId = activeShort?._id || `short_${activeCardIndex}`;
@@ -625,9 +577,8 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
       }
     }));
     playSoundEffect('step');
-    addToast('⏰ Time’s up! Marked as Not Attempted (Accuracy preserved).', 'info');
     setExplanationBufferTimer(10);
-  }, [addToast, playSoundEffect]);
+  }, [playSoundEffect]);
 
   // - When user scrolls away (to previous or next question) or switches browser tabs:
   //   Timer for that question immediately stops/pauses and preserves remaining seconds.
@@ -714,10 +665,8 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
 
     if (isCorrect) {
       playSoundEffect('correct');
-      addToast('🎉 Spot On! Correct Answer (+10 XP) ⚡', 'success');
     } else {
       playSoundEffect('wrong');
-      addToast('❌ Incorrect! Correct solution revealed.', 'error');
     }
 
     // Start 10s explanation buffer before stepping to next question
@@ -1059,9 +1008,6 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   return (
     <div
       className="flex flex-col items-center h-full max-h-full overflow-hidden select-none w-full max-w-full no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       
       {/* 1. TOP STICKY BAR: CATEGORY PILLS & STEP PROGRESS (FULL WIDTH & LEFT ALIGNED) */}
@@ -1294,7 +1240,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
         {/* COLUMN 2: QUESTIONS FEED (lg:col-span-5 xl:col-span-5.5) */}
         <div
           ref={feedContainerRef}
-          className="lg:col-span-5 xl:col-span-5.5 h-full overflow-y-auto scroll-smooth snap-y snap-mandatory space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+          className="lg:col-span-5 xl:col-span-5.5 h-full overflow-y-scroll scroll-smooth snap-y snap-mandatory overscroll-contain space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
         >
           {isLoading ? (
             <div className="h-full min-h-[400px] rounded-3xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex flex-col items-center justify-center space-y-3 shadow-md animate-pulse">
@@ -1338,7 +1284,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
                   ref={(el) => (cardRefs.current[idx] = el)}
                   data-index={idx}
                   onClick={() => setActiveCardIndex(idx)}
-                  className={`w-full h-full min-h-full max-h-full snap-start snap-always rounded-2xl sm:rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-md p-3 sm:p-4 md:p-3.5 lg:p-2.5 xl:p-3.5 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
+                  className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-2xl sm:rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-md p-3 sm:p-4 md:p-3.5 lg:p-2.5 xl:p-3.5 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
                     isActive
                       ? 'border-[var(--color-primary-500)] ring-2 ring-blue-500/20 shadow-blue-500/15'
                       : 'border-[var(--border-theme)] opacity-95 hover:border-[var(--color-primary-300)]'

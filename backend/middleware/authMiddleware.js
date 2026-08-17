@@ -57,7 +57,7 @@ const optionalVerifyToken = async (req, res, next) => {
         req.user = user;
       }
     }
-  } catch (err) {
+  } catch (_err) {
     // Non-blocking fallback for optional tokens
   }
   next();

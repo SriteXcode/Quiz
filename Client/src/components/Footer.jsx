@@ -1,4 +1,4 @@
-export const Footer = ({ onNavigatePolicy }) => {
+export const Footer = ({ onNavigatePolicy, onNavigateAdmin }) => {
   const socialLinks = [
     {
       name: 'Twitter',
@@ -124,6 +124,14 @@ export const Footer = ({ onNavigatePolicy }) => {
                 <li><a href="#contact" className="hover:text-[var(--color-primary-600)] transition-colors">Contact Us</a></li>
                 <li>
                   <button
+                    onClick={() => onNavigateAdmin && onNavigateAdmin()}
+                    className="hover:text-[var(--color-primary-600)] transition-colors text-left cursor-pointer font-semibold flex items-center space-x-1"
+                  >
+                    <span>🛡️ Admin Portal</span>
+                  </button>
+                </li>
+                <li>
+                  <button
                     onClick={() => onNavigatePolicy && onNavigatePolicy('privacy')}
                     className="hover:text-[var(--color-primary-600)] transition-colors text-left cursor-pointer"
                   >
@@ -222,6 +230,14 @@ export const Footer = ({ onNavigatePolicy }) => {
                 <li><a href="#about" className="hover:text-[var(--color-primary-600)] transition-colors">About Us</a></li>
                 <li><a href="#careers" className="hover:text-[var(--color-primary-600)] transition-colors">Careers</a></li>
                 <li><a href="#contact" className="hover:text-[var(--color-primary-600)] transition-colors">Contact Us</a></li>
+                <li>
+                  <button
+                    onClick={() => onNavigateAdmin && onNavigateAdmin()}
+                    className="hover:text-[var(--color-primary-600)] transition-colors text-left cursor-pointer font-semibold flex items-center space-x-1"
+                  >
+                    <span>🛡️ Admin Portal</span>
+                  </button>
+                </li>
                 <li>
                   <button
                     onClick={() => onNavigatePolicy && onNavigatePolicy('privacy')}

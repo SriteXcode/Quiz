@@ -394,9 +394,7 @@ You are building a high-frequency financial settlement engine. Given an array of
       if (document.hidden) {
         setTabViolations((prev) => {
           const next = prev + 1;
-          addToast(`⚠️ VIOLATION DETECTED: You switched tabs (${next}/3 warnings)!`, 'error');
           if (next >= 3) {
-            addToast('🚫 Disqualified due to repeated tab switching violations!', 'error');
             finishQuiz();
           }
           return next;
@@ -406,7 +404,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isQuizCompleted, addToast, finishQuiz]);
+  }, [isQuizCompleted, finishQuiz]);
 
   // Clean up media
   useEffect(() => {
@@ -489,7 +487,6 @@ You are building a high-frequency financial settlement engine. Given an array of
     userAnswersRef.current = {};
     setTotalTimerSeconds((quiz?.durationMinutes || 30) * 60);
     setQuestionTimer(getQuestionInitialTime(0));
-    addToast('Started Practice Mode 🎯 Replay with unlimited attempts!', 'info');
   };
 
   const formatTime = (secs) => {
@@ -556,8 +553,8 @@ You are building a high-frequency financial settlement engine. Given an array of
             </h1>
             <p className="text-xs font-lato text-[var(--text-muted)]">
               {submissionResult?.isFirstAttempt
-                ? '⭐ Official 1st Attempt (Recorded for Official Leaderboard)'
-                : '🔁 Replay / Practice Attempt (First Attempt Preserved on Official Leaderboard)'}
+                ? '⭐ Live Quiz 1st Attempt (Recorded for Live Leaderboard)'
+                : '🔁 Replay / Practice Attempt (First Attempt Preserved on Live Leaderboard)'}
             </p>
 
             {/* PROMINENT GLOWING XP EARNED BANNER */}

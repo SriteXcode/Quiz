@@ -16,7 +16,7 @@ export const HeroSkeleton = () => {
   );
 };
 
-export const HeroBanner = ({ isLoading }) => {
+export const HeroBanner = ({ isLoading, onExploreLiveQuizzes }) => {
   if (isLoading) return <HeroSkeleton />;
 
   return (
@@ -33,7 +33,10 @@ export const HeroBanner = ({ isLoading }) => {
         </p>
 
         <div className="flex flex-wrap gap-2 items-center">
-          <button className="px-6 py-3.5 rounded-xl font-poppins font-bold text-sm bg-white text-[var(--color-primary-700)] hover:bg-blue-50 transition-all shadow-lg active:scale-95 cursor-pointer">
+          <button
+            onClick={onExploreLiveQuizzes}
+            className="px-6 py-3.5 rounded-xl font-poppins font-bold text-sm bg-white text-[var(--color-primary-700)] hover:bg-blue-50 transition-all shadow-lg active:scale-95 cursor-pointer"
+          >
             Explore Live Quizzes
           </button>
         </div>
