@@ -190,12 +190,13 @@ export const Navbar = ({
             </button>
           </div>
 
-          {/* Mobile Hamburger Menu & Theme Toggle */}
+          {/* Mobile Theme Toggle (Hamburger Menu Removed as BottomNav Handles Navigation) */}
           <div className="flex md:hidden items-center space-x-2 shrink-0">
             <button
               onClick={handleThemeToggle}
-              className="p-2 w-10 h-10 rounded-lg text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center"
+              className="p-2 w-10 h-10 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center shadow-sm"
               aria-label="Toggle Theme Mobile"
+              title={theme === 'dark' ? 'Dark Mode Active (Flickering Diya Flame 🪔)' : 'Light Mode Active (Glowing Bulb 💡)'}
             >
               {theme === 'dark' ? (
                 <span className="text-xl animate-flame select-none">🪔</span>
@@ -203,111 +204,10 @@ export const Navbar = ({
                 <span className="text-xl select-none">💡</span>
               )}
             </button>
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg text-[var(--text-main)] focus:outline-none"
-              aria-label="Toggle Navigation Menu"
-            >
-              {isMobileMenuOpen ? (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
-            </button>
           </div>
 
         </div>
       </div>
-
-      {/* Mobile Menu Backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="md:hidden fixed inset-0 top-16 bg-black/40 backdrop-blur-xs z-40 animate-fadeIn"
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Mobile Menu Drawer */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden relative z-50 border-b border-[var(--border-theme)] bg-[var(--bg-card)] px-4 pt-2 pb-6 space-y-3 animate-fadeIn shadow-2xl">
-          <div className="flex flex-col space-y-2">
-            {navLinks.map((link) => (
-              <button
-                key={link.id}
-                onClick={() => {
-                  handleNavClick(link.id, link.label);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`text-left px-4 py-3 rounded-lg font-poppins font-medium text-base ${
-                  activeTab === link.id
-                    ? 'bg-[var(--color-primary-600)] text-white font-semibold'
-                    : 'text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                {link.label}
-              </button>
-            ))}
-
-            {isAuthenticated && user ? (
-              <>
-                <button
-                  onClick={() => {
-                    handleNavClick('profile', 'My Profile');
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] cursor-pointer"
-                >
-                  👤 My Profile ({user.name})
-                </button>
-
-                {user.role === 'admin' && (
-                  <button
-                    onClick={() => {
-                      handleNavClick('admin', 'Admin Dashboard');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`text-left px-4 py-3 rounded-lg font-poppins font-bold text-base flex items-center justify-between cursor-pointer transition-all ${
-                      activeTab === 'admin'
-                        ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                        : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <span>🛡️</span>
-                      <span>Admin Portal</span>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-black/10 dark:bg-white/15">
-                      Control
-                    </span>
-                  </button>
-                )}
-
-                <button
-                  onClick={handleMobileLogout}
-                  className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
-                >
-                  🚪 Logout
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => {
-                  handleNavClick('login', 'Login');
-                  setIsMobileMenuOpen(false);
-                }}
-                className="text-left px-4 py-3 rounded-lg font-poppins font-semibold text-base bg-[var(--color-primary-600)] text-white cursor-pointer"
-              >
-                Login
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 };

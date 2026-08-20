@@ -20,7 +20,7 @@ export const ProfileSkeleton = () => {
   );
 };
 
-export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
+export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin }) => {
   const { user, logout, updateUserData } = useAuth();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'certificates' | 'stats' | 'history'
@@ -413,9 +413,10 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm font-lato text-blue-100 mb-3">
-              📧 {user.email} • 📱 {user.phone || 'Phone not set'}
-            </p>
+            <div className="text-xs sm:text-sm font-lato text-blue-100 mb-3 space-y-0.5">
+              <div>📧 {user.email}</div>
+              <div>📱 {user.phone || 'Phone not set'}</div>
+            </div>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <button
@@ -424,12 +425,15 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
               >
                 <span>✏️ Edit Profile</span>
               </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-1.5 rounded-xl bg-rose-500/80 hover:bg-rose-600 text-white font-poppins font-semibold text-xs transition-all cursor-pointer shadow-sm active:scale-95"
-              >
-                🚪 Logout
-              </button>
+
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => onNavigateAdmin && onNavigateAdmin()}
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-poppins font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center space-x-1"
+                >
+                  <span>🛡️ Admin Portal</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -565,6 +569,29 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome }) => {
             <div className="space-y-1">
               <span className="text-[var(--text-muted)] font-semibold uppercase text-[10px] block">Role & Account Type</span>
               <p className="font-bold text-[var(--color-primary-600)] text-base uppercase">{user.role || 'student'}</p>
+            </div>
+          </div>
+
+          {/* Account & Administration Quick Actions */}
+          <div className="pt-4 border-t border-[var(--border-theme)] flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs font-poppins font-bold text-[var(--text-muted)]">
+              Account Security & Administration
+            </div>
+            <div className="flex items-center space-x-2">
+              {user.role === 'admin' && (
+                <button
+                  onClick={() => onNavigateAdmin && onNavigateAdmin()}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+                >
+                  <span>🛡️ Admin Portal</span>
+                </button>
+              )}
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-poppins font-bold text-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+              >
+                <span>🚪 Logout</span>
+              </button>
             </div>
           </div>
         </div>

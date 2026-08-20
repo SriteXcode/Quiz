@@ -270,6 +270,29 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onEx
         />
       )}
 
+      {/* Contact & Support Redirect Section */}
+      <div className="bg-gradient-to-r from-blue-900/40 via-[var(--bg-card)] to-indigo-900/40 border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm text-left">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary-500)]/15 border border-[var(--color-primary-500)]/30 text-[var(--color-primary-600)] dark:text-blue-400 flex items-center justify-center text-2xl shrink-0">
+            💬
+          </div>
+          <div>
+            <h3 className="font-poppins font-bold text-base sm:text-lg text-[var(--text-main)]">
+              Have Questions or Need Support?
+            </h3>
+            <p className="font-lato text-xs sm:text-sm text-[var(--text-muted)]">
+              Get in touch with our engineering & support team for inquiries, partnerships, or platform assistance.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onNavigate && onNavigate('contact')}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-poppins font-bold text-xs sm:text-sm shadow-md cursor-pointer transition-all active:scale-95 shrink-0 flex items-center space-x-2"
+        >
+          <span>💬 Contact Support Page →</span>
+        </button>
+      </div>
+
       {/* Call to Action Box */}
       <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-8 sm:p-10 text-center shadow-sm space-y-4">
         <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">

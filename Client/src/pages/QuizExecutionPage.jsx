@@ -386,25 +386,69 @@ You are building a high-frequency financial settlement engine. Given an array of
     }
   };
 
-  // 6. Tab Switching Detection
+  // 6. Anti-Cheat: Ask user before leaving / reloading active assessment
   useEffect(() => {
     if (isQuizCompleted) return;
 
+    const handleBeforeUnload = (e) => {
+      const warningMessage = '⚠️ Warning: You have an active assessment in progress! Leaving now will submit your current test progress.';
+      e.preventDefault();
+      e.returnValue = warningMessage;
+      return warningMessage;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isQuizCompleted]);
+
+  // 7. Anti-Cheat: Tab Switching & Window Blur Focus Detection
+  useEffect(() => {
+    if (isQuizCompleted) return;
+
+    const handleViolation = (reason) => {
+      setTabViolations((prev) => {
+        const next = prev + 1;
+        if (next >= 3) {
+          addToast(`🚫 Quiz auto-submitted due to repeated anti-cheat violations (${reason})!`, 'error');
+          finishQuiz();
+        } else {
+          addToast(`⚠️ Anti-Cheat Warning: ${reason} detected! Attempt (${next}/3). Auto-submits on 3rd attempt.`, 'warning');
+        }
+        return next;
+      });
+    };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        setTabViolations((prev) => {
-          const next = prev + 1;
-          if (next >= 3) {
-            finishQuiz();
-          }
-          return next;
-        });
+        handleViolation('Tab Change');
+      }
+    };
+
+    const handleWindowBlur = () => {
+      handleViolation('Window Focus Lost');
+    };
+
+    const handleKeyDown = (e) => {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) ||
+        (e.ctrlKey && (e.key === 'U' || e.key === 'u'))
+      ) {
+        e.preventDefault();
+        addToast('🚫 Inspection shortcuts & developer options are disabled during test!', 'error');
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isQuizCompleted, finishQuiz]);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isQuizCompleted, finishQuiz, addToast]);
 
   // Clean up media
   useEffect(() => {

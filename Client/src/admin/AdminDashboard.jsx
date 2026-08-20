@@ -1231,51 +1231,18 @@ You are building a high-frequency financial settlement engine. Given an array of
     }
   ];
 
-  // Access check with One-Click Login & Demo Explorer
-  if (!isAdmin && !demoAccessGranted) {
+  // Access check for Admin Portal
+  if (!isAdmin) {
     return (
       <div className="text-center py-16 px-6 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-2xl space-y-5 animate-fadeIn">
-        <span className="text-6xl block mb-2 animate-bounce">🛡️</span>
+        <span className="text-6xl block mb-2">🔒</span>
         <div>
           <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">
-            Admin Control Center
+            Admin Access Restricted
           </h2>
           <p className="text-xs font-lato text-[var(--text-muted)] mt-1.5 leading-relaxed">
-            Sign in with Administrator credentials to manage live competitions, user roles, previous work archives, legal partners, and incoming support messages.
+            Please sign in with authorized Administrator credentials to access the Admin Control Center.
           </p>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-left font-mono text-xs space-y-1">
-          <div className="text-[10px] text-[var(--text-muted)] uppercase font-bold mb-1">
-            Default Super Admin Credentials:
-          </div>
-          <div className="text-[var(--text-main)]">
-            <span className="text-[var(--color-primary-600)] font-bold">Email:</span> admin@quizplatform.com
-          </div>
-          <div className="text-[var(--text-main)]">
-            <span className="text-[var(--color-primary-600)] font-bold">Password:</span> admin123
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <button
-            onClick={handleQuickAdminLogin}
-            disabled={isLoggingInAdmin}
-            className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center space-x-2"
-          >
-            {isLoggingInAdmin ? (
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <span>⚡ One-Click Admin Sign In</span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setDemoAccessGranted(true)}
-            className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs transition-all cursor-pointer"
-          >
-            👀 Explore in Preview Mode
-          </button>
         </div>
       </div>
     );

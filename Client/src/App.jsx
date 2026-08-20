@@ -7,6 +7,7 @@ import { LiveQuizzes } from './components/LiveQuizzes';
 import { PreviousWorks } from './components/PreviousWorks';
 import { ReviewSection } from './components/ReviewSection';
 import Footer from './components/Footer';
+import BottomNav from './components/BottomNav';
 import PwaInstallCard from './components/PwaInstallCard';
 
 // Pages
@@ -18,6 +19,7 @@ import ShortGyaanPage from './pages/ShortGyaanPage';
 import PolicyPage from './pages/PolicyPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
+import NotFoundPage from './pages/NotFoundPage';
 import { AuthPage } from './pages/AuthPage';
 
 // Admin Portal
@@ -191,7 +193,7 @@ export const App = () => {
       />
 
       {/* Main Page Layout Container */}
-      <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8'}`}>
+      <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pb-16 md:pb-0'}`}>
         {activePolicy !== null ? (
           <PolicyPage
             policyType={activePolicy}
@@ -222,6 +224,14 @@ export const App = () => {
           <ProfilePage
             onNavigateToQuiz={handleNavigateToQuizPage}
             onNavigateHome={handleBackToHome}
+            onNavigateAdmin={() => {
+              setSelectedQuiz(null);
+              setIsExecutingQuiz(false);
+              setIsPracticeMode(false);
+              setActivePolicy(null);
+              setActiveTab('admin');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         ) : activeTab === 'admin' ? (
           <AdminDashboard />
@@ -246,7 +256,7 @@ export const App = () => {
           <QuizPage
             onSelectQuiz={handleSelectQuiz}
           />
-        ) : (
+        ) : activeTab === 'home' ? (
           <div className="space-y-12">
             {/* Hero Banner */}
             <HeroBanner onExploreLiveQuizzes={handleExploreLiveQuizzes} />
@@ -269,6 +279,13 @@ export const App = () => {
             {/* Reviews */}
             <ReviewSection />
           </div>
+        ) : (
+          <NotFoundPage
+            onNavigate={(tab) => {
+              setActiveTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
         )}
       </main>
 
@@ -296,6 +313,23 @@ export const App = () => {
           initialMode={activeTab === 'signup' ? 'signup' : 'login'}
           onClose={() => {
             setActiveTab('home');
+          }}
+        />
+      )}
+
+      {/* Small Devices Fixed Bottom Navigation Bar (z-10, Shorts Gyaan overlaps with z-30) */}
+      {!isExecutingQuiz && (
+        <BottomNav
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setActivePolicy(null);
+            if (tab !== 'quiz' && tab !== 'signup' && tab !== 'login') {
+              setSelectedQuiz(null);
+              setIsExecutingQuiz(false);
+              setIsPracticeMode(false);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
         />
       )}

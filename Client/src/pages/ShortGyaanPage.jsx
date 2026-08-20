@@ -1245,7 +1245,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   }
 
   return (
-    <div className="w-full h-full max-h-full flex flex-col items-center justify-center bg-[var(--bg-main)] relative overflow-hidden select-none">
+    <div className="w-full h-full max-h-full flex flex-col items-center justify-center bg-[var(--bg-main)] fixed inset-x-0 top-16 bottom-0 z-30 md:relative md:top-auto md:bottom-auto overflow-hidden select-none">
       
       {/* ========================================================================= */}
       {/* 1. MEDIUM & LARGE DEVICES VIEW (md:flex & lg:flex MULTI-COLUMN LAYOUT)   */}
@@ -1780,7 +1780,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 ref={(el) => (cardRefs.current[idx] = el)}
                 data-index={idx}
                 onClick={() => setActiveCardIndex(idx)}
-                className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-xl p-3.5 sm:p-4 md:p-4 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
+                className={`w-full h-[calc(100dvh-4.2rem)] max-h-[calc(100dvh-4.2rem)] snap-start snap-always shrink-0 rounded-2xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-xl p-2.5 sm:p-3 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
                   isActive
                     ? 'border-[var(--color-primary-500)] ring-2 ring-blue-500/20 shadow-blue-500/15'
                     : 'border-[var(--border-theme)] opacity-95 hover:border-[var(--color-primary-300)]'
@@ -1961,7 +1961,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                       }
                     }}
                     onTouchEnd={() => setSolutionDragStartY(null)}
-                    className="absolute bottom-[54px] left-0 right-0 z-30 bg-[var(--bg-card)] border-t-2 border-x-2 border-[var(--border-theme)] rounded-t-3xl p-3.5 sm:p-4 shadow-2xl flex flex-col space-y-2.5 max-h-[82%] overflow-y-auto custom-scrollbar"
+                    className="absolute bottom-[44px] left-0 right-0 z-30 bg-[var(--bg-card)] border-t-2 border-x-2 border-[var(--border-theme)] rounded-t-3xl p-3 sm:p-4 shadow-2xl flex flex-col space-y-2.5 max-h-[80%] overflow-y-auto custom-scrollbar"
                   >
                     {/* Top Drag Handle Bar */}
                     <div
@@ -2041,7 +2041,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 )}
 
                 {/* 3. BOTTOM STICKY NAVIGATION BAR: by Question admin | 🏠 | ❤️ 🔖 ↗️ */}
-                <div className="shrink-0 p-2.5 rounded-2xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] flex items-center justify-between relative z-40 shadow-sm mt-auto">
+                <div className="shrink-0 py-1.5 px-2.5 rounded-xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] flex items-center justify-between relative z-40 shadow-sm mt-1">
                   {/* Left: by Question admin */}
                   <div className="text-[11px] sm:text-xs font-lato text-[var(--text-muted)] truncate max-w-[120px] sm:max-w-[150px]">
                     by <strong className="text-[var(--text-main)]">{shortItem.author || 'Question admin'}</strong>
