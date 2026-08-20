@@ -25,6 +25,8 @@ import { AuthPage } from './pages/AuthPage';
 // Admin Portal
 import AdminDashboard from './admin/AdminDashboard';
 
+import InitialLogoLoader from './components/InitialLogoLoader';
+
 // Services & Utils
 import { apiGetQuizzes } from './services/api';
 import { getQuizAutoStatus } from './utils/dateUtils';
@@ -34,6 +36,7 @@ import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 
 export const App = () => {
+  const [isInitialAppLoading, setIsInitialAppLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
@@ -60,8 +63,17 @@ export const App = () => {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    if (!isAuthLoading) {
+      const timer = setTimeout(() => {
+        setIsInitialAppLoading(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthLoading]);
 
   useEffect(() => {
     localStorage.setItem('quiz_platform_active_tab', activeTab);
@@ -169,6 +181,10 @@ export const App = () => {
 
   const isAuthModalOpen = activeTab === 'signup' || activeTab === 'login';
   const isShortsTab = activeTab === 'short-gyaan' || activeTab === 'shorts-gyaan';
+
+  if (isInitialAppLoading) {
+    return <InitialLogoLoader onComplete={() => setIsInitialAppLoading(false)} />;
+  }
 
   return (
     <div className={`bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 flex flex-col font-lato ${isShortsTab ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'}`}>

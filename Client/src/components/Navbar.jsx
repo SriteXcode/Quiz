@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { isPwaInstalled } from '../services/pwaService';
 
 export const Navbar = ({
   theme,
@@ -11,8 +12,52 @@ export const Navbar = ({
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
   const dropdownRef = useRef(null);
   const navRef = useRef(null);
+
+  // PWA Install State & Event Listeners
+  useEffect(() => {
+    setIsInstalled(isPwaInstalled());
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      localStorage.setItem('pwa_installed', 'true');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPwa = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const choiceResult = await deferredPrompt.userChoice;
+        if (choiceResult.outcome === 'accepted') {
+          setIsInstalled(true);
+          localStorage.setItem('pwa_installed', 'true');
+        }
+        setDeferredPrompt(null);
+      } catch (err) {
+        console.warn('PWA install error:', err);
+      }
+    } else {
+      alert('To install the app, tap your browser menu (⋮ or Share) and select "Install app" or "Add to Home Screen".');
+    }
+  };
 
   // Close profile dropdown & mobile menu when clicking anywhere outside
   useEffect(() => {
@@ -51,13 +96,6 @@ export const Navbar = ({
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
-    logout();
-    setActiveTab('home');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleMobileLogout = () => {
-    setIsMobileMenuOpen(false);
     logout();
     setActiveTab('home');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -171,6 +209,18 @@ export const Navbar = ({
               </button>
             )}
 
+            {/* PWA App Download Button (Shown until app is installed) */}
+            {!isInstalled && (
+              <button
+                onClick={handleInstallPwa}
+                className="p-1.5 md:p-1.5 lg:p-2 w-8 h-8 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-xl border border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer flex items-center justify-center shadow-sm shrink-0 active:scale-95 animate-pulse"
+                aria-label="Download & Install App"
+                title="Install App for Offline Access & Instant Performance 📲"
+              >
+                <span className="text-base md:text-base lg:text-xl select-none">📲</span>
+              </button>
+            )}
+
             {/* Theme Toggle Button (Bulb for Light Mode, Animated Diya Flame for Dark Mode) */}
             <button
               onClick={handleThemeToggle}
@@ -190,8 +240,18 @@ export const Navbar = ({
             </button>
           </div>
 
-          {/* Mobile Theme Toggle (Hamburger Menu Removed as BottomNav Handles Navigation) */}
+          {/* Mobile Actions: PWA Download + Theme Toggle */}
           <div className="flex md:hidden items-center space-x-2 shrink-0">
+            {!isInstalled && (
+              <button
+                onClick={handleInstallPwa}
+                className="p-2 w-10 h-10 rounded-xl border border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-all cursor-pointer flex items-center justify-center shadow-sm shrink-0 active:scale-95 animate-pulse"
+                aria-label="Download App Mobile"
+                title="Install App 📲"
+              >
+                <span className="text-xl select-none">📲</span>
+              </button>
+            )}
             <button
               onClick={handleThemeToggle}
               className="p-2 w-10 h-10 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center shadow-sm"

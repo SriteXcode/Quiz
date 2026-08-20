@@ -22,7 +22,7 @@ export const BottomNav = ({ activeTab, setActiveTab }) => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-10 bg-[var(--bg-card)]/95 backdrop-blur-lg border-t border-[var(--border-theme)] shadow-2xl px-2 py-1.5 transition-colors duration-300">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-999 bg-[var(--bg-card)]/95 backdrop-blur-lg border-t border-[var(--border-theme)] shadow-2xl px-2 py-1.5 transition-colors duration-300">
       <div className="max-w-md mx-auto flex items-center justify-around">
         {navItems.map((item) => {
           const isShortsActive =

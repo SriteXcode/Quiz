@@ -154,7 +154,6 @@ export const AdminDashboard = () => {
   const { addToast } = useToast();
 
   const [demoAccessGranted, setDemoAccessGranted] = useState(false);
-  const [isLoggingInAdmin, setIsLoggingInAdmin] = useState(false);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
@@ -256,23 +255,6 @@ export const AdminDashboard = () => {
     status: 'active',
     order: 1
   });
-
-  // Quick One-Click Admin Login
-  const handleQuickAdminLogin = async () => {
-    setIsLoggingInAdmin(true);
-    try {
-      const res = await login('admin@quizplatform.com', 'admin123');
-      if (res.success) {
-        addToast('Welcome, Super Administrator! 🛡️', 'success');
-      } else {
-        setDemoAccessGranted(true);
-      }
-    } catch {
-      setDemoAccessGranted(true);
-    } finally {
-      setIsLoggingInAdmin(false);
-    }
-  };
 
   // Eager parallel data loader: fetches all tabs concurrently so every tab has live data
   useEffect(() => {

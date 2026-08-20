@@ -1,4 +1,4 @@
-export const Footer = ({ onNavigatePolicy, onNavigateAdmin }) => {
+export const Footer = ({ onNavigatePolicy }) => {
   const socialLinks = [
     {
       name: 'Twitter',
