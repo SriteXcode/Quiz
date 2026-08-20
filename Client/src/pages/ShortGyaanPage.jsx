@@ -1780,7 +1780,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 ref={(el) => (cardRefs.current[idx] = el)}
                 data-index={idx}
                 onClick={() => setActiveCardIndex(idx)}
-                className={`w-full h-[calc(100dvh-5.5rem)] max-h-[calc(100dvh-4.2rem)] snap-start snap-always shrink-0 rounded-2xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-xl p-2.5 sm:p-3 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
+                className={`w-full h-[calc(100dvh-4.2rem)] max-h-[calc(100dvh-4.2rem)] snap-start snap-always shrink-0 rounded-2xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-xl p-2.5 sm:p-3 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
                   isActive
                     ? 'border-[var(--color-primary-500)] ring-2 ring-blue-500/20 shadow-blue-500/15'
                     : 'border-[var(--border-theme)] opacity-95 hover:border-[var(--color-primary-300)]'
