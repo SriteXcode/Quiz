@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import Skeleton from '../components/Skeleton';
 import { downloadShortsGyaanTemplate } from '../utils/excelTemplateUtils';
 import {
   apiGetShortsGyaan,
@@ -56,7 +57,85 @@ export const shuffleQuestionOptions = (q) => {
   };
 };
 
-export const ShortGyaanPage = ({ onRequireAuth }) => {
+export const ShortGyaanSkeleton = () => {
+  return (
+    <div className="w-full h-full min-h-[420px] rounded-2xl sm:rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--border-theme)] p-3.5 sm:p-5 flex flex-col justify-between space-y-4 animate-pulse shadow-md">
+      {/* Header Skeleton: Category Badge & Timer Pill */}
+      <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3">
+        <div className="flex items-center space-x-2">
+          <Skeleton type="rect" className="h-6 w-24 rounded-lg" />
+          <Skeleton type="rect" className="h-4 w-12 rounded-md" />
+        </div>
+        <Skeleton type="rect" className="h-6 w-20 rounded-full" />
+      </div>
+
+      {/* Middle Content Skeleton: Question Statement, Code Block, 4 Options */}
+      <div className="flex-1 space-y-3.5 overflow-hidden">
+        {/* Question Statement Lines */}
+        <div className="space-y-2">
+          <Skeleton type="text" className="h-5 w-11/12" />
+          <Skeleton type="text" className="h-5 w-3/4" />
+        </div>
+
+        {/* Code Snippet Box Skeleton */}
+        <Skeleton type="rect" className="h-20 sm:h-24 w-full rounded-xl" />
+
+        {/* 4 Option Buttons Skeleton */}
+        <div className="space-y-2 pt-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-2.5 sm:p-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] flex items-center space-x-3"
+            >
+              <Skeleton type="rect" className="h-5 w-5 rounded-md shrink-0" />
+              <Skeleton type="text" className="h-4 w-4/5" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom Footer Actions Skeleton */}
+      <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
+        <Skeleton type="text" className="h-4 w-28" />
+        <div className="flex items-center space-x-2">
+          <Skeleton type="rect" className="h-7 w-16 rounded-xl" />
+          <Skeleton type="rect" className="h-7 w-8 rounded-xl" />
+          <Skeleton type="rect" className="h-7 w-8 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const ShortGyaanDetailsSkeleton = () => {
+  return (
+    <div className="w-full h-full bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 shadow-md space-y-4 animate-pulse flex flex-col justify-between">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3">
+          <div className="flex items-center space-x-2.5">
+            <Skeleton type="circle" className="w-8 h-8 shrink-0" />
+            <div className="space-y-1.5">
+              <Skeleton type="text" className="h-4 w-32" />
+              <Skeleton type="text" className="h-3 w-20" />
+            </div>
+          </div>
+          <Skeleton type="rect" className="h-6 w-16 rounded-full" />
+        </div>
+
+        <Skeleton type="rect" className="h-16 w-full rounded-xl" />
+        <Skeleton type="rect" className="h-36 w-full rounded-2xl" />
+        <Skeleton type="rect" className="h-20 w-full rounded-xl" />
+      </div>
+
+      <div className="pt-3 border-t border-[var(--border-theme)] flex justify-between items-center">
+        <Skeleton type="text" className="h-4 w-24" />
+        <Skeleton type="rect" className="h-6 w-20 rounded-lg" />
+      </div>
+    </div>
+  );
+};
+
+export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   const { user, isAdmin, isAuthenticated, login } = useAuth();
   const { addToast } = useToast();
 
@@ -71,6 +150,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchInput, setShowSearchInput] = useState(false);
+  const [showOverflowMenu, setShowOverflowMenu] = useState(false);
 
   // Active step index (0 to shorts.length - 1)
   const [activeCardIndex, setActiveCardIndex] = useState(() => {
@@ -95,10 +175,13 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   // Active question countdown timer and per-question pausable remaining time map
   const [activeQuestionTimer, setActiveQuestionTimer] = useState(30);
   const [remainingTimes, setRemainingTimes] = useState({});
+  const [isQuestionTimerPaused, setIsQuestionTimerPaused] = useState(false);
 
   // 15-second post-answer buffer countdown
   const [explanationBufferTimer, setExplanationBufferTimer] = useState(null);
   const [isBufferPaused, setIsBufferPaused] = useState(false);
+  const [collapsedSolutions, setCollapsedSolutions] = useState({});
+  const [solutionDragStartY, setSolutionDragStartY] = useState(null);
 
   // Sound effects toggle
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -227,6 +310,19 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   const isProgrammaticScrollRef = useRef(false);
   const scrollUnlockTimerRef = useRef(null);
 
+  // Scroll Lock & Debounce Refs for Strict 1-Question Step Navigation
+  const isWheelingLockedRef = useRef(false);
+  const wheelInertiaTimerRef = useRef(null);
+  const lastStepTimestampRef = useRef(0);
+
+  const touchStartYRef = useRef(null);
+  const touchStartXRef = useRef(null);
+  const hasSteppedInTouchGestureRef = useRef(false);
+  const isTouchLockedRef = useRef(false);
+  const touchCooldownTimerRef = useRef(null);
+
+  const lastKeyTimeRef = useRef(0);
+
   // -------------------------------------------------------------
   // AUDIO EFFECT HELPER (Web Audio API Synthesizer)
   // -------------------------------------------------------------
@@ -339,8 +435,9 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     if (feedContainerRef.current) {
       feedContainerRef.current.scrollTop = 0;
     }
+    addToast('🔄 Feed refreshed!', 'info');
     await fetchInitialShorts();
-  }, [fetchInitialShorts, playSoundEffect]);
+  }, [fetchInitialShorts, playSoundEffect, addToast]);
 
   // -------------------------------------------------------------
   // 2. INFINITE SCROLL: LOAD NEXT BATCH
@@ -376,17 +473,31 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     }
   }, [page, hasMore, isLoadingMore, activeCategory, searchQuery]);
 
+  const setFeedContainerRef = useCallback((el) => {
+    if (el) {
+      feedContainerRef.current = el;
+    }
+  }, []);
+
   // -------------------------------------------------------------
   // 3. STEP NAVIGATION FUNCTIONS (Smooth Scroll Exactly 1 Card at a Time)
   // -------------------------------------------------------------
   const scrollToStepIndex = useCallback((targetIndex) => {
     if (targetIndex < 0 || targetIndex >= shorts.length) return;
     const targetCard = cardRefs.current[targetIndex];
-    const container = feedContainerRef.current;
-    if (targetCard && container) {
+    if (targetCard) {
       isProgrammaticScrollRef.current = true;
-      const targetTop = targetCard.offsetTop - container.offsetTop;
-      container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+
+      // 1. Scroll target card smoothly into view for mobile and desktop
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // 2. Also scroll feed container if present
+      const container = feedContainerRef.current;
+      if (container) {
+        const targetTop = targetCard.offsetTop - container.offsetTop;
+        container.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      }
+
       setActiveCardIndex(targetIndex);
       playSoundEffect('step');
       setExplanationBufferTimer(null);
@@ -399,7 +510,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
       if (scrollUnlockTimerRef.current) clearTimeout(scrollUnlockTimerRef.current);
       scrollUnlockTimerRef.current = setTimeout(() => {
         isProgrammaticScrollRef.current = false;
-      }, 350);
+      }, 300);
     }
   }, [shorts.length, loadMoreShorts, playSoundEffect]);
 
@@ -414,8 +525,11 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   const scrollToPrevCard = useCallback(() => {
     if (activeCardIndex > 0) {
       scrollToStepIndex(activeCardIndex - 1);
+    } else {
+      // Scrolling UP at initial card (index 0) refreshes feed
+      handleResetAndRefresh();
     }
-  }, [activeCardIndex, scrollToStepIndex]);
+  }, [activeCardIndex, scrollToStepIndex, handleResetAndRefresh]);
 
   // -------------------------------------------------------------
   // 4. PRECISION MOUSE WHEEL & TRACKPAD INTERCEPTION (Desktop)
@@ -426,7 +540,6 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
 
     let wheelDeltaAccumulator = 0;
     let wheelResetTimer = null;
-    let isWheelingLocked = false;
 
     const handleWheel = (e) => {
       if (isAdminModalOpen) return;
@@ -450,23 +563,39 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
         }
       }
 
-      // 2. Prevent default outer window jitter while stepping between cards
+      // 2. Prevent default container momentum scroll to strictly force single-card stepping
       e.preventDefault();
 
-      if (isWheelingLocked || isProgrammaticScrollRef.current) return;
+      const now = Date.now();
+
+      // If wheel navigation is currently locked (cooldown active or trackpad inertia ongoing)
+      if (isWheelingLockedRef.current || isProgrammaticScrollRef.current) {
+        // Extend lock slightly while inertia wheel ticks keep arriving
+        if (wheelInertiaTimerRef.current) clearTimeout(wheelInertiaTimerRef.current);
+        wheelInertiaTimerRef.current = setTimeout(() => {
+          isWheelingLockedRef.current = false;
+        }, 120);
+        return;
+      }
+
+      // Responsive minimum time interval between question steps (220ms)
+      if (now - lastStepTimestampRef.current < 220) {
+        return;
+      }
 
       wheelDeltaAccumulator += e.deltaY;
 
       if (wheelResetTimer) clearTimeout(wheelResetTimer);
       wheelResetTimer = setTimeout(() => {
         wheelDeltaAccumulator = 0;
-      }, 120);
+      }, 80);
 
-      // Threshold for a deliberate wheel roll or trackpad swipe
-      if (Math.abs(wheelDeltaAccumulator) >= 28) {
+      // Light threshold for smooth effortless scroll response
+      if (Math.abs(wheelDeltaAccumulator) >= 14) {
         const moveDown = wheelDeltaAccumulator > 0;
         wheelDeltaAccumulator = 0;
-        isWheelingLocked = true;
+        isWheelingLockedRef.current = true;
+        lastStepTimestampRef.current = now;
 
         if (moveDown) {
           scrollToNextCard();
@@ -474,9 +603,10 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
           scrollToPrevCard();
         }
 
-        setTimeout(() => {
-          isWheelingLocked = false;
-        }, 320);
+        if (wheelInertiaTimerRef.current) clearTimeout(wheelInertiaTimerRef.current);
+        wheelInertiaTimerRef.current = setTimeout(() => {
+          isWheelingLockedRef.current = false;
+        }, 200);
       }
     };
 
@@ -484,21 +614,128 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     return () => {
       container.removeEventListener('wheel', handleWheel);
       if (wheelResetTimer) clearTimeout(wheelResetTimer);
+      if (wheelInertiaTimerRef.current) clearTimeout(wheelInertiaTimerRef.current);
     };
   }, [scrollToNextCard, scrollToPrevCard, isAdminModalOpen]);
 
   // -------------------------------------------------------------
-  // 5. KEYBOARD ARROW CONTROLS (Up, Down, PageUp, PageDown, J, K)
+  // 5. TOUCH SWIPE INTERCEPTION (Mobile & Touch Devices - Smooth 1 Question per Swipe)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const container = feedContainerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e) => {
+      if (isAdminModalOpen || !e.touches || e.touches.length === 0) return;
+      touchStartYRef.current = e.touches[0].clientY;
+      touchStartXRef.current = e.touches[0].clientX;
+      hasSteppedInTouchGestureRef.current = false;
+    };
+
+    const handleTouchMove = (e) => {
+      if (
+        touchStartYRef.current === null ||
+        isAdminModalOpen ||
+        !e.touches ||
+        e.touches.length === 0
+      ) return;
+
+      // Check inner scrollable card content
+      const scrollableInner = e.target.closest('.card-scroll-content');
+      if (scrollableInner) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollableInner;
+        const hasOverflow = scrollHeight > clientHeight + 4;
+        const currentY = e.touches[0].clientY;
+        const deltaY = touchStartYRef.current - currentY;
+
+        if (hasOverflow) {
+          if (deltaY > 0 && scrollTop + clientHeight < scrollHeight - 6) {
+            return;
+          }
+          if (deltaY < 0 && scrollTop > 6) {
+            return;
+          }
+        }
+      }
+
+      const currentY = e.touches[0].clientY;
+      const currentX = e.touches[0].clientX;
+      const deltaY = touchStartYRef.current - currentY;
+      const deltaX = touchStartXRef.current - currentX;
+
+      // Smooth vertical touch swipe handling
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        if (e.cancelable) e.preventDefault();
+
+        const now = Date.now();
+
+        if (
+          !hasSteppedInTouchGestureRef.current &&
+          !isTouchLockedRef.current &&
+          !isProgrammaticScrollRef.current &&
+          now - lastStepTimestampRef.current >= 200
+        ) {
+          // Responsive 18px swipe threshold
+          if (Math.abs(deltaY) >= 18) {
+            hasSteppedInTouchGestureRef.current = true;
+            isTouchLockedRef.current = true;
+            lastStepTimestampRef.current = now;
+
+            if (deltaY > 0) {
+              scrollToNextCard();
+            } else {
+              scrollToPrevCard();
+            }
+
+            if (touchCooldownTimerRef.current) clearTimeout(touchCooldownTimerRef.current);
+            touchCooldownTimerRef.current = setTimeout(() => {
+              isTouchLockedRef.current = false;
+            }, 220);
+          }
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      touchStartYRef.current = null;
+      touchStartXRef.current = null;
+      hasSteppedInTouchGestureRef.current = false;
+
+      if (touchCooldownTimerRef.current) clearTimeout(touchCooldownTimerRef.current);
+      touchCooldownTimerRef.current = setTimeout(() => {
+        isTouchLockedRef.current = false;
+      }, 100);
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      if (touchCooldownTimerRef.current) clearTimeout(touchCooldownTimerRef.current);
+    };
+  }, [scrollToNextCard, scrollToPrevCard, isAdminModalOpen]);
+
+  // -------------------------------------------------------------
+  // 6. KEYBOARD ARROW CONTROLS (Up, Down, PageUp, PageDown, J, K)
   // -------------------------------------------------------------
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isAdminModalOpen || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
+      const now = Date.now();
+      if (now - lastKeyTimeRef.current < 300) return;
+
       if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'PageDown') {
         e.preventDefault();
+        lastKeyTimeRef.current = now;
         scrollToNextCard();
       } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'PageUp') {
         e.preventDefault();
+        lastKeyTimeRef.current = now;
         scrollToPrevCard();
       }
     };
@@ -508,7 +745,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   }, [scrollToNextCard, scrollToPrevCard, isAdminModalOpen]);
 
   // -------------------------------------------------------------
-  // 6. INTERSECTION OBSERVER (Keeps Active Index Synced on Native Drag)
+  // 7. INTERSECTION OBSERVER (Keeps Active Index Synced on Direct Drag)
   // -------------------------------------------------------------
   useEffect(() => {
     const container = feedContainerRef.current;
@@ -525,6 +762,8 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
     };
 
     observerRef.current = new IntersectionObserver((entries) => {
+      if (isProgrammaticScrollRef.current) return;
+
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           const index = Number(entry.target.getAttribute('data-index'));
@@ -585,7 +824,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   // - When user returns / tab becomes visible, timer resumes where left off.
   // - Moving to next question without answering does NOT count as an attempt.
   useEffect(() => {
-    if (!activeShort || currentAnswerState.isAnswered || !isTabActive) return;
+    if (!activeShort || currentAnswerState.isAnswered || !isTabActive || isQuestionTimerPaused) return;
 
     const sId = currentShortId;
     const initialTime = remainingTimes[sId] !== undefined ? remainingTimes[sId] : (activeShort.timerSeconds || 30);
@@ -619,7 +858,7 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
       clearTimeout(initTimeout);
       clearInterval(timer);
     };
-  }, [activeCardIndex, activeShort, currentAnswerState.isAnswered, currentShortId, handleQuestionTimeout, isTabActive, remainingTimes]);
+  }, [activeCardIndex, activeShort, currentAnswerState.isAnswered, currentShortId, handleQuestionTimeout, isTabActive, isQuestionTimerPaused, remainingTimes]);
 
   // -------------------------------------------------------------
   // 7. 10-SECOND EXPLANATION AUTO-STEP BUFFER
@@ -1006,670 +1245,1009 @@ export const ShortGyaanPage = ({ onRequireAuth }) => {
   }
 
   return (
-    <div
-      className="flex flex-col items-center h-full max-h-full overflow-hidden select-none w-full max-w-full no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-    >
+    <div className="w-full h-full max-h-full flex flex-col items-center justify-center bg-[var(--bg-main)] relative overflow-hidden select-none">
       
-      {/* 1. TOP STICKY BAR: CATEGORY PILLS & STEP PROGRESS (FULL WIDTH & LEFT ALIGNED) */}
-      <div className="w-full max-w-full px-3 sm:px-4 py-2 space-y-2 shrink-0 bg-[var(--bg-main)]/95 backdrop-blur-md z-20 border-b border-[var(--border-theme)] shadow-xs">
+      {/* ========================================================================= */}
+      {/* 1. MEDIUM & LARGE DEVICES VIEW (md:flex & lg:flex MULTI-COLUMN LAYOUT)   */}
+      {/* ========================================================================= */}
+      <div className="hidden md:flex flex-col items-center h-full max-h-full overflow-hidden w-full max-w-full">
         
-        <div className="flex items-center justify-between gap-2">
-          {/* Header Title with Live Accuracy Badge */}
-          <div className="flex items-center space-x-2 sm:space-x-2.5 min-w-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 shrink-0">
-              ⚡
-            </div>
-            <div className="hidden xs:block sm:block shrink-0">
-              <h1 className="font-poppins font-black text-xs sm:text-base text-[var(--text-main)] leading-none flex items-center space-x-1.5">
-                <span>Shorts</span>
-              </h1>
+        {/* TOP STICKY BAR FOR MEDIUM & LARGE DEVICES */}
+        <div className="w-full max-w-full px-3 md:px-4 py-2 space-y-2 shrink-0 bg-[var(--bg-main)]/95 backdrop-blur-md z-20 border-b border-[var(--border-theme)] shadow-xs">
+          <div className="flex items-center justify-between gap-2">
+            
+            {/* Header Title with Live Accuracy Badge */}
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-amber-500/20 shrink-0">
+                ⚡
+              </div>
+              <div className="shrink-0">
+                <h1 className="font-poppins font-black text-base text-[var(--text-main)] leading-none flex items-center space-x-1.5">
+                  <span>Shorts</span>
+                </h1>
+              </div>
+
+              {/* Live Accuracy & Stats Pill */}
+              {(sessionStats.attempted > 0 || sessionStats.unattempted > 0) && (
+                <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-theme)] text-[11px] font-poppins shadow-xs shrink-0">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-0.5">
+                    <span>🎯</span>
+                    <span>{accuracyPercentage}%</span>
+                    <span className="ml-0.5 font-semibold">Acc</span>
+                  </span>
+                  <span className="text-[var(--text-muted)]">•</span>
+                  <span className="text-[var(--text-secondary)] font-medium">
+                    {sessionStats.correct}/{sessionStats.attempted} Correct
+                  </span>
+                  {sessionStats.unattempted > 0 && (
+                    <>
+                      <span className="text-[var(--text-muted)]">•</span>
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">
+                        {sessionStats.unattempted} Skipped
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Live Accuracy & Stats Pill (Visible across Phones, MD Tablets, and Desktop) */}
-            {(sessionStats.attempted > 0 || sessionStats.unattempted > 0) && (
-              <div className="flex items-center space-x-1 sm:space-x-1.5 px-2 sm:px-2.5 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-theme)] text-[10px] sm:text-[11px] font-poppins shadow-xs shrink-0">
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-0.5">
-                  <span>🎯</span>
-                  <span>{accuracyPercentage}%</span>
-                  <span className="hidden sm:inline ml-0.5 font-semibold">Acc</span>
-                </span>
-                <span className="text-[var(--text-muted)]">•</span>
-                <span className="text-[var(--text-secondary)] font-medium">
-                  {sessionStats.correct}/{sessionStats.attempted}
-                  <span className="hidden md:inline ml-0.5 text-[10px]">Correct</span>
-                </span>
-                {sessionStats.unattempted > 0 && (
-                  <>
-                    <span className="hidden md:inline text-[var(--text-muted)]">•</span>
-                    <span className="hidden md:inline text-slate-500 dark:text-slate-400 font-medium">
-                      {sessionStats.unattempted} Skipped
-                    </span>
-                  </>
-                )}
+            {/* Right Controls: Search, Speaker, Reset, Languages Dropdown, Admin */}
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowSearchInput((prev) => !prev)}
+                className={`p-1.5 rounded-xl border text-xs cursor-pointer transition-all shadow-sm ${
+                  showSearchInput
+                    ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]'
+                    : 'bg-[var(--bg-card)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)]'
+                }`}
+                title="Search Topics"
+              >
+                <span>🔍</span>
+              </button>
+
+              <button
+                onClick={() => setSoundEnabled((p) => !p)}
+                className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs cursor-pointer hover:border-[var(--color-primary-400)] transition-all shadow-sm text-[var(--text-main)]"
+                title={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
+              >
+                <span>{soundEnabled ? '🔊' : '🔇'}</span>
+              </button>
+
+              <button
+                onClick={handleResetAndRefresh}
+                className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs cursor-pointer hover:border-[var(--color-primary-400)] transition-all shadow-sm text-[var(--text-main)]"
+                title="Reset session and start from first question"
+              >
+                <span>🔄</span>
+              </button>
+
+              {/* Languages Dropdown */}
+              <div className="relative flex items-center">
+                <select
+                  value={activeCategory}
+                  onChange={(e) => setActiveCategory(e.target.value)}
+                  className="appearance-none bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs rounded-xl py-1.5 pl-3 pr-7 cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary-500)]"
+                  title="Filter by language or topic"
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat.id} value={cat.id} className="bg-[var(--bg-card)] text-[var(--text-main)] font-poppins py-1">
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute right-2 flex items-center text-[10px] text-[var(--text-muted)]">
+                  ▼
+                </div>
               </div>
-            )}
+
+              {isAdmin && (
+                <button
+                  onClick={() => setIsAdminModalOpen(true)}
+                  className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-poppins font-bold shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1 shrink-0"
+                >
+                  <span>📤 Excel</span>
+                </button>
+              )}
+            </div>
+
           </div>
 
-          {/* Right Controls: Search, Speaker, Languages Dropdown, Admin */}
-          <div className="flex items-center space-x-2">
-            {/* Search Toggle */}
-            <button
-              onClick={() => setShowSearchInput((prev) => !prev)}
-              className={`p-1.5 rounded-xl border text-xs cursor-pointer transition-all shadow-sm ${
-                showSearchInput
-                  ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)]'
-                  : 'bg-[var(--bg-card)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)]'
-              }`}
-              title="Search Topics"
-            >
-              <span>🔍</span>
-            </button>
+          {showSearchInput && (
+            <div className="animate-fadeIn pt-1">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search topics (e.g. closures, useState, indexes, O(1))..."
+                className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--color-primary-400)] text-xs font-poppins text-[var(--text-main)] focus:outline-none shadow-sm"
+                autoFocus
+              />
+            </div>
+          )}
+        </div>
 
-            {/* Speaker / Sound Toggle */}
-            <button
-              onClick={() => setSoundEnabled((p) => !p)}
-              className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs cursor-pointer hover:border-[var(--color-primary-400)] transition-all shadow-sm text-[var(--text-main)]"
-              title={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
-            >
-              <span>{soundEnabled ? '🔊' : '🔇'}</span>
-            </button>
-
-            {/* Reset / Restart Session */}
-            <button
-              onClick={handleResetAndRefresh}
-              className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs cursor-pointer hover:border-[var(--color-primary-400)] transition-all shadow-sm text-[var(--text-main)]"
-              title="Reset session and start from first question"
-            >
-              <span>🔄</span>
-            </button>
-
-            {/* Languages Dropdown (Right to Search and Speaker) */}
-            <div className="relative flex items-center">
-              <select
-                value={activeCategory}
-                onChange={(e) => setActiveCategory(e.target.value)}
-                className="appearance-none bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs rounded-xl py-1.5 pl-3 pr-7 cursor-pointer transition-all shadow-sm focus:outline-none focus:ring-1 focus:ring-[var(--color-primary-500)]"
-                title="Filter by language or topic"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.id} value={cat.id} className="bg-[var(--bg-card)] text-[var(--text-main)] font-poppins py-1">
-                    {cat.label}
-                  </option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute right-2 flex items-center text-[10px] text-[var(--text-muted)]">
-                ▼
+        {/* MAIN WRAPPER FOR MEDIUM & LARGE DEVICES */}
+        <div className="w-full max-w-full flex-1 grid grid-cols-1 md:grid-cols-12 gap-3 px-3 overflow-hidden min-h-0 py-1.5">
+          
+          {/* COLUMN 1: TOPIC TAGS SIDEBAR (VISIBLE ON LARGE SCREENS) */}
+          <div className="hidden lg:flex lg:col-span-3 xl:col-span-2.5 h-full overflow-hidden flex-col bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl p-2.5 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2 px-1 shrink-0">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-sm">🏷️</span>
+                <span className="font-poppins font-bold text-xs text-[var(--text-main)]">Topic Tags</span>
               </div>
+              <span className="text-[10px] font-mono font-bold text-[var(--color-primary-600)] bg-[var(--color-primary-50)] dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-[var(--color-primary-200)] dark:border-blue-900">
+                {CATEGORIES.length} Tags
+              </span>
             </div>
 
-            {isAdmin && (
+            <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+              {CATEGORIES.map((cat) => {
+                const isSelected = activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setPage(1);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-poppins font-medium transition-all cursor-pointer text-left ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-blue-600 text-white font-bold shadow-xs shadow-blue-500/20'
+                        : 'bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card)] border border-[var(--border-theme)]'
+                    }`}
+                  >
+                    <span className="flex items-center space-x-1.5 truncate min-w-0">
+                      <span className="text-sm shrink-0">{cat.icon}</span>
+                      <span className="truncate">{cat.shortLabel || cat.label}</span>
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono shrink-0 ${
+                      isSelected ? 'bg-white/20 text-white font-bold' : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-theme)]'
+                    }`}>
+                      {cat.tag}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {activeCategory !== 'For You' && activeCategory !== 'All' && (
               <button
-                onClick={() => setIsAdminModalOpen(true)}
-                className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-xs font-poppins font-bold shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1 shrink-0"
+                onClick={() => {
+                  setActiveCategory('For You');
+                  setPage(1);
+                }}
+                className="w-full py-1 text-center text-[10px] font-poppins font-semibold text-[var(--color-primary-600)] hover:underline cursor-pointer pt-1 border-t border-[var(--border-theme)] shrink-0"
               >
-                <span>📤 Excel</span>
+                ✕ Clear Filter
               </button>
             )}
           </div>
-        </div>
 
-        {/* Search Input Bar */}
-        {showSearchInput && (
-          <div className="animate-fadeIn pt-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search topics (e.g. closures, useState, indexes, O(1))..."
-              className="w-full px-3 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--color-primary-400)] text-xs font-poppins text-[var(--text-main)] focus:outline-none shadow-sm"
-              autoFocus
-            />
+          {/* COLUMN 2: QUESTIONS FEED ON MEDIUM & LARGE DEVICES */}
+          <div
+            ref={setFeedContainerRef}
+            className="col-span-12 md:col-span-7 lg:col-span-5 xl:col-span-5.5 h-full overflow-y-scroll scroll-smooth snap-y snap-mandatory overscroll-contain space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
+          >
+            {isLoading ? (
+              <ShortGyaanSkeleton />
+            ) : shorts.length === 0 ? (
+              <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-center space-y-3 shadow-md my-8 max-w-md mx-auto">
+                <span className="text-3xl block">📭</span>
+                <h3 className="font-poppins font-bold text-sm text-[var(--text-main)]">No Questions Found</h3>
+                <p className="text-[11px] font-lato text-[var(--text-muted)]">
+                  {activeCategory === 'Saved' ? 'No saved questions yet.' : `No questions found under "${activeCategory}".`}
+                </p>
+                <button
+                  onClick={() => setActiveCategory('All')}
+                  className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs cursor-pointer"
+                >
+                  Explore All Questions →
+                </button>
+              </div>
+            ) : (
+              shorts.map((shortItem, idx) => {
+                const sId = shortItem._id;
+                const answerState = answersState[sId] || {
+                  isAnswered: false,
+                  selectedIndex: null,
+                  isCorrect: false,
+                  isTimedOut: false
+                };
+                const isActive = activeCardIndex === idx;
+
+                return (
+                  <div
+                    key={sId}
+                    ref={(el) => (cardRefs.current[idx] = el)}
+                    data-index={idx}
+                    onClick={() => setActiveCardIndex(idx)}
+                    className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-md p-3.5 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
+                      isActive
+                        ? 'border-[var(--color-primary-500)] ring-2 ring-blue-500/20 shadow-blue-500/15'
+                        : 'border-[var(--border-theme)] opacity-95 hover:border-[var(--color-primary-300)]'
+                    }`}
+                  >
+                    <div className="shrink-0 flex items-center justify-between border-b border-[var(--border-theme)] pb-1.5 relative z-10 bg-[var(--bg-card)]">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="px-2.5 py-0.5 rounded-lg text-xs font-poppins font-bold bg-[var(--color-primary-50)] dark:bg-blue-950/60 text-[var(--color-primary-600)] border border-[var(--color-primary-200)] dark:border-blue-800">
+                          {shortItem.category || 'JavaScript'}
+                        </span>
+                        {isActive && (
+                          <span className="text-[9px] font-poppins font-extrabold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
+                            Active
+                          </span>
+                        )}
+                      </div>
+
+                      {!answerState.isAnswered ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsQuestionTimerPaused((p) => !p);
+                          }}
+                          className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border font-mono font-bold text-xs cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs ${
+                            isActive && isQuestionTimerPaused
+                              ? 'bg-amber-500/25 border-amber-500 text-amber-600 dark:text-amber-400 animate-pulse'
+                              : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                          }`}
+                          title={isActive && isQuestionTimerPaused ? "Timer Paused — Click to Resume" : "Click to Pause Timer"}
+                        >
+                          <span>{isActive && isQuestionTimerPaused ? '⏸ Paused' : `⏱️ ${isActive ? `${activeQuestionTimer}s` : remainingTimes[shortItem._id] !== undefined ? `${remainingTimes[shortItem._id]}s` : `${shortItem.timerSeconds || 30}s`}`}</span>
+                        </div>
+                      ) : answerState.isCorrect ? (
+                        <span className="text-[10px] font-poppins font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                          ✓ Correct (+10 XP)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-poppins font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
+                          ✗ Incorrect
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="card-scroll-content flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col justify-start items-stretch space-y-2 relative z-10 my-1.5 pr-1 text-left">
+                      <h2 className="text-sm font-bold font-poppins text-[var(--text-main)] leading-snug break-words">
+                        {shortItem.questionText}
+                      </h2>
+
+                      {shortItem.codeSnippet && (
+                        <div className="p-2 rounded-xl bg-slate-950 text-emerald-400 font-mono text-[11px] overflow-x-auto border border-slate-800 shadow-inner max-h-28 text-left">
+                          <pre>{shortItem.codeSnippet}</pre>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5 pt-0.5 text-left">
+                        {shortItem.options.map((opt, optIdx) => {
+                          const isSelected = answerState.selectedIndex === optIdx;
+                          const isCorrectOption = optIdx === shortItem.correctAnswerIndex;
+                          let optionStyle = 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]';
+                          let badgeStyle = 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-theme)]';
+
+                          if (answerState.isAnswered) {
+                            if (isCorrectOption) {
+                              optionStyle = 'bg-emerald-500/15 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-200 font-bold';
+                              badgeStyle = 'bg-emerald-500 text-white';
+                            } else if (isSelected) {
+                              optionStyle = 'bg-rose-500/15 border-2 border-rose-500 text-rose-800 dark:text-rose-200 line-through';
+                              badgeStyle = 'bg-rose-500 text-white';
+                            } else {
+                              optionStyle = 'opacity-50 border-[var(--border-theme)]';
+                            }
+                          }
+
+                          return (
+                            <button
+                              key={optIdx}
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveCardIndex(idx);
+                                handleSelectOption(shortItem, optIdx);
+                              }}
+                              disabled={answerState.isAnswered}
+                              className={`w-full p-2 rounded-xl border text-left text-xs font-lato transition-all flex items-start justify-start gap-2 ${
+                                !answerState.isAnswered ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default'
+                              } ${optionStyle}`}
+                            >
+                              <span className={`w-5 h-5 rounded border flex items-center justify-center font-poppins font-bold text-[10px] shrink-0 mt-0.5 ${badgeStyle}`}>
+                                {['A', 'B', 'C', 'D'][optIdx]}
+                              </span>
+                              <span className="font-semibold leading-snug break-words flex-1 text-left">
+                                {opt}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 pt-1.5 border-t border-[var(--border-theme)] flex items-center justify-between relative z-10 gap-1.5 bg-[var(--bg-card)] mt-auto">
+                      <div className="text-[10px] font-lato text-[var(--text-muted)] truncate">
+                        By <strong className="text-[var(--text-secondary)]">{shortItem.author || 'Question admin'}</strong>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleLike(shortItem);
+                          }}
+                          className={`px-2 py-0.5 rounded-lg border flex items-center space-x-1 text-[10px] transition-all cursor-pointer ${
+                            shortItem.isLiked ? 'bg-rose-500/15 border-rose-500 text-rose-600 font-bold' : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          <span>❤️</span>
+                          <span>{shortItem.likesCount || 0}</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleSave(shortItem);
+                          }}
+                          className={`p-1 rounded-lg border text-[10px] transition-all cursor-pointer ${
+                            shortItem.isSaved ? 'bg-amber-500/15 border-amber-500 text-amber-600 font-bold' : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          <span>🔖</span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShareShort(shortItem);
+                          }}
+                          className="p-1 rounded-lg bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-[10px] transition-all cursor-pointer"
+                        >
+                          <span>↗️</span>
+                        </button>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })
+            )}
+
+            {isLoadingMore && (
+              <div className="w-full h-full min-h-[420px] snap-start snap-always shrink-0 py-1">
+                <ShortGyaanSkeleton />
+              </div>
+            )}
+          </div>
+
+          {/* COLUMN 3: CONCEPT DEEP-DIVE PANEL ON MEDIUM & LARGE DEVICES */}
+          <div className="col-span-12 md:col-span-5 lg:col-span-4 xl:col-span-4 h-full overflow-hidden">
+            {isLoading ? (
+              <ShortGyaanDetailsSkeleton />
+            ) : shorts.length > 0 ? (
+              (() => {
+                const activeShort = shorts[activeCardIndex] || shorts[0];
+                const activeAns = activeShort ? answersState[activeShort._id] : null;
+
+                return (
+                  <div className="w-full h-full bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-4 shadow-md space-y-2.5 overflow-y-auto custom-scrollbar flex flex-col justify-between">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                            🧠
+                          </div>
+                          <div>
+                            <h2 className="font-poppins font-bold text-xs text-[var(--text-main)]">Concept Deep-Dive</h2>
+                            <div className="text-[9px] font-mono text-[var(--color-primary-600)] font-bold">
+                              {activeShort.category || 'Topic'} • Deep Dive
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-1.5">
+                          {explanationBufferTimer !== null ? (
+                            <div
+                              onClick={() => setIsBufferPaused((p) => !p)}
+                              className="relative flex items-center justify-center w-7 h-7 rounded-full bg-blue-500/15 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-mono font-black text-[11px] cursor-pointer shadow-xs"
+                              title={isBufferPaused ? "Paused — Click to Resume" : "Click to Pause Auto-Next"}
+                            >
+                              <span>{isBufferPaused ? '⏸' : explanationBufferTimer}</span>
+                            </div>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[10px] font-mono font-bold text-[var(--text-muted)]">
+                              ⏱️ {activeShort.timerSeconds || 30}s
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Live Session Accuracy Tracker Card */}
+                      <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-1 shadow-xs shrink-0">
+                        <div className="flex items-center justify-between text-[11px] font-poppins font-bold">
+                          <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                            <span>🎯</span>
+                            <span>Session Accuracy: {accuracyPercentage}%</span>
+                          </span>
+                          <span className="text-[9px] text-[var(--text-muted)] font-normal">
+                            ({sessionStats.correct}/{sessionStats.attempted} Attempted)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)] font-medium pt-0.5 border-t border-[var(--border-theme)]">
+                          <span>✅ {sessionStats.correct} Correct</span>
+                          <span>❌ {sessionStats.incorrect} Wrong</span>
+                          <span className="text-slate-500">⚪ {sessionStats.unattempted} Skipped</span>
+                        </div>
+                      </div>
+
+                      {!activeAns?.isAnswered ? (
+                        <div className="p-4 rounded-2xl bg-[var(--bg-main)] border-2 border-dashed border-amber-500/30 text-center space-y-2 animate-fadeIn">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-base mx-auto animate-pulse">
+                            ⏳
+                          </div>
+                          <h3 className="font-poppins font-bold text-[11px] text-[var(--text-main)]">
+                            Solution & Concept Notes Hidden
+                          </h3>
+                          <p className="text-[10px] font-lato text-[var(--text-muted)] leading-relaxed">
+                            Timer running: <strong className="text-amber-500 font-mono">{activeQuestionTimer}s remaining</strong>. Select an option or wait for countdown to complete to reveal answer & solution breakdown!
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5 animate-fadeIn">
+                          <div className={`p-3 rounded-xl border space-y-1 ${
+                            activeAns.isCorrect ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/10 border-rose-500/40 text-rose-700 dark:text-rose-300'
+                          }`}>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] font-poppins font-bold">
+                                {activeAns.isCorrect ? '🎉 Correct (+10 XP)' : '❌ Incorrect'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded bg-emerald-500 text-white font-poppins font-bold text-[9px]">
+                                Option {['A', 'B', 'C', 'D'][activeShort.correctAnswerIndex]}
+                              </span>
+                            </div>
+                            <div className="font-lato font-bold text-xs text-[var(--text-main)]">
+                              {activeShort.options[activeShort.correctAnswerIndex]}
+                            </div>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-1.5">
+                            <div className="text-[11px] font-poppins font-bold text-[var(--text-main)] flex items-center space-x-1">
+                              <span>💡</span>
+                              <span>Technical Explanation</span>
+                            </div>
+                            <p className="text-xs font-lato text-[var(--text-secondary)] leading-relaxed">
+                              {activeShort.explanation}
+                            </p>
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-1">
+                            <div className="text-[11px] font-poppins font-bold text-[var(--color-primary-600)] flex items-center space-x-1">
+                              <span>⚡</span>
+                              <span>Key Concept Insights</span>
+                            </div>
+                            <ul className="space-y-0.5 text-[10px] font-lato text-[var(--text-secondary)] list-disc list-inside">
+                              <li>Core topic in modern {activeShort.category || 'tech'} engineering interviews.</li>
+                              <li>Ensures high runtime predictability and clean architecture.</li>
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            ) : null}
+          </div>
+
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. SMALL DEVICES ONLY (< md FULL-SCREEN REEL WIREFRAME LAYOUT)           */}
+      {/* ========================================================================= */}
+      <div
+        ref={setFeedContainerRef}
+        className="md:hidden w-full h-full max-w-md sm:max-w-lg mx-auto overflow-y-scroll scroll-smooth snap-y snap-mandatory overscroll-contain space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
+      >
+        {isLoading ? (
+          <ShortGyaanSkeleton />
+        ) : shorts.length === 0 ? (
+          <div className="p-6 rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--border-theme)] text-center space-y-3 shadow-md my-8 max-w-md mx-auto">
+            <span className="text-3xl block">📭</span>
+            <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)]">
+              No Questions Found
+            </h3>
+            <p className="text-[11px] sm:text-xs font-lato text-[var(--text-muted)]">
+              {activeCategory === 'Saved'
+                ? 'You have not saved any questions yet. Tap 🔖 on any card to save it.'
+                : `No questions found under "${activeCategory}".`}
+            </p>
+            <button
+              onClick={() => setActiveCategory('All')}
+              className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs sm:text-sm cursor-pointer"
+            >
+              Explore All Questions →
+            </button>
+          </div>
+        ) : (
+          shorts.map((shortItem, idx) => {
+            const sId = shortItem._id;
+            const answerState = answersState[sId] || {
+              isAnswered: false,
+              selectedIndex: null,
+              isCorrect: false,
+              isTimedOut: false
+            };
+            const isActive = activeCardIndex === idx;
+
+            return (
+              <div
+                key={sId}
+                ref={(el) => (cardRefs.current[idx] = el)}
+                data-index={idx}
+                onClick={() => setActiveCardIndex(idx)}
+                className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-xl p-3.5 sm:p-4 md:p-4 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
+                  isActive
+                    ? 'border-[var(--color-primary-500)] ring-2 ring-blue-500/20 shadow-blue-500/15'
+                    : 'border-[var(--border-theme)] opacity-95 hover:border-[var(--color-primary-300)]'
+                }`}
+              >
+                
+                {/* 1. TOP HEADER BAR: logo | All Language ⬇ | 10 Timer | ⋮ Overflow Menu */}
+                <div className="shrink-0 flex items-center justify-between border-b border-[var(--border-theme)] pb-2 relative z-10 bg-[var(--bg-card)] gap-1.5">
+                  
+                  {/* Left Logo */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onNavigateHome) onNavigateHome();
+                      else handleResetAndRefresh();
+                    }}
+                    className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white font-poppins font-black text-xs shadow-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all shrink-0"
+                    title="Go Home / Refresh"
+                  >
+                    <span>⚡</span>
+                    <span className="font-extrabold tracking-tight">logo</span>
+                  </div>
+
+                  {/* Center All Language ⬇ Dropdown */}
+                  <div className="relative flex items-center shrink min-w-0" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={activeCategory}
+                      onChange={(e) => {
+                        setActiveCategory(e.target.value);
+                        setPage(1);
+                      }}
+                      className="appearance-none bg-[var(--bg-main)] border-2 border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm rounded-xl py-1.5 pl-3 pr-7 cursor-pointer transition-all shadow-xs focus:outline-none truncate"
+                      title="Filter Topic / Language"
+                    >
+                      {CATEGORIES.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.shortLabel || cat.label} ⬇
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute right-2.5 text-[10px] text-[var(--text-muted)]">
+                      ▼
+                    </div>
+                  </div>
+
+                  {/* Right Controls: Timer Badge Circle & Overflow Menu ⋮ */}
+                  <div className="flex items-center space-x-1.5 shrink-0">
+                    {/* Timer Badge Circle */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!answerState.isAnswered) {
+                          setIsQuestionTimerPaused((p) => !p);
+                        }
+                      }}
+                      className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 font-mono font-black text-xs sm:text-sm flex items-center justify-center shadow-xs cursor-pointer hover:scale-105 active:scale-95 transition-all ${
+                        !answerState.isAnswered && isActive && isQuestionTimerPaused
+                          ? 'bg-amber-500/25 border-amber-500 text-amber-600 dark:text-amber-400 animate-pulse'
+                          : 'bg-blue-500/15 border-blue-500 text-blue-600 dark:text-blue-400'
+                      }`}
+                      title={!answerState.isAnswered ? (isActive && isQuestionTimerPaused ? "Timer Paused — Click to Resume" : "Click to Pause Timer") : "Answered"}
+                    >
+                      {!answerState.isAnswered ? (
+                        <span>{isActive && isQuestionTimerPaused ? '⏸' : isActive ? activeQuestionTimer : remainingTimes[sId] !== undefined ? remainingTimes[sId] : (shortItem.timerSeconds || 30)}</span>
+                      ) : (
+                        <span>✓</span>
+                      )}
+                    </div>
+
+                    {/* Overflow Menu ⋮ Button (Three-Dots Click to Stop Timer & Show Details & Settings) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsQuestionTimerPaused(true);
+                        setIsBufferPaused(true);
+                        setShowOverflowMenu(true);
+                      }}
+                      className="w-8 h-8 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-main)] font-bold text-base flex items-center justify-center cursor-pointer hover:border-[var(--color-primary-400)] transition-all shadow-xs"
+                      title="Stop Timer & View Details & Settings"
+                    >
+                      ⋮
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. MIDDLE CONTENT AREA (Question, Code Snippet, Options OR Solution Layout) */}
+                <div className="card-scroll-content flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col justify-start items-stretch space-y-3 relative z-10 my-2 pr-1 text-left">
+                  
+                  {/* Question Statement Box */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] shadow-xs text-left">
+                    <h2 className="text-base sm:text-lg font-poppins font-bold text-[var(--text-main)] leading-snug break-words">
+                      {shortItem.questionText}
+                    </h2>
+                  </div>
+
+                  {/* Code Snippet Box (Optional) */}
+                  {shortItem.codeSnippet && (
+                    <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950 text-emerald-400 font-mono text-xs sm:text-sm border border-slate-800 shadow-inner max-h-36 overflow-x-auto text-left">
+                      <pre>{shortItem.codeSnippet}</pre>
+                    </div>
+                  )}
+
+                  {/* OPTIONS LIST (Always rendered, styled according to answer state) */}
+                  <div className="space-y-2 sm:space-y-2.5 pt-1 text-left">
+                    {shortItem.options.map((opt, optIdx) => {
+                      const isSelected = answerState.selectedIndex === optIdx;
+                      const isCorrectOption = optIdx === shortItem.correctAnswerIndex;
+                      let optionStyle = 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]';
+                      let badgeStyle = 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-theme)]';
+
+                      if (answerState.isAnswered) {
+                        if (isCorrectOption) {
+                          optionStyle = 'bg-emerald-500/15 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-200 font-bold shadow-xs';
+                          badgeStyle = 'bg-emerald-500 text-white font-bold';
+                        } else if (isSelected) {
+                          optionStyle = 'bg-rose-500/15 border-2 border-rose-500 text-rose-800 dark:text-rose-200 line-through';
+                          badgeStyle = 'bg-rose-500 text-white font-bold';
+                        } else {
+                          optionStyle = 'opacity-60 border-[var(--border-theme)]';
+                        }
+                      }
+
+                      return (
+                        <button
+                          key={optIdx}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveCardIndex(idx);
+                            if (!answerState.isAnswered) {
+                              handleSelectOption(shortItem, optIdx);
+                            }
+                          }}
+                          disabled={answerState.isAnswered}
+                          className={`w-full p-3 sm:p-3.5 rounded-xl border-2 text-left font-lato text-xs sm:text-sm flex items-center justify-start space-x-3 transition-all ${
+                            !answerState.isAnswered ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default'
+                          } ${optionStyle}`}
+                        >
+                          <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg font-poppins font-bold text-xs flex items-center justify-center shrink-0 ${badgeStyle}`}>
+                            {['A', 'B', 'C', 'D'][optIdx]}
+                          </span>
+                          <span className="flex-1 break-words leading-snug">{opt}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* RE-EXPAND SOLUTION BUTTON (When solution is dragged down / collapsed) */}
+                  {answerState.isAnswered && collapsedSolutions[sId] && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCollapsedSolutions((prev) => ({ ...prev, [sId]: false }));
+                      }}
+                      className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-poppins font-bold text-xs sm:text-sm shadow-md cursor-pointer hover:opacity-95 active:scale-98 flex items-center justify-center space-x-2 my-2 z-20"
+                    >
+                      <span>💡 View Solution & Explanation ⬆</span>
+                    </button>
+                  )}
+
+                </div>
+
+                {/* BOTTOM SOLUTION DRAWER (DRAG DOWN OR TAP ✕ TO DISMISS) */}
+                {answerState.isAnswered && !collapsedSolutions[sId] && (
+                  <div
+                    onTouchStart={(e) => {
+                      if (e.touches && e.touches.length > 0) {
+                        setSolutionDragStartY(e.touches[0].clientY);
+                      }
+                    }}
+                    onTouchMove={(e) => {
+                      if (solutionDragStartY !== null && e.touches && e.touches.length > 0) {
+                        const deltaY = e.touches[0].clientY - solutionDragStartY;
+                        if (deltaY > 35) {
+                          setCollapsedSolutions((prev) => ({ ...prev, [sId]: true }));
+                          setSolutionDragStartY(null);
+                        }
+                      }
+                    }}
+                    onTouchEnd={() => setSolutionDragStartY(null)}
+                    className="absolute bottom-[54px] left-0 right-0 z-30 bg-[var(--bg-card)] border-t-2 border-x-2 border-[var(--border-theme)] rounded-t-3xl p-3.5 sm:p-4 shadow-2xl flex flex-col space-y-2.5 max-h-[82%] overflow-y-auto custom-scrollbar"
+                  >
+                    {/* Top Drag Handle Bar */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCollapsedSolutions((prev) => ({ ...prev, [sId]: true }));
+                      }}
+                      className="w-full py-1 flex flex-col items-center justify-center cursor-pointer group shrink-0"
+                      title="Drag down or click to hide solution and view options"
+                    >
+                      <div className="w-12 h-1.5 rounded-full bg-[var(--border-theme)] group-hover:bg-[var(--color-primary-400)] transition-all" />
+                      <span className="text-[9px] font-poppins font-semibold text-[var(--text-muted)] mt-0.5">
+                        ↓ Drag down to view options
+                      </span>
+                    </div>
+
+                    {/* Top Row Badges matching shortsGyaanSolutionLayout.png: [ Solution ] | [ Correct ] | [ Answer X ] */}
+                    <div className="flex items-center justify-between gap-1.5 pt-0.5 shrink-0">
+                      <span className="px-2.5 py-1 rounded-xl bg-blue-500/15 border border-blue-500/40 text-blue-600 dark:text-blue-400 font-poppins font-bold text-[10px] sm:text-xs">
+                        Solution
+                      </span>
+                      <span className={`px-2.5 py-1 rounded-xl border font-poppins font-bold text-[10px] sm:text-xs ${
+                        answerState.isCorrect
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-rose-500/15 border-rose-500/40 text-rose-700 dark:text-rose-300'
+                      }`}>
+                        {answerState.isCorrect ? 'Correct' : 'Incorrect'}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-600 dark:text-indigo-400 font-poppins font-bold text-[10px] sm:text-xs truncate max-w-[120px]">
+                        Answer {shortItem.correctAnswerIndex + 1}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCollapsedSolutions((prev) => ({ ...prev, [sId]: true }));
+                        }}
+                        className="w-6 h-6 rounded-full bg-[var(--bg-main)] text-[var(--text-muted)] font-bold text-xs flex items-center justify-center cursor-pointer hover:text-[var(--text-main)] shrink-0"
+                        title="Hide solution to see options"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Upper Sub-Box: Correct Option Text */}
+                    <div className="p-3 rounded-xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] shadow-xs text-left">
+                      <div className="text-[10px] font-poppins font-bold text-[var(--text-muted)] mb-1">
+                        Correct Option Text:
+                      </div>
+                      <div className="font-lato font-bold text-xs sm:text-sm text-[var(--text-main)] leading-snug">
+                        {shortItem.options[shortItem.correctAnswerIndex]}
+                      </div>
+                    </div>
+
+                    {/* Lower Sub-Box: Explanation Container */}
+                    <div className="p-3 rounded-xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] space-y-1.5 shadow-xs text-left">
+                      <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-1">
+                        <span className="px-2 py-0.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-600 dark:text-purple-400 font-poppins font-bold text-[10px]">
+                          Explanation
+                        </span>
+                        {explanationBufferTimer !== null && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsBufferPaused((p) => !p);
+                            }}
+                            className="text-[10px] font-mono font-bold text-blue-500 hover:underline cursor-pointer"
+                          >
+                            {isBufferPaused ? '▶ Resume Auto-Next' : `⏸ Pause (${explanationBufferTimer}s)`}
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs sm:text-sm font-lato text-[var(--text-main)] leading-relaxed break-words pt-1">
+                        {shortItem.explanation}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. BOTTOM STICKY NAVIGATION BAR: by Question admin | 🏠 | ❤️ 🔖 ↗️ */}
+                <div className="shrink-0 p-2.5 rounded-2xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] flex items-center justify-between relative z-40 shadow-sm mt-auto">
+                  {/* Left: by Question admin */}
+                  <div className="text-[11px] sm:text-xs font-lato text-[var(--text-muted)] truncate max-w-[120px] sm:max-w-[150px]">
+                    by <strong className="text-[var(--text-main)]">{shortItem.author || 'Question admin'}</strong>
+                  </div>
+
+                  {/* Center: 🏠 Floating Home Button */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onNavigateHome) {
+                        onNavigateHome();
+                      } else {
+                        setActiveCardIndex(0);
+                      }
+                    }}
+                    className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-base font-bold shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all border-2 border-white dark:border-slate-800"
+                    title="Navigate Home"
+                  >
+                    🏠
+                  </div>
+
+                  {/* Right: Action Buttons ❤️ 🔖 ↗️ */}
+                  <div className="flex items-center space-x-1 sm:space-x-1.5">
+                    {/* Like Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleLike(shortItem);
+                      }}
+                      className={`px-2 py-1 rounded-xl border flex items-center space-x-1 text-xs transition-all cursor-pointer ${
+                        shortItem.isLiked
+                          ? 'bg-rose-500/15 border-rose-500 text-rose-600 font-bold'
+                          : 'bg-[var(--bg-card)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-rose-500'
+                      }`}
+                      title="Like question"
+                    >
+                      <span>❤️</span>
+                      <span className="font-mono text-[10px]">{shortItem.likesCount || 0}</span>
+                    </button>
+
+                    {/* Save Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleSave(shortItem);
+                      }}
+                      className={`p-1.5 rounded-xl border flex items-center justify-center text-xs transition-all cursor-pointer ${
+                        shortItem.isSaved
+                          ? 'bg-amber-500/15 border-amber-500 text-amber-600 font-bold'
+                          : 'bg-[var(--bg-card)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-amber-500'
+                      }`}
+                      title="Save question"
+                    >
+                      <span>🔖</span>
+                    </button>
+
+                    {/* Share Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShareShort(shortItem);
+                      }}
+                      className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-xs transition-all cursor-pointer"
+                      title="Share question"
+                    >
+                      <span>↗️</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })
+        )}
+
+        {isLoadingMore && (
+          <div className="w-full h-full min-h-[420px] snap-start snap-always shrink-0 py-1 max-w-lg mx-auto">
+            <ShortGyaanSkeleton />
           </div>
         )}
 
       </div>
 
-      {/* MOBILE & TABLET HORIZONTAL TOPIC TAGS BAR */}
-      <div className="lg:hidden w-full px-2 sm:px-3 pt-1 shrink-0">
-        <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => {
-                setActiveCategory(cat.id);
-                setPage(1);
-              }}
-              className={`px-2.5 py-1 rounded-xl text-xs font-poppins font-semibold whitespace-nowrap shrink-0 transition-all cursor-pointer flex items-center space-x-1 border ${
-                activeCategory === cat.id
-                  ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-blue-600 text-white border-[var(--color-primary-600)] shadow-xs'
-                  : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-theme)] hover:text-[var(--text-main)]'
-              }`}
-            >
-              <span>{cat.icon}</span>
-              <span>{cat.shortLabel || cat.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* MOBILE & MD SCREEN SESSION ACCURACY CARD (Exact Replica of Concept Deep-Dive Accuracy Card) */}
-      <div className="lg:hidden w-full px-2 sm:px-3 pt-1 shrink-0">
-        <div className="p-2.5 sm:p-3.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] space-y-1.5 shadow-xs text-left">
-          <div className="flex items-center justify-between text-xs sm:text-sm md:text-base font-poppins font-bold">
-            <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
-              <span>🎯</span>
-              <span>Session Accuracy: {accuracyPercentage}%</span>
-            </span>
-            <span className="text-[11px] sm:text-xs md:text-sm text-[var(--text-muted)] font-normal">
-              ({sessionStats.correct}/{sessionStats.attempted} Attempted)
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs sm:text-sm md:text-base text-[var(--text-secondary)] font-medium pt-1 border-t border-[var(--border-theme)]">
-            <span>✅ {sessionStats.correct} Correct</span>
-            <span>❌ {sessionStats.incorrect} Wrong</span>
-            <span className="text-slate-500">⚪ {sessionStats.unattempted} Skipped</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. SPLIT 3-COLUMN MAIN WRAPPER (TAGS SIDEBAR ON LEFT, FEED IN MIDDLE, DETAILS ON RIGHT FOR LG) */}
-      <div className="w-full max-w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 px-2 sm:px-3 overflow-hidden min-h-0 py-1 sm:py-1.5">
-        
-        {/* COLUMN 1: TOPIC & TAGS FILTER SIDEBAR (lg:col-span-3 xl:col-span-2.5) */}
-        <div className="hidden lg:flex lg:col-span-3 xl:col-span-2.5 h-full overflow-hidden flex-col bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl p-2.5 space-y-2 shadow-xs">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2 px-1 shrink-0">
-            <div className="flex items-center space-x-1.5">
-              <span className="text-sm">🏷️</span>
-              <span className="font-poppins font-bold text-xs text-[var(--text-main)]">
-                Topic Tags
-              </span>
-            </div>
-            <span className="text-[10px] font-mono font-bold text-[var(--color-primary-600)] bg-[var(--color-primary-50)] dark:bg-blue-950/60 px-1.5 py-0.5 rounded border border-[var(--color-primary-200)] dark:border-blue-900">
-              {CATEGORIES.length} Tags
-            </span>
-          </div>
-
-          {/* Tags List */}
-          <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
-            {CATEGORIES.map((cat) => {
-              const isSelected = activeCategory === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    setActiveCategory(cat.id);
-                    setPage(1);
-                  }}
-                  className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-poppins font-medium transition-all cursor-pointer text-left ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-[var(--color-primary-600)] to-blue-600 text-white font-bold shadow-xs shadow-blue-500/20'
-                      : 'bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card)] border border-[var(--border-theme)]'
-                  }`}
-                >
-                  <span className="flex items-center space-x-1.5 truncate min-w-0">
-                    <span className="text-sm shrink-0">{cat.icon}</span>
-                    <span className="truncate">{cat.shortLabel || cat.label}</span>
-                  </span>
-                  <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono shrink-0 ${
-                    isSelected
-                      ? 'bg-white/20 text-white font-bold'
-                      : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-theme)]'
-                  }`}>
-                    {cat.tag}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Quick Active Filter Reset */}
-          {activeCategory !== 'For You' && activeCategory !== 'All' && (
-            <button
-              onClick={() => {
-                setActiveCategory('For You');
-                setPage(1);
-              }}
-              className="w-full py-1 text-center text-[10px] font-poppins font-semibold text-[var(--color-primary-600)] hover:underline cursor-pointer pt-1 border-t border-[var(--border-theme)] shrink-0"
-            >
-              ✕ Clear Filter
-            </button>
-          )}
-        </div>
-
-        {/* COLUMN 2: QUESTIONS FEED (lg:col-span-5 xl:col-span-5.5) */}
+      {/* OVERFLOW MENU MODAL / POPOVER (toggled via ⋮ button - STOP TIMER & SHOW DETAILS & SETTINGS) */}
+      {showOverflowMenu && (
         <div
-          ref={feedContainerRef}
-          className="lg:col-span-5 xl:col-span-5.5 h-full overflow-y-scroll scroll-smooth snap-y snap-mandatory overscroll-contain space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
+          onClick={() => setShowOverflowMenu(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
         >
-          {isLoading ? (
-            <div className="h-full min-h-[400px] rounded-3xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex flex-col items-center justify-center space-y-3 shadow-md animate-pulse">
-              <span className="text-3xl animate-bounce">⚡</span>
-              <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-muted)]">
-                Loading Short Gyaan Questions...
-              </div>
-            </div>
-          ) : shorts.length === 0 ? (
-            <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-center space-y-3 shadow-md my-8 max-w-md mx-auto">
-              <span className="text-3xl block">📭</span>
-              <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)]">
-                No Questions Found
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-5 shadow-2xl space-y-4 text-left"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2.5">
+              <h3 className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-1.5">
+                <span>⚙️</span>
+                <span>Details & Settings</span>
               </h3>
-              <p className="text-[11px] sm:text-xs font-lato text-[var(--text-muted)]">
-                {activeCategory === 'Saved'
-                  ? 'You have not saved any questions yet. Tap 🔖 on any card to save it.'
-                  : `No questions found under "${activeCategory}".`}
-              </p>
               <button
-                onClick={() => setActiveCategory('All')}
-                className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs sm:text-sm cursor-pointer"
+                onClick={() => setShowOverflowMenu(false)}
+                className="w-7 h-7 rounded-xl bg-[var(--bg-main)] text-[var(--text-muted)] font-bold text-xs flex items-center justify-center cursor-pointer hover:text-[var(--text-main)]"
               >
-                Explore All Questions →
+                ✕
               </button>
             </div>
-          ) : (
-            shorts.map((shortItem, idx) => {
-              const sId = shortItem._id;
-              const answerState = answersState[sId] || {
-                isAnswered: false,
-                selectedIndex: null,
-                isCorrect: false,
-                isTimedOut: false
-              };
-              const isActive = activeCardIndex === idx;
 
-              return (
-                <div
-                  key={sId}
-                  ref={(el) => (cardRefs.current[idx] = el)}
-                  data-index={idx}
-                  onClick={() => setActiveCardIndex(idx)}
-                  className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-2xl sm:rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-md p-3 sm:p-4 md:p-3.5 lg:p-2.5 xl:p-3.5 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
-                    isActive
-                      ? 'border-[var(--color-primary-500)] ring-2 ring-blue-500/20 shadow-blue-500/15'
-                      : 'border-[var(--border-theme)] opacity-95 hover:border-[var(--color-primary-300)]'
-                  }`}
-                >
-                  
-                  {/* TOP HEADER: CATEGORY & TIMER (STATIC TOP) */}
-                  <div className="shrink-0 flex items-center justify-between border-b border-[var(--border-theme)] pb-1.5 sm:pb-2 md:pb-1.5 lg:pb-1 relative z-10 bg-[var(--bg-card)]">
-                    <div className="flex items-center space-x-1.5 sm:space-x-2">
-                      <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 md:px-2.5 md:py-0.5 lg:px-2 lg:py-0.5 rounded-lg text-xs sm:text-sm md:text-xs lg:text-[11px] font-poppins font-bold bg-[var(--color-primary-50)] dark:bg-blue-950/60 text-[var(--color-primary-600)] border border-[var(--color-primary-200)] dark:border-blue-800">
-                        {shortItem.category || 'JavaScript'}
-                      </span>
-                      {isActive && (
-                        <span className="hidden sm:inline-block text-[9px] sm:text-[10px] md:text-[9px] lg:text-[8px] font-poppins font-extrabold text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded">
-                          Active
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Question Status / Timer Badge */}
-                    {!answerState.isAnswered ? (
-                      <div className="flex items-center space-x-1 px-2.5 py-0.5 sm:px-3 sm:py-1 md:px-2.5 md:py-0.5 lg:px-2 lg:py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-mono font-bold text-xs sm:text-sm md:text-xs lg:text-[11px]">
-                        <span className={isActive && isTabActive ? 'animate-pulse' : 'opacity-70'}>⏱️</span>
-                        <span>
-                          {isActive
-                            ? `${activeQuestionTimer}s${!isTabActive ? ' (Paused)' : ''}`
-                            : remainingTimes[shortItem._id] !== undefined
-                            ? `${remainingTimes[shortItem._id]}s (Paused)`
-                            : `${shortItem.timerSeconds || 30}s`}
-                        </span>
-                      </div>
-                    ) : answerState.selectedIndex === null || answerState.selectedIndex === undefined ? (
-                      <div className="flex items-center space-x-1 px-2.5 py-0.5 sm:px-3 sm:py-1 md:px-2 md:py-0.5 lg:px-2 lg:py-0.5 rounded-full bg-slate-500/10 border border-slate-500/30 text-slate-600 dark:text-slate-400 font-poppins font-bold text-[10px] sm:text-xs md:text-[10px] lg:text-[9px]">
-                        <span>⚪ Not Attempted</span>
-                      </div>
-                    ) : answerState.isCorrect ? (
-                      <div className="flex items-center space-x-1 px-2.5 py-0.5 sm:px-3 sm:py-1 md:px-2 md:py-0.5 lg:px-2 lg:py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-poppins font-bold text-[10px] sm:text-xs md:text-[10px] lg:text-[9px]">
-                        <span>✓ Correct (+10 XP)</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-1 px-2.5 py-0.5 sm:px-3 sm:py-1 md:px-2 md:py-0.5 lg:px-2 lg:py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 font-poppins font-bold text-[10px] sm:text-xs md:text-[10px] lg:text-[9px]">
-                        <span>✗ Incorrect</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* MIDDLE CONTENT: FLEX FROM START, SCROLLS INDEPENDENTLY ON OVERFLOW */}
-                  <div className="card-scroll-content flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col justify-start items-stretch space-y-2 sm:space-y-2.5 md:space-y-2 lg:space-y-1.5 relative z-10 my-1 sm:my-1.5 lg:my-1 pr-1 text-left">
-                    
-                    {/* Question Statement */}
-                    <h2 className="text-base sm:text-lg md:text-base lg:text-xs xl:text-sm font-bold font-poppins text-[var(--text-main)] leading-snug sm:leading-normal lg:leading-snug break-words text-left">
-                      {shortItem.questionText}
-                    </h2>
-
-                    {/* Code Snippet (Optional) */}
-                    {shortItem.codeSnippet && (
-                      <div className="p-2.5 sm:p-3.5 md:p-2 lg:p-1.5 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs sm:text-sm md:text-xs lg:text-[10px] xl:text-[11px] overflow-x-auto border border-slate-800 shadow-inner max-h-32 sm:max-h-40 md:max-h-24 lg:max-h-20 text-left">
-                        <pre>{shortItem.codeSnippet}</pre>
-                      </div>
-                    )}
-
-                    {/* 4 MULTIPLE CHOICE OPTIONS (TEXT WRAPS NATURALLY WITH MULTI-LINE SUPPORT, FLEX FROM START) */}
-                    <div className="space-y-1.5 sm:space-y-2 md:space-y-1.5 lg:space-y-1 pt-0.5 lg:pt-0 text-left">
-                      {shortItem.options.map((opt, optIdx) => {
-                        const isSelected = answerState.selectedIndex === optIdx;
-                        const isCorrectOption = optIdx === shortItem.correctAnswerIndex;
-                        const optionLetter = ['A', 'B', 'C', 'D'][optIdx];
-
-                        let optionStyle = 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]';
-                        let badgeStyle = 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-theme)]';
-                        let icon = null;
-
-                        // Only show correct/wrong feedback AFTER the question has been answered or timer has run out
-                        if (answerState.isAnswered) {
-                          if (isCorrectOption) {
-                            optionStyle = 'bg-emerald-500/15 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-200 font-bold shadow-sm shadow-emerald-500/10';
-                            badgeStyle = 'bg-emerald-500 text-white border-emerald-600';
-                            icon = '✓';
-                          } else if (isSelected && !isCorrectOption) {
-                            optionStyle = 'bg-rose-500/15 border-2 border-rose-500 text-rose-800 dark:text-rose-200 line-through';
-                            badgeStyle = 'bg-rose-500 text-white border-rose-600';
-                            icon = '✗';
-                          } else {
-                            optionStyle = 'opacity-50 border-[var(--border-theme)]';
-                          }
-                        }
-
-                        return (
-                          <button
-                            key={optIdx}
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveCardIndex(idx);
-                              handleSelectOption(shortItem, optIdx);
-                            }}
-                            disabled={answerState.isAnswered}
-                            className={`w-full p-2.5 sm:p-3 md:p-2 lg:p-1.5 xl:p-2 rounded-xl lg:rounded-lg border text-left text-sm sm:text-base md:text-xs lg:text-[11px] xl:text-xs font-lato transition-all duration-200 flex items-start justify-start gap-2 sm:gap-2.5 lg:gap-1.5 ${
-                              !answerState.isAnswered ? 'cursor-pointer active:scale-[0.98]' : 'cursor-default'
-                            } ${optionStyle}`}
-                          >
-                            <div className="flex items-start space-x-2 sm:space-x-2.5 md:space-x-2 flex-1 min-w-0 text-left">
-                              <span className={`w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5 lg:w-4 lg:h-4 rounded-lg lg:rounded border flex items-center justify-center font-poppins font-bold text-xs md:text-[10px] lg:text-[9px] shrink-0 mt-0.5 ${badgeStyle}`}>
-                                {optionLetter}
-                              </span>
-                              <span className="font-semibold leading-snug text-sm sm:text-base md:text-xs lg:text-[11px] xl:text-xs break-words whitespace-normal flex-1 text-left">
-                                {opt}
-                              </span>
-                            </div>
-
-                            {icon && (
-                              <span className={`font-poppins font-black text-xs md:text-[10px] lg:text-[9px] px-1.5 sm:px-2 lg:px-1 py-0.5 rounded-md shrink-0 mt-0.5 ${
-                                icon === '✓' ? 'text-emerald-500 bg-emerald-500/20' : 'text-rose-500 bg-rose-500/20'
-                              }`}>
-                                {icon}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* MOBILE-ONLY INLINE EXPLANATION (Appears ONLY AFTER answer is chosen or timer is done) */}
-                    {answerState.isAnswered && (
-                      <div className="lg:hidden p-2.5 sm:p-3 md:p-2.5 rounded-xl bg-gradient-to-br from-emerald-500/10 via-[var(--bg-main)] to-indigo-500/10 border border-emerald-500/40 space-y-1.5 animate-fadeIn shadow-xs text-left">
-                        <div className="flex items-center justify-between">
-                          <span className="font-poppins font-bold text-xs sm:text-sm md:text-xs text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
-                            <span>💡</span>
-                            <span>Solution Explanation</span>
-                          </span>
-                          <div className="flex items-center space-x-1.5 sm:space-x-2">
-                            {/* Live Mobile Accuracy Badge */}
-                            {(sessionStats.attempted > 0 || sessionStats.unattempted > 0) && (
-                              <span className="text-[10px] sm:text-xs md:text-[10px] font-poppins font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-md">
-                                🎯 {accuracyPercentage}% Acc
-                              </span>
-                            )}
-                            {isActive && explanationBufferTimer !== null && (
-                              <div
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setIsBufferPaused((p) => !p);
-                                }}
-                                className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 md:w-6 md:h-6 rounded-full bg-blue-500/15 border border-blue-500 text-blue-600 dark:text-blue-400 font-mono font-bold text-xs sm:text-sm md:text-xs cursor-pointer active:scale-95 shadow-xs"
-                                title={isBufferPaused ? "Paused — Click to Resume" : "Click to Pause Auto-Next"}
-                              >
-                                <span>{isBufferPaused ? '⏸' : explanationBufferTimer}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-xs sm:text-sm md:text-xs font-lato text-[var(--text-main)] leading-relaxed break-words text-left">
-                          {shortItem.explanation}
-                        </p>
-                      </div>
-                    )}
-
-                  </div>
-
-                  {/* BOTTOM FOOTER: STATIC PINNED FOOTER (ALWAYS VISIBLE & NEVER HIDDEN) */}
-                  <div className="shrink-0 pt-2 md:pt-1.5 lg:pt-1 border-t border-[var(--border-theme)] flex items-center justify-between relative z-10 gap-1.5 bg-[var(--bg-card)] mt-auto">
-                    <div className="text-[10px] sm:text-xs md:text-[11px] lg:text-[9px] font-lato text-[var(--text-muted)] truncate">
-                      By <strong className="text-[var(--text-secondary)]">{shortItem.author || 'Quiz Platform'}</strong>
-                    </div>
-
-                    <div className="flex items-center space-x-1.5 sm:space-x-2">
-                      {/* Like Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleLike(shortItem);
-                        }}
-                        className={`px-2.5 py-0.5 sm:py-1 md:px-2 md:py-0.5 lg:px-1.5 lg:py-0.5 rounded-lg md:rounded-md border flex items-center space-x-1 text-xs sm:text-sm md:text-xs lg:text-[9px] transition-all cursor-pointer ${
-                          shortItem.isLiked
-                            ? 'bg-rose-500/15 border-rose-500 text-rose-600 font-bold'
-                            : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-rose-500'
-                        }`}
-                        title="Like question"
-                      >
-                        <span>❤️</span>
-                        <span className="font-mono text-[10px] sm:text-xs md:text-[10px] lg:text-[9px]">{shortItem.likesCount || 0}</span>
-                      </button>
-
-                      {/* Save Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleSave(shortItem);
-                        }}
-                        className={`p-1.5 md:p-1 lg:p-1 rounded-lg md:rounded-md border flex items-center justify-center text-xs sm:text-sm md:text-xs lg:text-[9px] transition-all cursor-pointer ${
-                          shortItem.isSaved
-                            ? 'bg-amber-500/15 border-amber-500 text-amber-600 font-bold'
-                            : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-amber-500'
-                        }`}
-                        title="Bookmark question"
-                      >
-                        <span>🔖</span>
-                      </button>
-
-                      {/* Share Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleShareShort(shortItem);
-                        }}
-                        className="p-1.5 md:p-1 lg:p-1 rounded-lg md:rounded-md bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-xs sm:text-sm md:text-xs lg:text-[9px] transition-all cursor-pointer"
-                        title="Share question"
-                      >
-                        <span>↗️</span>
-                      </button>
-                    </div>
-                  </div>
-
+            {/* Current Question Details Card */}
+            {shorts[activeCardIndex] && (
+              <div className="p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-poppins font-bold text-[var(--text-main)]">
+                  <span className="flex items-center space-x-1">
+                    <span>📌 Topic:</span>
+                    <span className="text-[var(--color-primary-600)]">{shorts[activeCardIndex].category || 'JavaScript'}</span>
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500 text-amber-600 dark:text-amber-400 font-bold animate-pulse">
+                    ⏸ Timer Stopped
+                  </span>
                 </div>
-              );
-            })
-          )}
+                <div className="flex items-center justify-between text-[10px] font-lato text-[var(--text-muted)] pt-1 border-t border-[var(--border-theme)]">
+                  <span>Author: {shorts[activeCardIndex].author || 'Question admin'}</span>
+                  <span>Time left: {activeQuestionTimer}s</span>
+                </div>
+              </div>
+            )}
 
-          {isLoadingMore && (
-            <div className="py-4 flex items-center justify-center space-x-2 text-xs font-poppins text-[var(--text-muted)]">
-              <span className="animate-spin text-base">⚡</span>
-              <span>Loading more questions...</span>
+            {/* Search Topics Input */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-poppins font-semibold text-[var(--text-muted)]">Search Topics</label>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search topics (closures, hooks)..."
+                className="w-full px-3 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-500)]"
+              />
             </div>
-          )}
 
+            {/* Session Stats Accuracy Details */}
+            <div className="p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-poppins font-bold">
+                <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                  <span>🎯</span>
+                  <span>Session Accuracy</span>
+                </span>
+                <span className="font-mono text-sm font-extrabold">{accuracyPercentage}%</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)] font-medium pt-1 border-t border-[var(--border-theme)]">
+                <span>✅ {sessionStats.correct} Correct</span>
+                <span>❌ {sessionStats.incorrect} Wrong</span>
+                <span>⚪ {sessionStats.unattempted} Skipped</span>
+              </div>
+            </div>
+
+            {/* Settings & Controls Grid */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => {
+                  setIsQuestionTimerPaused((p) => !p);
+                  setIsBufferPaused((p) => !p);
+                }}
+                className={`p-2.5 rounded-xl border text-xs font-poppins font-semibold flex items-center justify-center space-x-1.5 cursor-pointer transition-all ${
+                  isQuestionTimerPaused
+                    ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300'
+                    : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-main)]'
+                }`}
+              >
+                <span>{isQuestionTimerPaused ? '▶' : '⏸'}</span>
+                <span>{isQuestionTimerPaused ? 'Resume Timer' : 'Pause Timer'}</span>
+              </button>
+
+              <button
+                onClick={() => setSoundEnabled((p) => !p)}
+                className="p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins font-semibold text-[var(--text-main)] flex items-center justify-center space-x-1.5 cursor-pointer hover:border-[var(--color-primary-400)]"
+              >
+                <span>{soundEnabled ? '🔊' : '🔇'}</span>
+                <span>{soundEnabled ? 'Sound On' : 'Sound Muted'}</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowOverflowMenu(false);
+                setIsQuestionTimerPaused(false);
+                handleResetAndRefresh();
+              }}
+              className="w-full py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:border-[var(--color-primary-400)] cursor-pointer flex items-center justify-center space-x-1.5"
+            >
+              <span>🔄</span>
+              <span>Reset Feed & Restart Session</span>
+            </button>
+
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setShowOverflowMenu(false);
+                  setIsAdminModalOpen(true);
+                }}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-poppins font-bold text-xs shadow-md cursor-pointer flex items-center justify-center space-x-1.5"
+              >
+                <span>📤 Admin Bulk Excel Upload</span>
+              </button>
+            )}
+          </div>
         </div>
-
-        {/* COLUMN 3: DETAILS & DEEP-DIVE KNOWLEDGE PANEL (lg:col-span-4 xl:col-span-4) */}
-        <div className="hidden lg:flex lg:col-span-4 xl:col-span-4 h-full overflow-hidden">
-          {shorts.length > 0 && (
-            (() => {
-              const activeShort = shorts[activeCardIndex] || shorts[0];
-              const activeAns = activeShort ? answersState[activeShort._id] : null;
-
-              return (
-                <div className="w-full h-full bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 shadow-md space-y-2.5 overflow-y-auto custom-scrollbar flex flex-col justify-between">
-                  
-                  <div className="space-y-2.5">
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
-                          🧠
-                        </div>
-                        <div>
-                          <h2 className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)]">
-                            Concept Deep-Dive
-                          </h2>
-                          <div className="text-[9px] font-mono text-[var(--color-primary-600)] font-bold">
-                            {activeShort.category || 'Topic'} • Deep Dive
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1.5">
-                        {/* Circular Countdown to Next Question (Only Circle, No Card/Texts) */}
-                        {explanationBufferTimer !== null ? (
-                          <div
-                            onClick={() => setIsBufferPaused((p) => !p)}
-                            className="relative flex items-center justify-center w-7 h-7 rounded-full bg-blue-500/15 border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-mono font-black text-[11px] cursor-pointer shadow-xs transition-all hover:scale-105 active:scale-95"
-                            title={isBufferPaused ? "Paused — Click to Resume" : `Moving to next in ${explanationBufferTimer}s — Click to Pause`}
-                          >
-                            <span>{isBufferPaused ? '⏸' : explanationBufferTimer}</span>
-                            <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 36 36">
-                              <circle
-                                cx="18"
-                                cy="18"
-                                r="15"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeDasharray="94.2"
-                                strokeDashoffset={`${94.2 * (1 - explanationBufferTimer / 10)}`}
-                                className="text-blue-500 transition-all duration-1000 ease-linear opacity-80"
-                              />
-                            </svg>
-                          </div>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[10px] font-mono font-bold text-[var(--text-muted)]">
-                            ⏱️ {activeShort.timerSeconds || 30}s
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ALWAYS VISIBLE LIVE SESSION ACCURACY TRACKER */}
-                    <div className="p-2.5 sm:p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-1 shadow-xs shrink-0">
-                      <div className="flex items-center justify-between text-[11px] font-poppins font-bold">
-                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
-                          <span>🎯</span>
-                          <span>Session Accuracy: {accuracyPercentage}%</span>
-                        </span>
-                        <span className="text-[9px] text-[var(--text-muted)] font-normal">
-                          ({sessionStats.correct}/{sessionStats.attempted} Attempted)
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)] font-medium pt-0.5 border-t border-[var(--border-theme)]">
-                        <span>✅ {sessionStats.correct} Correct</span>
-                        <span>❌ {sessionStats.incorrect} Wrong</span>
-                        <span className="text-slate-500">⚪ {sessionStats.unattempted} Skipped</span>
-                      </div>
-                    </div>
-
-                    {/* SOLUTION & EXPLANATION: INITIALLY HIDDEN UNTIL TIMER RUNS OUT OR ANSWER SELECTED */}
-                    {!activeAns?.isAnswered ? (
-                      <div className="p-4 rounded-2xl bg-[var(--bg-main)] border-2 border-dashed border-amber-500/30 text-center space-y-2 animate-fadeIn">
-                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-base mx-auto animate-pulse">
-                          ⏳
-                        </div>
-                        <h3 className="font-poppins font-bold text-[11px] text-[var(--text-main)]">
-                          Solution & Concept Notes Hidden
-                        </h3>
-                        <p className="text-[10px] font-lato text-[var(--text-muted)] max-w-xs mx-auto leading-relaxed">
-                          Timer running: <strong className="text-amber-500 font-mono text-[11px]">{activeQuestionTimer}s remaining</strong>. Select an option or wait for the countdown to complete to reveal the verified answer, solution breakdown, and key takeaways!
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2.5 animate-fadeIn">
-
-                        {/* Answer Status & Correct Option */}
-                        <div className={`p-3 rounded-xl border space-y-1 transition-all ${
-                          activeAns.selectedIndex === null || activeAns.selectedIndex === undefined
-                            ? 'bg-slate-500/10 border-slate-500/30 text-slate-700 dark:text-slate-300'
-                            : activeAns.isCorrect
-                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
-                            : 'bg-rose-500/10 border-rose-500/40 text-rose-700 dark:text-rose-300'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-poppins font-bold flex items-center space-x-1">
-                              <span>
-                                {activeAns.selectedIndex === null || activeAns.selectedIndex === undefined
-                                  ? '⚪ Not Attempted (Time Expired)'
-                                  : activeAns.isCorrect
-                                  ? '🎉 Correct (+10 XP)'
-                                  : '❌ Incorrect'}
-                              </span>
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-emerald-500 text-white font-poppins font-bold text-[9px]">
-                              Option {['A', 'B', 'C', 'D'][activeShort.correctAnswerIndex]}
-                            </span>
-                          </div>
-                          <div className="font-lato font-bold text-xs text-[var(--text-main)]">
-                            {activeShort.options[activeShort.correctAnswerIndex]}
-                          </div>
-                          {(activeAns.selectedIndex === null || activeAns.selectedIndex === undefined) && (
-                            <p className="text-[9px] font-lato text-[var(--text-muted)] pt-0.5">
-                              💡 No option was selected before timer expired. Counted as unattempted so your session accuracy percentage is preserved.
-                            </p>
-                          )}
-                        </div>
-
-                        {/* In-Depth Explanation */}
-                        <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-1.5">
-                          <div className="text-[11px] font-poppins font-bold text-[var(--text-main)] flex items-center space-x-1">
-                            <span>💡</span>
-                            <span>Technical Explanation</span>
-                          </div>
-                          <p className="text-xs font-lato text-[var(--text-secondary)] leading-relaxed">
-                            {activeShort.explanation}
-                          </p>
-                        </div>
-
-                        {/* Key Engineering Takeaway */}
-                        <div className="p-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 space-y-1">
-                          <div className="text-[11px] font-poppins font-bold text-[var(--color-primary-600)] flex items-center space-x-1">
-                            <span>⚡</span>
-                            <span>Key Concept Insights</span>
-                          </div>
-                          <ul className="space-y-0.5 text-[10px] font-lato text-[var(--text-secondary)] list-disc list-inside">
-                            <li>Core topic in modern {activeShort.category || 'tech'} engineering interviews.</li>
-                            <li>Ensures high runtime predictability and clean architecture.</li>
-                          </ul>
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-
-                </div>
-              );
-            })()
-          )}
-        </div>
-
-      </div>
+      )}
 
       {/* 4. ADMIN EXCEL BULK UPLOAD & QUESTION CREATOR MODAL */}
       {isAdminModalOpen && (

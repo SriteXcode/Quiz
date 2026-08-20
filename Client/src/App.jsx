@@ -226,7 +226,10 @@ export const App = () => {
         ) : activeTab === 'admin' ? (
           <AdminDashboard />
         ) : (activeTab === 'short-gyaan' || activeTab === 'shorts-gyaan') ? (
-          <ShortGyaanPage onRequireAuth={(mode) => setActiveTab(mode || 'login')} />
+          <ShortGyaanPage
+            onRequireAuth={(mode) => setActiveTab(mode || 'login')}
+            onNavigateHome={handleBackToHome}
+          />
         ) : activeTab === 'about' ? (
           <AboutPage
             onNavigateToQuiz={handleNavigateToQuizPage}
