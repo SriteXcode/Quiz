@@ -150,10 +150,8 @@ const initialMockPartners = [
 ];
 
 export const AdminDashboard = () => {
-  const { isAdmin, login } = useAuth();
+  const { isAdmin } = useAuth();
   const { addToast } = useToast();
-
-  const [demoAccessGranted, setDemoAccessGranted] = useState(false);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
@@ -258,7 +256,7 @@ export const AdminDashboard = () => {
 
   // Eager parallel data loader: fetches all tabs concurrently so every tab has live data
   useEffect(() => {
-    if (!isAdmin && !demoAccessGranted) return;
+    if (!isAdmin) return;
 
     const fetchAllAdminData = async () => {
       setIsLoadingMessages(true);
@@ -309,7 +307,7 @@ export const AdminDashboard = () => {
     };
 
     fetchAllAdminData();
-  }, [isAdmin, demoAccessGranted, activeTab, searchQuery, roleFilter, msgDateFilter, msgReadFilter, msgPriorityFilter, msgSearchQuery]);
+  }, [isAdmin, activeTab, searchQuery, roleFilter, msgDateFilter, msgReadFilter, msgPriorityFilter, msgSearchQuery]);
 
   const handleToggleMessageRead = async (id, currentIsRead) => {
     try {
