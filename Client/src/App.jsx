@@ -333,8 +333,8 @@ export const App = () => {
         />
       )}
 
-      {/* Small Devices Fixed Bottom Navigation Bar (z-10, Shorts Gyaan overlaps with z-30) */}
-      {!isExecutingQuiz && (
+      {/* Small Devices Fixed Bottom Navigation Bar (Hidden on Shorts Gyaan and Quiz Execution workspace) */}
+      {!isExecutingQuiz && activeTab !== 'short-gyaan' && activeTab !== 'shorts-gyaan' && (
         <BottomNav
           activeTab={activeTab}
           setActiveTab={(tab) => {
