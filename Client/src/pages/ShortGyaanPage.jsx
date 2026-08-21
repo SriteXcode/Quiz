@@ -1245,7 +1245,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   }
 
   return (
-    <div className="w-full h-full max-h-full flex flex-col items-center justify-center bg-[var(--bg-main)] fixed inset-x-0 top-16 bottom-0 z-30 md:relative md:top-auto md:bottom-auto overflow-hidden select-none">
+    <div className="w-full h-full max-h-full flex flex-col items-center justify-center bg-[var(--bg-main)] fixed inset-x-0 top-8 md:top-16 lg:top-16  bottom-0 z-30 md:relative md:top-auto md:bottom-auto overflow-hidden select-none">
       
       {/* ========================================================================= */}
       {/* 1. MEDIUM & LARGE DEVICES VIEW (md:flex & lg:flex MULTI-COLUMN LAYOUT)   */}
