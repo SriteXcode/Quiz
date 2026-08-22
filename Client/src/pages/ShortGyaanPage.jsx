@@ -1514,6 +1514,10 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         <span className="text-[10px] font-poppins font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
                           ✓ Correct (+10 XP)
                         </span>
+                      ) : answerState.isTimedOut ? (
+                        <span className="text-[10px] font-poppins font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/30">
+                          ⏳ Skipped (Timed Out)
+                        </span>
                       ) : (
                         <span className="text-[10px] font-poppins font-bold text-rose-600 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/30">
                           ✗ Incorrect
@@ -1743,14 +1747,22 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                       ) : (
                         <div className="space-y-2.5 animate-fadeIn">
                           <div className={`p-3 rounded-xl border space-y-1 ${
-                            activeAns.isCorrect ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300' : 'bg-rose-500/10 border-rose-500/40 text-rose-700 dark:text-rose-300'
+                            activeAns.isCorrect
+                              ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                              : activeAns.isTimedOut
+                              ? 'bg-amber-500/10 border-amber-500/40 text-amber-700 dark:text-amber-300'
+                              : 'bg-rose-500/10 border-rose-500/40 text-rose-700 dark:text-rose-300'
                           }`}>
                             <div className="flex items-center justify-between">
                               <span className="text-[11px] font-poppins font-bold">
-                                {activeAns.isCorrect ? '🎉 Correct (+10 XP)' : '❌ Incorrect'}
+                                {activeAns.isCorrect
+                                  ? '🎉 Correct (+10 XP)'
+                                  : activeAns.isTimedOut
+                                  ? '⏳ Skipped (Timed Out)'
+                                  : '❌ Incorrect'}
                               </span>
-                              <span className="px-2 py-0.5 rounded bg-emerald-500 text-white font-poppins font-bold text-[9px]">
-                                Option {['A', 'B', 'C', 'D'][activeShort.correctAnswerIndex]}
+                              <span className="px-2 py-0.5 rounded bg-emerald-600 text-white font-poppins font-bold text-[9px]">
+                                Correct: Option {['A', 'B', 'C', 'D'][activeShort.correctAnswerIndex]}
                               </span>
                             </div>
                             <div className="font-lato font-bold text-xs text-[var(--text-main)]">
@@ -2040,9 +2052,11 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                       <span className={`px-2.5 py-1 rounded-xl border font-poppins font-bold text-[10px] sm:text-xs ${
                         answerState.isCorrect
                           ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300'
+                          : answerState.isTimedOut
+                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-700 dark:text-amber-300'
                           : 'bg-rose-500/15 border-rose-500/40 text-rose-700 dark:text-rose-300'
                       }`}>
-                        {answerState.isCorrect ? 'Correct' : 'Incorrect'}
+                        {answerState.isCorrect ? 'Correct' : answerState.isTimedOut ? 'Skipped (Timed Out)' : 'Incorrect'}
                       </span>
                       <span className="px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-600 dark:text-indigo-400 font-poppins font-bold text-[10px] sm:text-xs truncate max-w-[120px]">
                         Answer {shortItem.correctAnswerIndex + 1}
