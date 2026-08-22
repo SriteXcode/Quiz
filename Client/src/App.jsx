@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // Reusable Layout & Showcase Components
 import Navbar from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
@@ -65,6 +65,52 @@ export const App = () => {
 
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
+
+  // Double Back Click Handler for Mobile / Browser Back Gesture
+  const lastBackPressTimeRef = useRef(0);
+
+  useEffect(() => {
+    // Push a dummy history state to intercept browser back navigation
+    window.history.pushState({ page: activeTab }, '', window.location.href);
+
+    const handlePopState = () => {
+      const now = Date.now();
+      const timeDiff = now - lastBackPressTimeRef.current;
+      const isDoubleBack = timeDiff < 2000;
+
+      if (isDoubleBack) {
+        if (activeTab !== 'home') {
+          // Double back press on inner tab -> Return to Home
+          setActiveTab('home');
+          setActivePolicy(null);
+          setSelectedQuiz(null);
+          setIsExecutingQuiz(false);
+          setIsPracticeMode(false);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          addToast('Returned to Home page 🏠', 'info', 2000);
+        } else {
+          // Double back press on Home -> Exit App
+          addToast('Exiting App... 🚪', 'info', 2000);
+          window.history.go(-2);
+        }
+      } else {
+        // Single back press -> Intercept and request double press
+        lastBackPressTimeRef.current = now;
+        window.history.pushState({ page: activeTab }, '', window.location.href);
+
+        if (activeTab !== 'home') {
+          addToast('Press back again to go to Home 🏠', 'warning', 2000);
+        } else {
+          addToast('Press back again to exit 🚪', 'warning', 2000);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [activeTab, addToast]);
 
   useEffect(() => {
     if (!isAuthLoading) {

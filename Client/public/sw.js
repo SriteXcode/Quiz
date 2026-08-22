@@ -41,8 +41,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin non-asset requests
+  // Skip non-GET, non-HTTP/HTTPS, and browser extension requests
   if (request.method !== 'GET') return;
+  if (!url.protocol.startsWith('http')) return;
 
   // For API endpoints, prefer fresh network responses with offline fallback
   if (url.pathname.startsWith('/api/')) {

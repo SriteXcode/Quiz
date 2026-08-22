@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Zap, User, Eye, EyeOff } from 'lucide-react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -183,9 +184,11 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
             {/* Circular Avatar / App Icon Badge */}
             <div className="flex flex-col items-center justify-center mb-2 shrink-0">
               <div className="w-12 h-12 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
-                <span className="text-xl text-[var(--color-primary-600)]">
-                  {mode === 'signup' ? '⚡' : '👤'}
-                </span>
+                {mode === 'signup' ? (
+                  <Zap className="w-5 h-5 text-[var(--color-primary-600)]" />
+                ) : (
+                  <User className="w-5 h-5 text-[var(--color-primary-600)]" />
+                )}
               </div>
             </div>
 
@@ -277,9 +280,9 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none"
+                        className="absolute right-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none flex items-center justify-center"
                       >
-                        {showPassword ? '👁️' : '🙈'}
+                        {showPassword ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
@@ -302,9 +305,9 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none"
+                        className="absolute right-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none flex items-center justify-center"
                       >
-                        {showConfirmPassword ? '👁️' : '🙈'}
+                        {showConfirmPassword ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
@@ -362,9 +365,9 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none"
+                        className="absolute right-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors cursor-pointer select-none flex items-center justify-center"
                       >
-                        {showPassword ? '👁️' : '🙈'}
+                        {showPassword ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>

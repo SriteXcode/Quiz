@@ -1,4 +1,21 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import {
+  Lock,
+  Camera,
+  ShieldCheck,
+  GraduationCap,
+  Mail,
+  Phone,
+  Edit3,
+  Shield,
+  FileText,
+  Zap,
+  Trophy,
+  Award,
+  Wifi,
+  WifiOff,
+  User
+} from 'lucide-react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -296,7 +313,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
   if (!user) {
     return (
       <div className="text-center py-20 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-xl">
-        <span className="text-5xl block mb-3">🔒</span>
+        <Lock className="w-12 h-12 text-[var(--color-primary-600)] mx-auto mb-3" />
         <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">Access Restricted</h2>
         <p className="text-xs font-lato text-[var(--text-muted)] mt-2">
           Please log in to view your candidate profile, badges, and certificates.
@@ -347,7 +364,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
         if (updateUserData) {
           updateUserData(res.user);
         }
-        addToast('🎉 Profile updated successfully!', 'success');
+        addToast('Profile updated successfully!', 'success');
         setIsEditModalOpen(false);
       } else {
         addToast(res.message || 'Profile updated', 'success');
@@ -372,8 +389,8 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       {!isOnline && (
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:bg-amber-950/40 border border-amber-500/40 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
           <div className="flex items-center space-x-3.5">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl shrink-0 border border-amber-500/30">
-              📡
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <WifiOff className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
               <div className="font-poppins font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-200 flex items-center space-x-2">
@@ -400,8 +417,8 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       {isOnline && (showReconnectedBanner || wasOffline) && (
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:bg-emerald-950/40 border border-emerald-500/40 text-emerald-950 dark:text-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
           <div className="flex items-center space-x-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0 border border-emerald-500/30">
-              🟢
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+              <Wifi className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <div className="font-poppins font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 flex items-center space-x-2">
@@ -471,12 +488,12 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
               ) : (
-                <span>{user.name ? user.name.charAt(0).toUpperCase() : '👤'}</span>
+                <span>{user.name ? user.name.charAt(0).toUpperCase() : <User className="w-12 h-12" />}</span>
               )}
 
               {/* Hover Camera Overlay Badge */}
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-poppins font-bold space-y-0.5 backdrop-blur-[1px]">
-                <span className="text-lg">📷</span>
+                <Camera className="w-5 h-5 text-white" />
                 <span>{isUploadingDirectAvatar ? 'Saving...' : 'Update'}</span>
               </div>
             </div>
@@ -489,8 +506,18 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
               onChange={handleHeaderAvatarSelect}
             />
 
-            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-amber-400 text-slate-900 shadow-md whitespace-nowrap z-10 pointer-events-none">
-              {user.role === 'admin' ? '🛡️ Admin' : '🎓 Student'}
+            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-amber-400 text-slate-900 shadow-md whitespace-nowrap z-10 pointer-events-none flex items-center space-x-1">
+              {user.role === 'admin' ? (
+                <>
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Admin</span>
+                </>
+              ) : (
+                <>
+                  <GraduationCap className="w-3 h-3" />
+                  <span>Student</span>
+                </>
+              )}
             </span>
           </div>
 
@@ -506,10 +533,10 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
             </div>
 
             <div className="text-xs sm:text-sm font-lato text-blue-100 mb-3 space-y-1">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <span>📧 {user.email}</span>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                <span className="flex items-center space-x-1"><Mail className="w-3.5 h-3.5" /><span>{user.email}</span></span>
                 <span>•</span>
-                <span>📱 {user.phone || 'Phone not set'}</span>
+                <span className="flex items-center space-x-1"><Phone className="w-3.5 h-3.5" /><span>{user.phone || 'Phone not set'}</span></span>
               </div>
 
               {/* Profile Completion Badge in Hero Header */}
@@ -529,17 +556,19 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <button
                 onClick={handleOpenEditModal}
-                className="px-4 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-poppins font-semibold text-xs transition-all cursor-pointer backdrop-blur-md shadow-sm active:scale-95 flex items-center space-x-1"
+                className="px-4 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-poppins font-semibold text-xs transition-all cursor-pointer backdrop-blur-md shadow-sm active:scale-95 flex items-center space-x-1.5"
               >
-                <span>{profileCompletion.percentage < 100 ? `⭐ Complete Profile (${profileCompletion.percentage}%)` : '✏️ Edit Profile'}</span>
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>{profileCompletion.percentage < 100 ? `Complete Profile (${profileCompletion.percentage}%)` : 'Edit Profile'}</span>
               </button>
 
               {user.role === 'admin' && (
                 <button
                   onClick={() => onNavigateAdmin && onNavigateAdmin()}
-                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-poppins font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center space-x-1"
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 font-poppins font-bold text-xs transition-all cursor-pointer shadow-md active:scale-95 flex items-center space-x-1.5"
                 >
-                  <span>🛡️ Admin Portal</span>
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin Portal</span>
                 </button>
               )}
             </div>
@@ -552,7 +581,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {/* 1. Dynamic Quizzes Taken */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-          <span className="text-2xl block mb-1">📝</span>
+          <FileText className="w-6 h-6 mx-auto mb-1 text-[var(--color-primary-600)]" />
           <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
             {isLoadingStats ? '...' : profileStats.totalQuizzes}
           </div>
@@ -561,7 +590,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
         {/* 2. Dynamic Total XP Score */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-          <span className="text-2xl block mb-1">⚡</span>
+          <Zap className="w-6 h-6 mx-auto mb-1 text-[var(--color-secondary-600)]" />
           <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-secondary-600)]">
             {isLoadingStats ? '...' : profileStats.totalPoints}
           </div>
@@ -570,7 +599,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
         {/* 3. Dynamic Real-Time Global Rank */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-          <span className="text-2xl block mb-1">🏆</span>
+          <Trophy className="w-6 h-6 mx-auto mb-1 text-amber-500" />
           <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
             {isLoadingStats ? '...' : profileStats.globalRank}
           </div>
@@ -581,7 +610,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
         {/* 4. Dynamic Accuracy Rate */}
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-          <span className="text-2xl block mb-1">🎯</span>
+          <Award className="w-6 h-6 mx-auto mb-1 text-emerald-500" />
           <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
             {isLoadingStats ? '...' : profileStats.winRate}
           </div>

@@ -130,7 +130,7 @@ export const Navbar = ({
                   className={`px-2.5 py-1.5 md:px-2 md:py-1.5 lg:px-3.5 lg:py-2 rounded-lg font-poppins font-medium text-xs md:text-xs lg:text-sm transition-colors cursor-pointer whitespace-nowrap ${
                     activeTab === link.id
                       ? 'text-[var(--color-primary-600)] bg-[var(--color-primary-50)] dark:bg-slate-800 font-semibold'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-slate-100 dark:hover:border-2 dark:hover:border-slate-800/80'
                   }`}
                 >
                   {link.label}

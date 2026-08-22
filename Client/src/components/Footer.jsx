@@ -1,4 +1,25 @@
+import { useState, useEffect } from 'react';
+
 export const Footer = ({ onNavigatePolicy }) => {
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isStandaloneWindow =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true ||
+        document.referrer.includes('android-app://');
+      setIsStandalone(isStandaloneWindow);
+    };
+
+    checkStandalone();
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    mediaQuery.addEventListener('change', checkStandalone);
+    return () => mediaQuery.removeEventListener('change', checkStandalone);
+  }, []);
+
+  if (isStandalone) return null;
+
   const socialLinks = [
     {
       name: 'Twitter',
@@ -39,7 +60,7 @@ export const Footer = ({ onNavigatePolicy }) => {
   ];
 
   return (
-    <footer className="bg-[var(--accent-yellow-footer)] border-t border-[var(--border-theme)] pt-10 pb-6 text-[var(--text-main)] transition-colors duration-300">
+    <footer className="bg-[var(--accent-yellow-footer)] border-t border-[var(--border-theme)] pt-10 pb-6 text-[var(--text-main)] transition-colors duration-300 [@media(display-mode:standalone)]:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ========================================================================= */}

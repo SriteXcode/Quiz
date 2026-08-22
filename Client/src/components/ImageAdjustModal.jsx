@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { Scissors, RotateCw, ZoomIn, Check } from 'lucide-react';
 
 export const ImageAdjustModal = ({
   isOpen,
@@ -55,7 +56,7 @@ export const ImageAdjustModal = ({
     setIsDragging(false);
   };
 
-  // Handle Drag & 2-Finger Pinch Zoom with Touch
+  // Handle Drag & Pinch Zoom with Touch (Mobile)
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -81,104 +82,96 @@ export const ImageAdjustModal = ({
       if (e.cancelable) e.preventDefault();
       e.stopPropagation();
       const currentDist = getPinchDistance(e.touches[0], e.touches[1]);
-      if (currentDist > 0 && initialPinchDistRef.current > 0) {
-        const scale = currentDist / initialPinchDistRef.current;
-        const newZoom = Math.min(4.0, Math.max(0.4, initialPinchZoomRef.current * scale));
-        setZoom(newZoom);
-      }
+      const scaleFactor = currentDist / initialPinchDistRef.current;
+      const newZoom = Math.min(3.0, Math.max(0.4, initialPinchZoomRef.current * scaleFactor));
+      setZoom(newZoom);
     }
   };
 
-  const handleTouchEnd = (e) => {
-    if (e.touches.length < 2) {
-      initialPinchDistRef.current = null;
-    }
-    if (e.touches.length === 0) {
-      setIsDragging(false);
-    }
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    initialPinchDistRef.current = null;
   };
 
-  // Mouse wheel zoom directly over profile photo
+  // Handle Wheel Zoom (Desktop)
   const handleWheel = (e) => {
     e.preventDefault();
     e.stopPropagation();
     const delta = e.deltaY < 0 ? 0.08 : -0.08;
-    setZoom((prev) => Math.min(4.0, Math.max(0.4, prev + delta)));
+    setZoom((prev) => Math.min(3.0, Math.max(0.4, prev + delta)));
   };
 
+  // Rotate 90 Degrees Clockwise
   const handleRotate = () => {
     setRotation((prev) => (prev + 90) % 360);
   };
 
+  // Apply Precise Canvas Crop Match (1:1 with Circle Frame)
   const handleApplyCrop = useCallback(() => {
-    const img = imageRef.current;
-    if (!img) return;
-
-    const outputSize = 500; // Output square avatar resolution
-    const previewSize = 224; // Preview circle viewport size (w-56 h-56 = 224px)
-    const scaleRatio = outputSize / previewSize;
+    if (!imageRef.current) return;
 
     const canvas = document.createElement('canvas');
-    canvas.width = outputSize;
-    canvas.height = outputSize;
+    const cropSize = 300; // Output cropped image resolution: 300x300px
+    canvas.width = cropSize;
+    canvas.height = cropSize;
     const ctx = canvas.getContext('2d');
 
     if (!ctx) return;
 
-    // Fill white background for transparent PNGs
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, outputSize, outputSize);
+    const img = imageRef.current;
+    const previewContainerSize = 224; // 224px (w-56)
+    const ratio = cropSize / previewContainerSize;
 
-    // Save and transform canvas context matching CSS transform:
-    // translate(pan) -> rotate(rotation) -> scale(zoom)
+    // Draw circular clip path
+    ctx.beginPath();
+    ctx.arc(cropSize / 2, cropSize / 2, cropSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cropSize, cropSize);
+
+    // Apply Transformation Matrix
     ctx.save();
-    ctx.translate(
-      outputSize / 2 + pan.x * scaleRatio,
-      outputSize / 2 + pan.y * scaleRatio
-    );
+    ctx.translate(cropSize / 2 + pan.x * ratio, cropSize / 2 + pan.y * ratio);
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(zoom, zoom);
 
-    // Maintain aspect ratio matching object-contain preview
+    // Draw full uncropped image centered inside canvas
     const imgAspect = img.naturalWidth / img.naturalHeight;
-    let targetW, targetH;
-    if (imgAspect >= 1) {
-      targetW = outputSize;
-      targetH = outputSize / imgAspect;
+    let drawW, drawH;
+    if (imgAspect > 1) {
+      drawW = cropSize;
+      drawH = cropSize / imgAspect;
     } else {
-      targetH = outputSize;
-      targetW = outputSize * imgAspect;
+      drawH = cropSize;
+      drawW = cropSize * imgAspect;
     }
 
-    ctx.drawImage(
-      img,
-      -targetW / 2,
-      -targetH / 2,
-      targetW,
-      targetH
-    );
-
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
     ctx.restore();
 
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-    canvas.toBlob((blob) => {
-      if (blob && onApply) {
-        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
-        onApply(dataUrl, file);
-      }
-    }, 'image/jpeg', 0.92);
+    const croppedDataUrl = canvas.toDataURL('image/png');
+
+    // Convert Data URL to File object for FormData upload compatibility
+    fetch(croppedDataUrl)
+      .then((res) => res.blob())
+      .then((blob) => {
+        const file = new File([blob], 'cropped_avatar.png', { type: 'image/png' });
+        onApply(croppedDataUrl, file);
+      });
   }, [zoom, pan, rotation, onApply]);
 
   if (!isOpen || !imageSrc) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-      <div className="w-full max-w-sm sm:max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-6 shadow-2xl space-y-5 relative animate-scaleUp">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+      <div className="w-full max-w-sm bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-[28px] p-4 sm:p-5 shadow-2xl space-y-4 animate-scaleUp">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3">
+        <div className="flex justify-between items-center pb-2 border-b border-[var(--border-theme)]">
           <div className="flex items-center space-x-2">
-            <span className="text-xl">✂️</span>
+            <Scissors className="w-5 h-5 text-[var(--color-primary-600)]" />
             <h3 className="font-poppins font-bold text-base sm:text-lg text-[var(--text-main)]">
               {title}
             </h3>
@@ -228,7 +221,7 @@ export const ImageAdjustModal = ({
             </div>
           </div>
           <span className="text-[11px] font-lato text-[var(--text-muted)] mt-2 text-center">
-            ✋ Drag to move • 🤏 Pinch or scroll to zoom in/out
+            Drag to move • Pinch or scroll to zoom in/out
           </span>
         </div>
 
@@ -238,7 +231,7 @@ export const ImageAdjustModal = ({
           <div className="space-y-1">
             <div className="flex justify-between items-center text-xs font-poppins font-semibold">
               <span className="text-[var(--text-secondary)] flex items-center space-x-1">
-                <span>🔍</span>
+                <ZoomIn className="w-4 h-4 text-[var(--color-primary-600)]" />
                 <span>Zoom</span>
               </span>
               <span className="text-[var(--color-primary-600)] font-bold font-mono">
@@ -277,9 +270,10 @@ export const ImageAdjustModal = ({
             <button
               type="button"
               onClick={handleRotate}
-              className="px-3 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--text-main)] flex items-center space-x-1 cursor-pointer transition-all active:scale-95 shadow-sm"
+              className="px-3 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--text-main)] flex items-center space-x-1.5 cursor-pointer transition-all active:scale-95 shadow-sm"
             >
-              <span>🔄 Rotate 90°</span>
+              <RotateCw className="w-3.5 h-3.5 text-[var(--color-primary-600)]" />
+              <span>Rotate 90°</span>
             </button>
 
             <button
@@ -308,9 +302,10 @@ export const ImageAdjustModal = ({
           <button
             type="button"
             onClick={handleApplyCrop}
-            className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center space-x-1"
+            className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5"
           >
-            <span>✓ Save & Apply</span>
+            <Check className="w-4 h-4" />
+            <span>Save & Apply</span>
           </button>
         </div>
 
