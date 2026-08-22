@@ -57,6 +57,14 @@ export const apiLogin = async (email, password) => {
   });
 };
 
+export const apiGoogleLogin = async (credential, clientId) => {
+  return await request('/auth/google', {
+    method: 'POST',
+    body: { credential, clientId },
+    skipAuth: true
+  });
+};
+
 export const apiGetCurrentUser = async () => {
   return await request('/auth/me', {
     method: 'GET'

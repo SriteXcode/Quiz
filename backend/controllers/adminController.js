@@ -166,12 +166,23 @@ const getAllUsersAdmin = async (req, res) => {
 // @access  Private (Admin Only)
 const updateUserRole = async (req, res) => {
   try {
+    const currentUserId = req.user?._id || req.user?.id;
+    const targetUserId = req.params.id;
     const { role } = req.body;
+
     if (!['student', 'admin'].includes(role)) {
       return res.status(400).json({ success: false, message: 'Invalid role specified' });
     }
 
-    const user = await User.findById(req.params.id);
+    // Security Policy: Prevent self-demotion
+    if (currentUserId && currentUserId.toString() === targetUserId.toString() && role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Security Policy: You cannot demote your own admin account.'
+      });
+    }
+
+    const user = await User.findById(targetUserId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
@@ -198,20 +209,31 @@ const updateUserRole = async (req, res) => {
 // @access  Private (Admin Only)
 const deleteUserAdmin = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const currentUserId = req.user?._id || req.user?.id;
+    const targetUserId = req.params.id;
+
+    const user = await User.findById(targetUserId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Protect super admin account if needed
-    if (user.email === 'admin@quizplatform.com') {
-      return res.status(400).json({
+    // Security Policy 1: Prevent self-deletion
+    if (currentUserId && currentUserId.toString() === targetUserId.toString()) {
+      return res.status(403).json({
         success: false,
-        message: 'Primary super admin account cannot be deleted'
+        message: 'Security Policy: You cannot delete your own admin account.'
       });
     }
 
-    await User.findByIdAndDelete(req.params.id);
+    // Security Policy 2: Prevent deleting any Admin user
+    if (user.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Security Policy: Admin accounts cannot be deleted.'
+      });
+    }
+
+    await User.findByIdAndDelete(targetUserId);
 
     res.status(200).json({
       success: true,

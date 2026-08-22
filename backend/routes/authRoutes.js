@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getProfile, updateProfile, getAllUsers } = require('../controllers/authController');
+const { register, login, googleLogin, getProfile, updateProfile, getAllUsers } = require('../controllers/authController');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const { upload } = require('../config/cloudinary');
 
@@ -13,6 +13,11 @@ router.post('/register', upload.single('avatar'), register);
 // @desc    Authenticate user (student/admin) & return token
 // @access  Public
 router.post('/login', login);
+
+// @route   POST /api/auth/google
+// @desc    Authenticate user with Google OAuth (GIS ID Token)
+// @access  Public
+router.post('/google', googleLogin);
 
 // @route   GET /api/auth/me
 // @desc    Get currently logged in user profile

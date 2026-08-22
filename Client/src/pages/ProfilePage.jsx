@@ -237,18 +237,6 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     return history;
   }, [profileStats.recentHistory, historyFilter]);
 
-  if (!user) {
-    return (
-      <div className="text-center py-20 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-xl">
-        <span className="text-5xl block mb-3">🔒</span>
-        <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">Access Restricted</h2>
-        <p className="text-xs font-lato text-[var(--text-muted)] mt-2">
-          Please log in to view your candidate profile, badges, and certificates.
-        </p>
-      </div>
-    );
-  }
-
   // Calculate dynamic Profile Completion Percentage (0% - 100%)
   const profileCompletion = useMemo(() => {
     if (!user) return { percentage: 0, missing: [], completedCount: 0, totalCount: 8 };
@@ -303,7 +291,19 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       if (f.value && String(f.value).trim() !== '') score += f.weight;
     });
     return Math.min(100, score);
-  }, [editForm, user?.email, user?.avatarUrl]);
+  }, [editForm, user]);
+
+  if (!user) {
+    return (
+      <div className="text-center py-20 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-xl">
+        <span className="text-5xl block mb-3">🔒</span>
+        <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">Access Restricted</h2>
+        <p className="text-xs font-lato text-[var(--text-muted)] mt-2">
+          Please log in to view your candidate profile, badges, and certificates.
+        </p>
+      </div>
+    );
+  }
 
   // Handle opening Edit Profile Modal with pre-filled data
   const handleOpenEditModal = () => {

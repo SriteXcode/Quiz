@@ -137,7 +137,7 @@ export const ShortGyaanDetailsSkeleton = () => {
 };
 
 export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
-  const { user, isAdmin, isAuthenticated, login } = useAuth();
+  const { user, isAdmin, isAuthenticated } = useAuth();
   const { addToast } = useToast();
 
   // Feed & Infinite Step Scroll State

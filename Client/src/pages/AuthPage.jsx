@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import GoogleAuthButton from '../components/GoogleAuthButton';
 
 export const AuthSkeleton = () => {
   return (
@@ -180,11 +181,27 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
             </div>
 
             {/* Circular Avatar / App Icon Badge */}
-            <div className="flex flex-col items-center justify-center mb-3 shrink-0">
-              <div className="w-14 h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
-                <span className="text-2xl text-[var(--color-primary-600)]">
+            <div className="flex flex-col items-center justify-center mb-2 shrink-0">
+              <div className="w-12 h-12 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
+                <span className="text-xl text-[var(--color-primary-600)]">
                   {mode === 'signup' ? '⚡' : '👤'}
                 </span>
+              </div>
+            </div>
+
+            {/* GOOGLE SIGN-IN BUTTON & OR DIVIDER */}
+            <div className="space-y-2 mb-2 shrink-0">
+              <GoogleAuthButton
+                onSuccess={() => onClose && onClose()}
+                buttonText={mode === 'signup' ? 'Continue with Google' : 'Sign in with Google'}
+              />
+
+              <div className="flex items-center space-x-2 my-1">
+                <div className="flex-1 h-px bg-[var(--border-theme)]" />
+                <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                  OR
+                </span>
+                <div className="flex-1 h-px bg-[var(--border-theme)]" />
               </div>
             </div>
 

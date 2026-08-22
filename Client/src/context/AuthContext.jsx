@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { apiLogin, apiRegister, apiGetCurrentUser } from '../services/api';
+import { apiLogin, apiRegister, apiGoogleLogin, apiGetCurrentUser } from '../services/api';
 import { useToast } from './ToastContext';
 
 const AuthContext = createContext(null);
@@ -52,6 +52,26 @@ export const AuthProvider = ({ children }) => {
     }
   }, [addToast]);
 
+  // Google Login handler
+  const loginWithGoogle = useCallback(async (credential, clientId) => {
+    setIsLoading(true);
+    try {
+      const data = await apiGoogleLogin(credential, clientId);
+      if (data.success && data.token) {
+        localStorage.setItem('quiz_token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+        addToast(data.message || `Welcome, ${data.user.name}! 🚀`, 'success');
+        return { success: true, user: data.user };
+      }
+    } catch (error) {
+      addToast(error.message || 'Google Login failed. Please try again.', 'error');
+      return { success: false, error: error.message };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [addToast]);
+
   // Register handler
   const register = useCallback(async (formData) => {
     setIsLoading(true);
@@ -93,6 +113,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isLoading,
     login,
+    loginWithGoogle,
     register,
     logout,
     updateUserData

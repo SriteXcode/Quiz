@@ -218,9 +218,112 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Authenticate or register user with Google OAuth (GIS ID Token)
+// @route   POST /api/auth/google
+// @access  Public
+const googleLogin = async (req, res) => {
+  try {
+    const { credential, clientId } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential (ID Token) is required.'
+      });
+    }
+
+    let payload;
+    const { OAuth2Client } = require('google-auth-library');
+    const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+    try {
+      // Verify Google ID Token using google-auth-library
+      const targetAudience = clientId || process.env.GOOGLE_CLIENT_ID;
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        ...(targetAudience ? { audience: targetAudience } : {})
+      });
+      payload = ticket.getPayload();
+    } catch (_verifyErr) {
+      // Fallback verification using Google TokenInfo API if client verification fails
+      try {
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+        if (!response.ok) throw new Error('Tokeninfo check failed', { cause: _verifyErr });
+        payload = await response.json();
+      } catch (_fallbackErr) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid or expired Google Token.'
+        });
+      }
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google account must have an email address.'
+      });
+    }
+
+    // Find user by googleId or email
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: email.toLowerCase() }]
+    });
+
+    if (user) {
+      // Update existing user with Google details if missing
+      let modified = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        modified = true;
+      }
+      if (user.authProvider !== 'google' && !user.password) {
+        user.authProvider = 'google';
+        modified = true;
+      }
+      if (!user.avatarUrl && picture) {
+        user.avatarUrl = picture;
+        modified = true;
+      }
+      if (modified) await user.save();
+    } else {
+      // Create new Google User
+      user = new User({
+        name: name || 'Google User',
+        email: email.toLowerCase(),
+        googleId,
+        authProvider: 'google',
+        avatarUrl: picture || '',
+        role: 'student'
+      });
+      await user.save();
+    }
+
+    // Generate App Access Token
+    const token = generateToken(user._id, user.role);
+
+    res.status(200).json({
+      success: true,
+      message: 'Google Sign-In successful!',
+      token,
+      user
+    });
+  } catch (error) {
+    console.error('[Google Login Error]:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Google Sign-In failed',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
+  googleLogin,
   getProfile,
   updateProfile,
   getAllUsers

@@ -150,7 +150,7 @@ const initialMockPartners = [
 ];
 
 export const AdminDashboard = () => {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -499,12 +499,26 @@ You are building a high-frequency financial settlement engine. Given an array of
     }
   };
 
-  const handleDeleteUser = async (userId, name) => {
-    if (!window.confirm(`Are you sure you want to delete user account "${name}"?`)) return;
+  const handleDeleteUser = async (userId, targetUser) => {
+    const currentUserId = user?._id || user?.id;
+    const userName = typeof targetUser === 'string' ? targetUser : (targetUser?.name || 'User');
+    const userRole = typeof targetUser === 'object' ? targetUser?.role : null;
+
+    if (currentUserId && currentUserId.toString() === userId.toString()) {
+      addToast('Security Policy: You cannot delete your own admin account.', 'warning');
+      return;
+    }
+
+    if (userRole === 'admin') {
+      addToast('Security Policy: Admin accounts cannot be deleted.', 'warning');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete user account "${userName}"?`)) return;
     try {
       await apiDeleteUser(userId);
       setUsersList((prev) => prev.filter((u) => u._id !== userId));
-      addToast(`Deleted user ${name}`, 'info');
+      addToast(`Deleted user ${userName}`, 'info');
     } catch (err) {
       addToast(`Failed to delete user: ${err.message}`, 'error');
     }
@@ -1642,19 +1656,42 @@ You are building a high-frequency financial settlement engine. Given an array of
                               </span>
                             </td>
                             <td className="py-3 px-2 text-[var(--text-muted)]">{u.school || 'N/A'}</td>
-                            <td className="py-3 px-2 text-right space-x-2">
-                              <button
-                                onClick={() => handleToggleRole(u)}
-                                className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
-                              >
-                                {u.role === 'admin' ? 'Demote to Student' : 'Promote to Admin'}
-                              </button>
-                              <button
-                                onClick={() => handleDeleteUser(u._id, u.name)}
-                                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
-                              >
-                                Delete
-                              </button>
+                            <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
+                              {u._id === (user?._id || user?.id) ? (
+                                <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-poppins font-bold border border-amber-500/30">
+                                  🛡️ Logged-in Admin (Protected)
+                                </span>
+                              ) : u.role === 'admin' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleToggleRole(u)}
+                                    className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                                  >
+                                    Demote to Student
+                                  </button>
+                                  <span
+                                    className="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-xs font-poppins font-semibold border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-75 inline-block"
+                                    title="Admin accounts cannot be deleted"
+                                  >
+                                    Protected Admin
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleToggleRole(u)}
+                                    className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                                  >
+                                    Promote to Admin
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(u._id, u.name)}
+                                    className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                </>
+                              )}
                             </td>
                           </tr>
                         ))
