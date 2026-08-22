@@ -13,6 +13,7 @@ import {
 } from '../services/api';
 
 const CATEGORIES = [
+  { id: 'Saved', label: '🔖 Saved Gyaan', shortLabel: 'Saved', icon: '🔖', tag: 'Bookmarks' },
   { id: 'For You', label: '🔥 For You', shortLabel: 'For You', icon: '🔥', tag: 'Trending' },
   { id: 'All', label: '🌐 All Topics', shortLabel: 'All Topics', icon: '🌐', tag: 'All' },
   { id: 'Java', label: '☕ Java Core', shortLabel: 'Java', icon: '☕', tag: 'Core' },
@@ -27,7 +28,7 @@ const CATEGORIES = [
   { id: 'Python', label: '🐍 Python', shortLabel: 'Python', icon: '🐍', tag: 'Core' },
   { id: 'System Design', label: '🏗️ System Design', shortLabel: 'System Design', icon: '🏗️', tag: 'Arch' },
   { id: 'CSS & UI', label: '🎨 CSS & UI', shortLabel: 'CSS & UI', icon: '🎨', tag: 'Design' },
-  { id: 'Saved', label: '🔖 Saved Gyaan', shortLabel: 'Saved', icon: '🔖', tag: 'Bookmarks' }
+  
 ];
 
 // Shuffles options for MCQs while updating correctAnswerIndex to match
@@ -473,9 +474,31 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
     }
   }, [page, hasMore, isLoadingMore, activeCategory, searchQuery]);
 
-  const setFeedContainerRef = useCallback((el) => {
-    if (el) {
+  const [isDesktopLayout, setIsDesktopLayout] = useState(() => {
+    return typeof window !== 'undefined' ? window.innerWidth >= 768 : false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktopLayout(window.innerWidth >= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const setFeedContainerRef = useCallback((el, isDesktopSection) => {
+    if (!el) return;
+    const isDesktopEnv = typeof window !== 'undefined' && window.innerWidth >= 768;
+    if (isDesktopEnv === isDesktopSection) {
       feedContainerRef.current = el;
+    }
+  }, []);
+
+  const setCardRef = useCallback((el, idx, isDesktopSection) => {
+    if (!el) return;
+    const isDesktopEnv = typeof window !== 'undefined' && window.innerWidth >= 768;
+    if (isDesktopEnv === isDesktopSection) {
+      cardRefs.current[idx] = el;
     }
   }, []);
 
@@ -789,7 +812,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
     };
-  }, [shorts, loadMoreShorts]);
+  }, [shorts, loadMoreShorts, isDesktopLayout]);
 
   const activeShort = shorts[activeCardIndex] || null;
   const currentShortId = activeShort?._id || `short_${activeCardIndex}`;
@@ -1245,7 +1268,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   }
 
   return (
-    <div className="w-full h-full max-h-full flex flex-col items-center justify-center bg-[var(--bg-main)] fixed inset-x-0 top-8 md:top-16 lg:top-16  bottom-0 z-30 md:relative md:top-auto md:bottom-auto overflow-hidden select-none">
+    <div className="w-full h-[100vh] max-h-[100vh] md:h-[90vh] lg:h-[90vh] flex flex-col items-center justify-center bg-[var(--bg-main)] fixed inset-x-0 top-8 md:top-0 lg:top-0  bottom-0 z-30 md:relative md:top-auto md:bottom-auto overflow-hidden select-none">
       
       {/* ========================================================================= */}
       {/* 1. MEDIUM & LARGE DEVICES VIEW (md:flex & lg:flex MULTI-COLUMN LAYOUT)   */}
@@ -1370,7 +1393,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
         <div className="w-full max-w-full flex-1 grid grid-cols-1 md:grid-cols-12 gap-3 px-3 overflow-hidden min-h-0 py-1.5">
           
           {/* COLUMN 1: TOPIC TAGS SIDEBAR (VISIBLE ON LARGE SCREENS) */}
-          <div className="hidden lg:flex lg:col-span-3 xl:col-span-2.5 h-full overflow-hidden flex-col bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl p-2.5 space-y-2 shadow-xs">
+          <div className="hidden md:hidden lg:flex lg:col-span-3 xl:col-span-2.5 h-full overflow-hidden flex-col bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl p-2.5 space-y-2 shadow-xs">
             <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2 px-1 shrink-0">
               <div className="flex items-center space-x-1.5">
                 <span className="text-sm">🏷️</span>
@@ -1426,7 +1449,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
 
           {/* COLUMN 2: QUESTIONS FEED ON MEDIUM & LARGE DEVICES */}
           <div
-            ref={setFeedContainerRef}
+            ref={(el) => setFeedContainerRef(el, true)}
             className="col-span-12 md:col-span-7 lg:col-span-5 xl:col-span-5.5 h-full overflow-y-scroll scroll-smooth snap-y snap-mandatory overscroll-contain space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
           >
             {isLoading ? (
@@ -1459,7 +1482,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 return (
                   <div
                     key={sId}
-                    ref={(el) => (cardRefs.current[idx] = el)}
+                    ref={(el) => setCardRef(el, idx, true)}
                     data-index={idx}
                     onClick={() => setActiveCardIndex(idx)}
                     className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-md p-3.5 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
@@ -1484,16 +1507,20 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            setIsQuestionTimerPaused((p) => !p);
+                            if (isActive) {
+                              setIsQuestionTimerPaused((p) => !p);
+                            } else {
+                              setActiveCardIndex(idx);
+                            }
                           }}
                           className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border font-mono font-bold text-xs cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs ${
                             isActive && isQuestionTimerPaused
                               ? 'bg-amber-500/25 border-amber-500 text-amber-600 dark:text-amber-400 animate-pulse'
                               : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
                           }`}
-                          title={isActive && isQuestionTimerPaused ? "Timer Paused — Click to Resume" : "Click to Pause Timer"}
+                          title={isActive ? (isQuestionTimerPaused ? "Timer Paused — Click to Resume" : "Click to Pause Timer") : "Click to select card"}
                         >
-                          <span>{isActive && isQuestionTimerPaused ? '⏸ Paused' : `⏱️ ${isActive ? `${activeQuestionTimer}s` : remainingTimes[shortItem._id] !== undefined ? `${remainingTimes[shortItem._id]}s` : `${shortItem.timerSeconds || 30}s`}`}</span>
+                          <span>{isActive ? (isQuestionTimerPaused ? '⏸ Paused' : `⏱️ ${activeQuestionTimer}s`) : remainingTimes[shortItem._id] !== undefined ? `⏱️ ${remainingTimes[shortItem._id]}s` : `⏱️ ${shortItem.timerSeconds || 30}s`}</span>
                         </div>
                       ) : answerState.isCorrect ? (
                         <span className="text-[10px] font-poppins font-bold text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">
@@ -1624,7 +1651,8 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 const activeAns = activeShort ? answersState[activeShort._id] : null;
 
                 return (
-                  <div className="w-full h-full bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-4 shadow-md space-y-2.5 overflow-y-auto custom-scrollbar flex flex-col justify-between">
+                  <div className="w-full h-full min-h-0 bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-4 shadow-md overflow-x-hidden overflow-y-auto custom-scrollbar flex flex-col">
+                  {/* <div className="w-full h-full bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-4 shadow-md space-y-2.5 overflow-hidden overflow-y-auto custom-scrollbar flex flex-col justify-between"> */}
                     <div className="space-y-2.5">
                       <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2">
                         <div className="flex items-center space-x-2">
@@ -1648,9 +1676,21 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                             >
                               <span>{isBufferPaused ? '⏸' : explanationBufferTimer}</span>
                             </div>
+                          ) : !activeAns?.isAnswered ? (
+                            <div
+                              onClick={() => setIsQuestionTimerPaused((p) => !p)}
+                              className={`flex items-center space-x-1 px-2.5 py-0.5 rounded-full border font-mono font-bold text-xs cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs ${
+                                isQuestionTimerPaused
+                                  ? 'bg-amber-500/25 border-amber-500 text-amber-600 dark:text-amber-400 animate-pulse'
+                                  : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                              }`}
+                              title={isQuestionTimerPaused ? "Timer Paused — Click to Resume" : "Click to Pause Timer"}
+                            >
+                              <span>{isQuestionTimerPaused ? '⏸ Paused' : `⏱️ ${activeQuestionTimer}s`}</span>
+                            </div>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[10px] font-mono font-bold text-[var(--text-muted)]">
-                              ⏱️ {activeShort.timerSeconds || 30}s
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                              ✓ Answered
                             </span>
                           )}
                         </div>
@@ -1683,7 +1723,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                             Solution & Concept Notes Hidden
                           </h3>
                           <p className="text-[10px] font-lato text-[var(--text-muted)] leading-relaxed">
-                            Timer running: <strong className="text-amber-500 font-mono">{activeQuestionTimer}s remaining</strong>. Select an option or wait for countdown to complete to reveal answer & solution breakdown!
+                            Timer running: <strong className="text-amber-500 font-mono">{isQuestionTimerPaused ? 'Paused' : `${activeQuestionTimer}s remaining`}</strong>. Select an option or wait for countdown to complete to reveal answer & solution breakdown!
                           </p>
                         </div>
                       ) : (
@@ -1740,7 +1780,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
       {/* 2. SMALL DEVICES ONLY (< md FULL-SCREEN REEL WIREFRAME LAYOUT)           */}
       {/* ========================================================================= */}
       <div
-        ref={setFeedContainerRef}
+        ref={(el) => setFeedContainerRef(el, false)}
         className="md:hidden w-full h-[calc(100dvh-4.2rem)] max-w-md sm:max-w-lg mx-auto overflow-y-scroll scroll-smooth snap-y snap-mandatory overscroll-contain space-y-0 px-0.5 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden touch-pan-y"
       >
         {isLoading ? (
@@ -1777,7 +1817,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
             return (
               <div
                 key={sId}
-                ref={(el) => (cardRefs.current[idx] = el)}
+                ref={(el) => setCardRef(el, idx, false)}
                 data-index={idx}
                 onClick={() => setActiveCardIndex(idx)}
                 className={`w-full h-[calc(100dvh-4.2rem)] max-h-[calc(100dvh-4.2rem)] snap-start snap-always shrink-0 rounded-2xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-xl p-2.5 sm:p-3 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
@@ -2551,10 +2591,10 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
 
       {/* 5. SESSION ACCURACY RESUME / RESET MODAL PROMPT */}
       {showSessionPromptModal && savedSessionStats && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+        <div className="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
           <div className="bg-[var(--bg-card)] border-2 border-[var(--color-primary-400)] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleUp p-6 space-y-6 text-center">
             
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-3xl mx-auto shadow-lg shadow-amber-500/20 animate-bounce">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-3xl mx-auto shadow-lg shadow-amber-500/20">
               ⚡
             </div>
 
@@ -2591,13 +2631,13 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 onClick={handleKeepSessionAccuracy}
                 className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-poppins font-bold text-xs sm:text-sm shadow-lg shadow-blue-500/25 cursor-pointer transition-all active:scale-98 flex items-center justify-center space-x-2"
               >
-                <span>✨ Keep Previous Accuracy ({savedSessionStats.accuracy}%)</span>
+                <span>Keep Previous Accuracy ({savedSessionStats.accuracy}%)</span>
               </button>
               <button
                 onClick={handleResetSessionAccuracy}
                 className="w-full py-2.5 px-5 rounded-2xl bg-[var(--bg-main)] border-2 border-[var(--border-theme)] hover:border-rose-400 hover:text-rose-500 text-[var(--text-main)] font-poppins font-bold text-xs cursor-pointer transition-all active:scale-98 flex items-center justify-center space-x-1.5"
               >
-                <span>🔄 Reset Accuracy & Start Fresh (0%)</span>
+                <span>Reset Accuracy & Start Fresh (0%)</span>
               </button>
             </div>
 
