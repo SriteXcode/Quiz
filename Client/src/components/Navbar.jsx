@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isPwaInstalled } from '../services/pwaService';
 
@@ -240,8 +241,17 @@ export const Navbar = ({
             </button>
           </div>
 
-          {/* Mobile Actions: PWA Download + Theme Toggle */}
+          {/* Mobile Actions: Login (if guest) + PWA Download + Theme Toggle */}
           <div className="flex md:hidden items-center space-x-2 shrink-0">
+            {!isAuthenticated && (
+              <button
+                onClick={() => handleNavClick('login', 'Login')}
+                className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-sm cursor-pointer active:scale-95 transition-all flex items-center space-x-1.5 shrink-0"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Login</span>
+              </button>
+            )}
             {!isInstalled && (
               <button
                 onClick={handleInstallPwa}
@@ -254,7 +264,7 @@ export const Navbar = ({
             )}
             <button
               onClick={handleThemeToggle}
-              className="p-2 w-10 h-10 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center shadow-sm"
+              className="p-2 w-10 h-10 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center shadow-sm shrink-0"
               aria-label="Toggle Theme Mobile"
               title={theme === 'dark' ? 'Dark Mode Active (Flickering Diya Flame 🪔)' : 'Light Mode Active (Glowing Bulb 💡)'}
             >

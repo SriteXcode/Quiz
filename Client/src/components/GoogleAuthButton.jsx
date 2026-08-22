@@ -15,31 +15,37 @@ export const GoogleAuthButton = ({ onSuccess, buttonText = 'Continue with Google
   useEffect(() => {
     if (!googleClientId) return;
 
-    const loadGsiScript = () => {
-      if (window.google && window.google.accounts && window.google.accounts.id) {
+    if (window.google?.accounts?.id) {
+      setIsSdkLoaded(true);
+      return;
+    }
+
+    const checkInterval = setInterval(() => {
+      if (window.google?.accounts?.id) {
         setIsSdkLoaded(true);
-        return;
+        clearInterval(checkInterval);
       }
+    }, 50);
 
-      const existingScript = document.getElementById('google-gsi-script');
-      if (!existingScript) {
-        const script = document.createElement('script');
-        script.id = 'google-gsi-script';
-        script.src = 'https://accounts.google.com/gsi/client';
-        script.async = true;
-        script.defer = true;
-        script.onload = () => setIsSdkLoaded(true);
-        script.onerror = () => {
-          console.warn('[GIS Warning]: Failed to load Google SDK script');
-          setIsSdkLoaded(false);
-        };
-        document.head.appendChild(script);
-      } else {
-        existingScript.addEventListener('load', () => setIsSdkLoaded(true));
-      }
-    };
+    const existingScript = document.getElementById('google-gsi-script');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = 'google-gsi-script';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        setIsSdkLoaded(true);
+        clearInterval(checkInterval);
+      };
+      script.onerror = () => {
+        console.warn('[GIS Warning]: Failed to load Google SDK script');
+        clearInterval(checkInterval);
+      };
+      document.head.appendChild(script);
+    }
 
-    loadGsiScript();
+    return () => clearInterval(checkInterval);
   }, [googleClientId]);
 
   // Handle Google Credential Response
