@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import ImageAdjustModal from '../components/ImageAdjustModal';
 
 export const AuthSkeleton = () => {
   return (
@@ -29,13 +28,6 @@ export const AuthSkeleton = () => {
 
 export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoading: parentLoading }) => {
   const [mode, setMode] = useState(initialMode); // 'signup' (Register) or 'login'
-  const [avatarPreview, setAvatarPreview] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
-
-  // Avatar Adjuster State
-  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
-  const [rawImageSrc, setRawImageSrc] = useState(null);
-  const avatarInputRef = useRef(null);
 
   // Toggle Password Visibility States
   const [showPassword, setShowPassword] = useState(false);
@@ -66,12 +58,8 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
   // Form State
   const [formData, setFormData] = useState({
     name: '',
-    dob: '',
-    school: '',
-    studentClass: '',
-    fatherName: '',
-    phone: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
@@ -85,42 +73,25 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const src = URL.createObjectURL(file);
-      setRawImageSrc(src);
-      setIsAdjustModalOpen(true);
-    }
-  };
-
-  const handleApplyCroppedAvatar = (croppedDataUrl, fileBlob) => {
-    setAvatarPreview(croppedDataUrl);
-    setSelectedFile(fileBlob);
-    setIsAdjustModalOpen(false);
-  };
-
   const resetForm = () => {
     setFormData({
       name: '',
-      dob: '',
-      school: '',
-      studentClass: '',
-      fatherName: '',
-      phone: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: ''
     });
-    setAvatarPreview(null);
-    setSelectedFile(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Password Match Validation for Registration
+    // Password Match & Field Validation for Registration
     if (mode === 'signup') {
+      if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.password) {
+        addToast('Please provide Name, Email, Phone, and Password.', 'error');
+        return;
+      }
       if (formData.password !== formData.confirmPassword) {
         addToast('Passwords do not match! Please check and try again.', 'error');
         return;
@@ -131,15 +102,12 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
 
     try {
       if (mode === 'signup') {
-        let payload = { ...formData };
-        delete payload.confirmPassword;
-
-        if (selectedFile) {
-          const fd = new FormData();
-          Object.keys(payload).forEach((key) => fd.append(key, payload[key]));
-          fd.append('avatar', selectedFile);
-          payload = fd;
-        }
+        const payload = {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          password: formData.password
+        };
 
         const res = await register(payload);
         if (res?.success) {
@@ -211,128 +179,32 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
               </div>
             </div>
 
-            {/* Circular Avatar Container */}
+            {/* Circular Avatar / App Icon Badge */}
             <div className="flex flex-col items-center justify-center mb-3 shrink-0">
-              {mode === 'signup' ? (
-                <div className="relative group cursor-pointer" onClick={() => avatarInputRef.current && avatarInputRef.current.click()}>
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition-transform">
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-xl text-[var(--color-primary-600)]">
-                        👤
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Camera upload badge */}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border border-[var(--bg-card)] bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] text-white flex items-center justify-center cursor-pointer shadow-sm transition-transform hover:scale-110">
-                    <span className="text-[8px] font-bold">📷</span>
-                  </div>
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                </div>
-              ) : (
-                <div className="w-14 h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
-                  <span className="text-2xl text-[var(--color-primary-600)]">
-                    👤
-                  </span>
-                </div>
-              )}
+              <div className="w-14 h-14 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
+                <span className="text-2xl text-[var(--color-primary-600)]">
+                  {mode === 'signup' ? '⚡' : '👤'}
+                </span>
+              </div>
             </div>
 
             {/* FORM CONTAINER WITH OVERFLOW-Y AUTO */}
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2.5">
               {mode === 'signup' ? (
-                /* REGISTER FORM */
+                /* REGISTER FORM (Name, Email, Phone, Password, Confirm Password) */
                 <form onSubmit={handleSubmit} className="space-y-2.5 pb-1">
                   
                   {/* Name Input */}
-                  <div>
+                  <div className="flex items-center space-x-2">
+                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
+                      Name:
+                    </label>
                     <input
                       type="text"
                       name="name"
                       required
                       placeholder="Full Name..."
                       value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-1.5 rounded-xl border border-[var(--color-primary-300)] bg-white text-slate-900 font-poppins font-medium text-xs placeholder-slate-400 focus:outline-none focus:border-[var(--color-primary-600)] focus:ring-1 focus:ring-[var(--color-primary-600)] shadow-sm"
-                    />
-                  </div>
-
-                  {/* DOB Field */}
-                  <div className="flex items-center space-x-2">
-                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
-                      DOB:
-                    </label>
-                    <input
-                      type="date"
-                      name="dob"
-                      required
-                      value={formData.dob}
-                      onChange={handleInputChange}
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
-                    />
-                  </div>
-
-                  {/* School / College Field */}
-                  <div className="flex items-center space-x-2">
-                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
-                      School:
-                    </label>
-                    <input
-                      type="text"
-                      name="school"
-                      placeholder="School / College..."
-                      required
-                      value={formData.school}
-                      onChange={handleInputChange}
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
-                    />
-                  </div>
-
-                  {/* Class Field */}
-                  <div className="flex items-center space-x-2">
-                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
-                      Class:
-                    </label>
-                    <input
-                      type="text"
-                      name="studentClass"
-                      placeholder="Grade / Year..."
-                      required
-                      value={formData.studentClass}
-                      onChange={handleInputChange}
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
-                    />
-                  </div>
-
-                  {/* Father Field */}
-                  <div className="flex items-center space-x-2">
-                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
-                      Father:
-                    </label>
-                    <input
-                      type="text"
-                      name="fatherName"
-                      placeholder="Father's name..."
-                      required
-                      value={formData.fatherName}
-                      onChange={handleInputChange}
-                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
-                    />
-                  </div>
-
-                  {/* Phone Field */}
-                  <div className="flex items-center space-x-2">
-                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
-                      Phone:
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      placeholder="Phone number..."
-                      required
-                      value={formData.phone}
                       onChange={handleInputChange}
                       className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
                     />
@@ -349,6 +221,22 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                       placeholder="Email address..."
                       required
                       value={formData.email}
+                      onChange={handleInputChange}
+                      className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
+                    />
+                  </div>
+
+                  {/* Phone Field */}
+                  <div className="flex items-center space-x-2">
+                    <label className="w-20 font-poppins font-bold text-[11px] text-[var(--text-main)] shrink-0">
+                      Phone:
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      placeholder="Phone number..."
+                      required
+                      value={formData.phone}
                       onChange={handleInputChange}
                       className="flex-1 px-2.5 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-lato text-xs focus:outline-none focus:border-[var(--color-primary-600)]"
                     />
@@ -405,7 +293,7 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
                   </div>
 
                   {/* Submit Button */}
-                  <div className="pt-1">
+                  <div className="pt-1 space-y-1.5">
                     <button
                       type="submit"
                       disabled={isLoading}
@@ -508,14 +396,6 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
         )}
       </div>
 
-      {/* Profile Image Adjuster / Cropper Modal */}
-      <ImageAdjustModal
-        isOpen={isAdjustModalOpen}
-        imageSrc={rawImageSrc}
-        onClose={() => setIsAdjustModalOpen(false)}
-        onApply={handleApplyCroppedAvatar}
-        title="Adjust Profile Avatar"
-      />
     </div>
   );
 };

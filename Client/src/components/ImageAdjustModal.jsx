@@ -12,6 +12,9 @@ export const ImageAdjustModal = ({
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const initialPinchDistRef = useRef(null);
+  const initialPinchZoomRef = useRef(1);
   const imageRef = useRef(null);
 
   // Reset controls when a new image is loaded
@@ -20,10 +23,18 @@ export const ImageAdjustModal = ({
       setZoom(1);
       setPan({ x: 0, y: 0 });
       setRotation(0);
+      initialPinchDistRef.current = null;
     }
   }, [isOpen, imageSrc]);
 
-  // Handle Drag / Pan with Mouse or Touch
+  // Calculate distance between 2 touch points for pinch zoom
+  const getPinchDistance = (touch1, touch2) => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Handle Drag / Pan with Mouse
   const handleMouseDown = (e) => {
     setIsDragging(true);
     setDragStart({
@@ -44,6 +55,7 @@ export const ImageAdjustModal = ({
     setIsDragging(false);
   };
 
+  // Handle Drag & 2-Finger Pinch Zoom with Touch
   const handleTouchStart = (e) => {
     if (e.touches.length === 1) {
       setIsDragging(true);
@@ -51,19 +63,47 @@ export const ImageAdjustModal = ({
         x: e.touches[0].clientX - pan.x,
         y: e.touches[0].clientY - pan.y
       });
+    } else if (e.touches.length === 2) {
+      setIsDragging(false);
+      const dist = getPinchDistance(e.touches[0], e.touches[1]);
+      initialPinchDistRef.current = dist;
+      initialPinchZoomRef.current = zoom;
     }
   };
 
   const handleTouchMove = (e) => {
-    if (!isDragging || e.touches.length !== 1) return;
-    setPan({
-      x: e.touches[0].clientX - dragStart.x,
-      y: e.touches[0].clientY - dragStart.y
-    });
+    if (e.touches.length === 1 && isDragging) {
+      setPan({
+        x: e.touches[0].clientX - dragStart.x,
+        y: e.touches[0].clientY - dragStart.y
+      });
+    } else if (e.touches.length === 2 && initialPinchDistRef.current) {
+      if (e.cancelable) e.preventDefault();
+      e.stopPropagation();
+      const currentDist = getPinchDistance(e.touches[0], e.touches[1]);
+      if (currentDist > 0 && initialPinchDistRef.current > 0) {
+        const scale = currentDist / initialPinchDistRef.current;
+        const newZoom = Math.min(4.0, Math.max(0.4, initialPinchZoomRef.current * scale));
+        setZoom(newZoom);
+      }
+    }
   };
 
-  const handleTouchEnd = () => {
-    setIsDragging(false);
+  const handleTouchEnd = (e) => {
+    if (e.touches.length < 2) {
+      initialPinchDistRef.current = null;
+    }
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  // Mouse wheel zoom directly over profile photo
+  const handleWheel = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    setZoom((prev) => Math.min(4.0, Math.max(0.4, prev + delta)));
   };
 
   const handleRotate = () => {
@@ -74,7 +114,10 @@ export const ImageAdjustModal = ({
     const img = imageRef.current;
     if (!img) return;
 
-    const outputSize = 400; // Output square avatar resolution
+    const outputSize = 500; // Output square avatar resolution
+    const previewSize = 224; // Preview circle viewport size (w-56 h-56 = 224px)
+    const scaleRatio = outputSize / previewSize;
+
     const canvas = document.createElement('canvas');
     canvas.width = outputSize;
     canvas.height = outputSize;
@@ -82,35 +125,35 @@ export const ImageAdjustModal = ({
 
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, outputSize, outputSize);
+    // Fill white background for transparent PNGs
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outputSize, outputSize);
 
-    // Save and transform canvas context to center
+    // Save and transform canvas context matching CSS transform:
+    // translate(pan) -> rotate(rotation) -> scale(zoom)
     ctx.save();
-    ctx.translate(outputSize / 2, outputSize / 2);
+    ctx.translate(
+      outputSize / 2 + pan.x * scaleRatio,
+      outputSize / 2 + pan.y * scaleRatio
+    );
     ctx.rotate((rotation * Math.PI) / 180);
     ctx.scale(zoom, zoom);
 
-    // Apply pan offset proportional to viewport size
-    // Viewport preview circle is 220px wide
-    const previewScale = outputSize / 220;
-    const drawX = pan.x * previewScale;
-    const drawY = pan.y * previewScale;
-
-    // Calculate dimensions to maintain aspect ratio covering the circle
+    // Maintain aspect ratio matching object-contain preview
     const imgAspect = img.naturalWidth / img.naturalHeight;
     let targetW, targetH;
     if (imgAspect >= 1) {
-      targetH = outputSize;
-      targetW = outputSize * imgAspect;
-    } else {
       targetW = outputSize;
       targetH = outputSize / imgAspect;
+    } else {
+      targetH = outputSize;
+      targetW = outputSize * imgAspect;
     }
 
     ctx.drawImage(
       img,
-      drawX - targetW / 2,
-      drawY - targetH / 2,
+      -targetW / 2,
+      -targetH / 2,
       targetW,
       targetH
     );
@@ -152,7 +195,7 @@ export const ImageAdjustModal = ({
         {/* Circular Viewport Preview Area */}
         <div className="flex flex-col items-center justify-center">
           <div
-            className="w-56 h-56 rounded-full border-4 border-[var(--color-primary-500)] shadow-inner relative overflow-hidden bg-slate-900 flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+            className="w-56 h-56 rounded-full border-4 border-[var(--color-primary-500)] shadow-inner relative overflow-hidden bg-slate-950 flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -160,6 +203,7 @@ export const ImageAdjustModal = ({
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
+            onWheel={handleWheel}
           >
             <img
               ref={imageRef}
@@ -171,10 +215,11 @@ export const ImageAdjustModal = ({
                 transform: `translate(${pan.x}px, ${pan.y}px) rotate(${rotation}deg) scale(${zoom})`,
                 transition: isDragging ? 'none' : 'transform 0.1s ease-out',
                 maxWidth: 'none',
+                maxHeight: 'none',
                 userSelect: 'none',
                 pointerEvents: 'none'
               }}
-              className="w-full h-full object-cover select-none"
+              className="w-full h-full object-contain select-none"
             />
 
             {/* Circular Grid Alignment Mask Guide */}
@@ -182,8 +227,8 @@ export const ImageAdjustModal = ({
               <div className="w-1/2 h-1/2 border border-dashed border-white/30 rounded-full" />
             </div>
           </div>
-          <span className="text-[11px] font-lato text-[var(--text-muted)] mt-2">
-            ✋ Drag to reposition image within circle
+          <span className="text-[11px] font-lato text-[var(--text-muted)] mt-2 text-center">
+            ✋ Drag to move • 🤏 Pinch or scroll to zoom in/out
           </span>
         </div>
 
@@ -203,14 +248,14 @@ export const ImageAdjustModal = ({
             <div className="flex items-center space-x-2">
               <button
                 type="button"
-                onClick={() => setZoom((prev) => Math.max(0.6, prev - 0.1))}
+                onClick={() => setZoom((prev) => Math.max(0.4, prev - 0.1))}
                 className="w-7 h-7 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold flex items-center justify-center cursor-pointer"
               >
                 -
               </button>
               <input
                 type="range"
-                min="0.6"
+                min="0.4"
                 max="3.0"
                 step="0.05"
                 value={zoom}

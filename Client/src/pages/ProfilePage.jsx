@@ -24,7 +24,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
   const { user, logout, updateUserData } = useAuth();
   const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'certificates' | 'stats' | 'history'
-  
+
   // Dynamic Certificates State
   const [certificates, setCertificates] = useState([]);
   const [isLoadingCertificates, setIsLoadingCertificates] = useState(false);
@@ -249,6 +249,62 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     );
   }
 
+  // Calculate dynamic Profile Completion Percentage (0% - 100%)
+  const profileCompletion = useMemo(() => {
+    if (!user) return { percentage: 0, missing: [], completedCount: 0, totalCount: 8 };
+
+    const fields = [
+      { key: 'name', weight: 15, label: 'Full Name' },
+      { key: 'email', weight: 15, label: 'Email' },
+      { key: 'phone', weight: 15, label: 'Phone' },
+      { key: 'school', weight: 15, label: 'School/College' },
+      { key: 'studentClass', weight: 10, label: 'Class/Grade' },
+      { key: 'dob', weight: 10, label: 'DOB' },
+      { key: 'fatherName', weight: 10, label: "Father's Name" },
+      { key: 'avatarUrl', weight: 10, label: 'Profile Photo' }
+    ];
+
+    let score = 0;
+    let completedCount = 0;
+    const missing = [];
+
+    fields.forEach((field) => {
+      if (user[field.key] && String(user[field.key]).trim() !== '') {
+        score += field.weight;
+        completedCount += 1;
+      } else {
+        missing.push(field.label);
+      }
+    });
+
+    return {
+      percentage: Math.min(100, score),
+      missing,
+      completedCount,
+      totalCount: fields.length
+    };
+  }, [user]);
+
+  // Live profile completion calculation inside Edit Modal
+  const editFormCompletion = useMemo(() => {
+    const fields = [
+      { value: editForm.name, weight: 15 },
+      { value: user?.email, weight: 15 },
+      { value: editForm.phone, weight: 15 },
+      { value: editForm.school, weight: 15 },
+      { value: editForm.studentClass, weight: 10 },
+      { value: editForm.dob, weight: 10 },
+      { value: editForm.fatherName, weight: 10 },
+      { value: editForm.avatarPreview || user?.avatarUrl, weight: 10 }
+    ];
+
+    let score = 0;
+    fields.forEach((f) => {
+      if (f.value && String(f.value).trim() !== '') score += f.weight;
+    });
+    return Math.min(100, score);
+  }, [editForm, user?.email, user?.avatarUrl]);
+
   // Handle opening Edit Profile Modal with pre-filled data
   const handleOpenEditModal = () => {
     setEditForm({
@@ -311,7 +367,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4 animate-fadeIn space-y-8">
-      
+
       {/* OFFLINE STATUS NOTE */}
       {!isOnline && (
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:bg-amber-950/40 border border-amber-500/40 text-amber-950 dark:text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
@@ -365,10 +421,46 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
         </div>
       )}
 
+      {/* COMPLETE PROFILE BANNER / PROGRESS BAR BUTTON (THEME VARIABLE COMPLIANT) */}
+      {profileCompletion.percentage < 100 && (
+        <button
+          type="button"
+          onClick={handleOpenEditModal}
+          className="w-full relative h-11 sm:h-12 rounded-2xl bg-[var(--color-secondary-300)] dark:bg-[var(--color-secondary-350)] border-2 border-[var(--border-theme)] shadow-md overflow-hidden cursor-pointer group hover:border-[var(--color-primary-500)] transition-all active:scale-[0.99] select-none my-1"
+          title="Click to complete your candidate profile"
+        >
+          {/* Filled Progress Portion (Theme Secondary Color) */}
+          <div
+            style={{ width: `${profileCompletion.percentage}%` }}
+            className="absolute inset-y-0 left-0 bg-[var(--color-secondary-500)] dark:bg-[var(--color-secondary-600)] group-hover:brightness-105 transition-all duration-500 border-r-2 border-[var(--color-secondary-700)]"
+          />
+
+          {/* Single-Line Centered White Content Overlay */}
+          <div className="absolute inset-0 px-4 sm:px-6 flex items-center justify-center z-10 font-poppins font-bold text-xs sm:text-sm text-[#1A1A1A] drop-shadow-md whitespace-nowrap">
+            <span className="whitespace-nowrap flex items-center justify-center space-x-1.5 min-w-0">
+              <span className="whitespace-nowrap">Complete Profile {profileCompletion.percentage}% to 100%</span>
+            </span>
+
+            {/* Circular Theme Primary Arrow Icon Badge Anchored Right */}
+            <div className="absolute right-3 sm:right-4 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--color-primary-600)] text-white flex items-center justify-center shadow-md group-hover:scale-110 group-hover:bg-[var(--color-primary-700)] transition-all shrink-0 border border-white/30">
+              <svg
+                className="w-4 h-4 text-white group-hover:translate-x-0.5 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+              </svg>
+            </div>
+          </div>
+        </button>
+      )}
+
       {/* PROFILE HEADER HERO BANNER CARD */}
       <div className="bg-gradient-to-r from-[var(--color-primary-600)] to-[var(--color-secondary-600)] text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-white/10 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-          
+
           {/* Avatar Picture - Clickable with Live Crop & Adjust */}
           <div className="relative">
             <div
@@ -413,9 +505,25 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
               </span>
             </div>
 
-            <div className="text-xs sm:text-sm font-lato text-blue-100 mb-3 space-y-0.5">
-              <div>📧 {user.email}</div>
-              <div>📱 {user.phone || 'Phone not set'}</div>
+            <div className="text-xs sm:text-sm font-lato text-blue-100 mb-3 space-y-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <span>📧 {user.email}</span>
+                <span>•</span>
+                <span>📱 {user.phone || 'Phone not set'}</span>
+              </div>
+
+              {/* Profile Completion Badge in Hero Header */}
+              <div className="pt-1 flex items-center justify-center sm:justify-start space-x-2">
+                <div className="w-28 sm:w-36 h-2 rounded-full bg-white/25 overflow-hidden shrink-0 border border-white/20">
+                  <div
+                    style={{ width: `${profileCompletion.percentage}%` }}
+                    className="h-full bg-emerald-400 rounded-full transition-all duration-500 shadow-xs"
+                  />
+                </div>
+                <span className="text-[11px] font-poppins font-bold text-amber-300">
+                  {profileCompletion.percentage}% Profile Complete
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -423,7 +531,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                 onClick={handleOpenEditModal}
                 className="px-4 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-poppins font-semibold text-xs transition-all cursor-pointer backdrop-blur-md shadow-sm active:scale-95 flex items-center space-x-1"
               >
-                <span>✏️ Edit Profile</span>
+                <span>{profileCompletion.percentage < 100 ? `⭐ Complete Profile (${profileCompletion.percentage}%)` : '✏️ Edit Profile'}</span>
               </button>
 
               {user.role === 'admin' && (
@@ -484,31 +592,30 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       {/* DYNAMIC TABS NAVIGATION WITH REAL COUNTERS */}
       <div className="border-b border-[var(--border-theme)] pb-3 flex flex-wrap gap-2">
         {[
-          { 
-            id: 'details', 
-            label: '👤 Account Details' 
+          {
+            id: 'details',
+            label: '👤 Account Details'
           },
-          { 
-            id: 'certificates', 
-            label: `🎓 Earned Certificates (${certificates.length})` 
+          {
+            id: 'certificates',
+            label: `🎓 Earned Certificates (${certificates.length})`
           },
-          { 
-            id: 'stats', 
-            label: `🏆 Badges & Performance (${unlockedBadgesCount}/${totalBadgesCount})` 
+          {
+            id: 'stats',
+            label: `🏆 Badges & Performance (${unlockedBadgesCount}/${totalBadgesCount})`
           },
-          { 
-            id: 'history', 
-            label: `📜 Recent History (${profileStats.recentHistory?.length || 0})` 
+          {
+            id: 'history',
+            label: `📜 Recent History (${profileStats.recentHistory?.length || 0})`
           }
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-xl font-poppins font-bold text-xs sm:text-sm transition-all cursor-pointer ${
-              activeTab === tab.id
-                ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
-            }`}
+            className={`px-4 py-2 rounded-xl font-poppins font-bold text-xs sm:text-sm transition-all cursor-pointer ${activeTab === tab.id
+              ? 'bg-[var(--color-primary-600)] text-white shadow-md'
+              : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
+              }`}
           >
             {tab.label}
           </button>
@@ -700,7 +807,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       {/* TAB 3: 🏆 DYNAMIC BADGES & PERFORMANCE METRICS */}
       {activeTab === 'stats' && (
         <div className="space-y-6 animate-fadeIn">
-          
+
           {/* Performance Analytics Overview Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] shadow-sm text-center">
@@ -757,19 +864,17 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
               {(profileStats.badges && profileStats.badges.length > 0 ? profileStats.badges : []).map((badge, idx) => (
                 <div
                   key={badge.id || idx}
-                  className={`p-4 rounded-2xl border transition-all space-y-2 relative overflow-hidden ${
-                    badge.unlocked
-                      ? 'bg-gradient-to-b from-amber-500/10 to-[var(--bg-main)] border-amber-400 shadow-md shadow-amber-500/10'
-                      : 'bg-[var(--bg-main)] border-[var(--border-theme)] opacity-60'
-                  }`}
+                  className={`p-4 rounded-2xl border transition-all space-y-2 relative overflow-hidden ${badge.unlocked
+                    ? 'bg-gradient-to-b from-amber-500/10 to-[var(--bg-main)] border-amber-400 shadow-md shadow-amber-500/10'
+                    : 'bg-[var(--bg-main)] border-[var(--border-theme)] opacity-60'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-3xl block">{badge.icon}</span>
-                    <span className={`text-[10px] font-poppins font-bold px-2 py-0.5 rounded-full ${
-                      badge.unlocked
-                        ? 'bg-amber-500 text-slate-950 shadow-sm'
-                        : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-theme)]'
-                    }`}>
+                    <span className={`text-[10px] font-poppins font-bold px-2 py-0.5 rounded-full ${badge.unlocked
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-theme)]'
+                      }`}>
                       {badge.unlocked ? '✓ Unlocked' : '🔒 Locked'}
                     </span>
                   </div>
@@ -790,7 +895,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       {/* TAB 4: 📜 DYNAMIC RECENT HISTORY (REAL DB SUBMISSIONS) */}
       {activeTab === 'history' && (
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
-          
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-theme)] pb-4">
             <div>
               <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
@@ -812,11 +917,10 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                 <button
                   key={filter.id}
                   onClick={() => setHistoryFilter(filter.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-poppins font-bold transition-all cursor-pointer ${
-                    historyFilter === filter.id
-                      ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                  }`}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-poppins font-bold transition-all cursor-pointer ${historyFilter === filter.id
+                    ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                    }`}
                 >
                   {filter.label}
                 </button>
@@ -831,13 +935,12 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                   <div className="space-y-1">
                     <div className="font-bold text-[var(--text-main)] font-poppins flex items-center space-x-2">
                       <span>{item.title}</span>
-                      <span className={`text-[10px] font-mono px-2 py-0.2 rounded font-semibold ${
-                        item.badge === 'Official' || item.badge === 'Live Quiz'
-                          ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
-                          : item.badge === 'Practice'
+                      <span className={`text-[10px] font-mono px-2 py-0.2 rounded font-semibold ${item.badge === 'Official' || item.badge === 'Live Quiz'
+                        ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+                        : item.badge === 'Practice'
                           ? 'bg-blue-500/10 text-blue-600 border border-blue-500/30'
                           : 'bg-purple-500/10 text-purple-600 border border-purple-500/30'
-                      }`}>
+                        }`}>
                         {item.badge === 'Official' ? 'Live Quiz' : item.badge}
                       </span>
                     </div>
@@ -891,18 +994,26 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
           <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn my-auto max-h-[94vh] flex flex-col">
-            
+
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-[var(--border-theme)] flex items-center justify-between bg-[var(--bg-main)] shrink-0">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2.5">
                 <span className="text-2xl">✏️</span>
                 <div>
                   <h3 className="font-poppins font-bold text-base text-[var(--text-main)]">
-                    Edit Profile Details
+                    {editFormCompletion < 100 ? '⭐ Complete Profile' : 'Edit Candidate Profile'}
                   </h3>
-                  <p className="text-[11px] font-lato text-[var(--text-muted)]">
-                    Update your personal, academic and avatar information
-                  </p>
+                  <div className="flex items-center space-x-2 mt-0.5">
+                    <div className="w-24 sm:w-32 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <div
+                        style={{ width: `${editFormCompletion}%` }}
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {editFormCompletion}% Complete
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -916,7 +1027,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
             {/* Modal Form */}
             <form onSubmit={handleSaveProfile} className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs font-poppins">
-              
+
               {/* Avatar Upload Preview */}
               <div className="flex items-center space-x-4 p-3 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)]">
                 <div

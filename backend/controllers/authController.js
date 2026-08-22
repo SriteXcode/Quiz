@@ -27,11 +27,11 @@ const register = async (req, res) => {
       phone
     } = req.body;
 
-    // Basic Validation
-    if (!name || !email || !password) {
+    // Basic Validation: Name, Email, Phone, Password
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, email, and password.'
+        message: 'Please provide name, email, phone number, and password.'
       });
     }
 

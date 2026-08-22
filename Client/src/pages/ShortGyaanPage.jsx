@@ -1190,8 +1190,8 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   // -------------------------------------------------------------
   if (!isAuthenticated && !user) {
     return (
-      <div className="w-full max-w-4xl mx-auto py-8 sm:py-14 px-4 space-y-6 animate-fadeIn">
-        <div className="text-center space-y-2.5 max-w-xl mx-auto">
+      <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-8 sm:py-14 px-4 space-y-6 animate-fadeIn">
+        <div className="text-center space-y-2.5 max-w-xl mx-auto md:hidden lg:hidden">
           <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-poppins font-bold text-xs">
             <span>⚡</span>
             <span>Short Gyaan Micro-Challenges</span>
@@ -1205,8 +1205,8 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
         </div>
 
         {/* Auth Gate Card */}
-        <div className="p-6 sm:p-10 rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--color-primary-400)] shadow-2xl space-y-6 text-center max-w-lg mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-3xl mx-auto shadow-lg shadow-amber-500/20 animate-bounce">
+        <div className="p-4 rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--color-primary-400)] shadow-2xl space-y-4 text-center max-w-lg mx-auto">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-indigo-600 text-white flex items-center justify-center font-black text-3xl mx-auto shadow-lg shadow-amber-500/20">
             🔒
           </div>
 
@@ -1249,18 +1249,6 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 🔑 Sign In
               </button>
             </div>
-
-            <button
-              onClick={async () => {
-                if (login) {
-                  await login('user@quizplatform.com', 'user123');
-                }
-              }}
-              className="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-poppins font-bold text-xs cursor-pointer transition-all flex items-center justify-center space-x-1.5"
-            >
-              <span>⚡</span>
-              <span>1-Click Demo Student Sign In</span>
-            </button>
           </div>
         </div>
       </div>
@@ -1594,37 +1582,63 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         By <strong className="text-[var(--text-secondary)]">{shortItem.author || 'Question admin'}</strong>
                       </div>
                       <div className="flex items-center space-x-1.5">
+                        {/* Like Button */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleToggleLike(shortItem);
                           }}
-                          className={`px-2 py-0.5 rounded-lg border flex items-center space-x-1 text-[10px] transition-all cursor-pointer ${
-                            shortItem.isLiked ? 'bg-rose-500/15 border-rose-500 text-rose-600 font-bold' : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)]'
+                          className={`px-2 py-1 rounded-lg border flex items-center space-x-1 text-[10px] transition-all cursor-pointer ${
+                            shortItem.isLiked ? 'bg-rose-500/15 border-rose-500 text-rose-600 font-bold' : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-rose-500'
                           }`}
+                          title="Like question"
                         >
-                          <span>❤️</span>
-                          <span>{shortItem.likesCount || 0}</span>
+                          {shortItem.isLiked ? (
+                            <svg className="w-3.5 h-3.5 fill-rose-500 text-rose-500 shrink-0" viewBox="0 0 24 24">
+                              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                            </svg>
+                          )}
+                          <span className="font-mono">{shortItem.likesCount || 0}</span>
                         </button>
+
+                        {/* Save Button */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleToggleSave(shortItem);
                           }}
-                          className={`p-1 rounded-lg border text-[10px] transition-all cursor-pointer ${
-                            shortItem.isSaved ? 'bg-amber-500/15 border-amber-500 text-amber-600 font-bold' : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)]'
+                          className={`p-1 rounded-lg border text-[10px] flex items-center justify-center transition-all cursor-pointer ${
+                            shortItem.isSaved ? 'bg-amber-500/15 border-amber-500 text-amber-600 font-bold' : 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-amber-500'
                           }`}
+                          title="Save question"
                         >
-                          <span>🔖</span>
+                          {shortItem.isSaved ? (
+                            <svg className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" viewBox="0 0 24 24">
+                              <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.58A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
+                            </svg>
+                          ) : (
+                            <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                            </svg>
+                          )}
                         </button>
+
+                        {/* Share Button */}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleShareShort(shortItem);
                           }}
-                          className="p-1 rounded-lg bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-[10px] transition-all cursor-pointer"
+                          className="p-1 rounded-lg bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-[10px] flex items-center justify-center transition-all cursor-pointer"
+                          title="Share question"
                         >
-                          <span>↗️</span>
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -2087,7 +2101,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                     by <strong className="text-[var(--text-main)]">{shortItem.author || 'Question admin'}</strong>
                   </div>
 
-                  {/* Center: 🏠 Floating Home Button */}
+                  {/* Center: Floating Home Button */}
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2097,13 +2111,25 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         setActiveCardIndex(0);
                       }
                     }}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center text-sm sm:text-base font-bold shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all border-2 border-white dark:border-slate-800 shrink-0"
+                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md cursor-pointer hover:scale-105 active:scale-95 transition-all border-2 border-white dark:border-slate-800 shrink-0"
                     title="Navigate Home"
                   >
-                    🏠
+                    <svg
+                      className="w-8 h-8 sm:w-12 sm:h-12 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                      />
+                    </svg>
                   </div>
 
-                  {/* Right: Action Buttons ❤️ 🔖 ↗️ */}
+                  {/* Right: Action Buttons (Like, Save, Share) */}
                   <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
                     {/* Like Button */}
                     <button
@@ -2111,14 +2137,22 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         e.stopPropagation();
                         handleToggleLike(shortItem);
                       }}
-                      className={`px-2 py-1 rounded-xl border flex items-center space-x-1 text-xs transition-all cursor-pointer ${
+                      className={`px-2 py-1.5 rounded-xl border flex items-center space-x-1 text-xs transition-all cursor-pointer ${
                         shortItem.isLiked
                           ? 'bg-rose-500/15 border-rose-500 text-rose-600 font-bold'
                           : 'bg-[var(--bg-card)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-rose-500'
                       }`}
                       title="Like question"
                     >
-                      <span>❤️</span>
+                      {shortItem.isLiked ? (
+                        <svg className="w-4 h-4 fill-rose-500 text-rose-500 shrink-0" viewBox="0 0 24 24">
+                          <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+                        </svg>
+                      )}
                       <span className="font-mono text-[10px]">{shortItem.likesCount || 0}</span>
                     </button>
 
@@ -2135,7 +2169,15 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                       }`}
                       title="Save question"
                     >
-                      <span>🔖</span>
+                      {shortItem.isSaved ? (
+                        <svg className="w-4 h-4 fill-amber-500 text-amber-500 shrink-0" viewBox="0 0 24 24">
+                          <path fillRule="evenodd" d="M6.32 2.577a49.255 49.255 0 0111.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 01-1.085.67L12 18.089l-7.165 3.58A.75.75 0 013.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                        </svg>
+                      )}
                     </button>
 
                     {/* Share Button */}
@@ -2144,10 +2186,12 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         e.stopPropagation();
                         handleShareShort(shortItem);
                       }}
-                      className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-xs transition-all cursor-pointer"
+                      className="p-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-[var(--text-muted)] hover:text-blue-500 text-xs transition-all cursor-pointer flex items-center justify-center"
                       title="Share question"
                     >
-                      <span>↗️</span>
+                      <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
