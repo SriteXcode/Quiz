@@ -45,11 +45,17 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
   if (!url.protocol.startsWith('http')) return;
 
-  // For API endpoints, prefer fresh network responses with offline fallback
+  // For API endpoints, prefer fresh network responses with offline cache fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
           return networkResponse;
         })
         .catch(() => {
@@ -82,7 +88,7 @@ self.addEventListener('fetch', (event) => {
 // 4. PUSH NOTIFICATIONS: Handle incoming push alerts for Live Quizzes & Results
 self.addEventListener('push', (event) => {
   let data = {
-    title: '⚡ Quiz Platform Live Alert',
+    title: '⚡ brainArena Live Alert',
     body: 'A new live quiz contest or micro-learning update is available!',
     icon: '/icon-192.svg',
     badge: '/favicon.svg',

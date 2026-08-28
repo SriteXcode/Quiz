@@ -20,7 +20,7 @@ export const HeroBanner = ({ isLoading, onExploreLiveQuizzes }) => {
   if (isLoading) return <HeroSkeleton />;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-[var(--color-primary-600)] text-white p-8 sm:p-12 mb-10 shadow-xl border-4 border-white/10">
+    <div className="relative overflow-hidden rounded-3xl bg-[var(--color-primary-600)] text-white p-8 sm:p-12 mb-10 shadow-xl border-2 border-white/10 ">
 
 
       <div className="relative z-10 max-w-3xl">
@@ -28,7 +28,7 @@ export const HeroBanner = ({ isLoading, onExploreLiveQuizzes }) => {
           Master Any Skill Through Interactive Live Quizzes
         </h1>
 
-        <p className="text-base sm:text-lg font-lato text-blue-100 mb-4 max-w-2xl leading-relaxed">
+        <p className="text-base sm:text-lg font-lato text-blue-50 mb-4 max-w-2xl leading-relaxed drop-shadow-xs">
           Test your knowledge, compete in real-time leaderboards, and elevate your learning experience with thousands of community-crafted quizzes.
         </p>
 
@@ -44,16 +44,16 @@ export const HeroBanner = ({ isLoading, onExploreLiveQuizzes }) => {
         {/* Feature stats */}
         <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-4 text-center sm:text-left">
           <div>
-            <div className="font-poppins font-bold text-2xl">50K+</div>
-            <div className="text-xs font-lato text-blue-200">Active Learners</div>
+            <div className="font-poppins font-bold text-2xl">5K+</div>
+            <div className="text-xs font-lato text-blue-100 font-medium">Active Learners</div>
           </div>
           <div>
-            <div className="font-poppins font-bold text-2xl">1,200+</div>
-            <div className="text-xs font-lato text-blue-200">Live Quizzes</div>
+            <div className="font-poppins font-bold text-2xl">100+</div>
+            <div className="text-xs font-lato text-blue-100 font-medium">Live Quizzes</div>
           </div>
           <div>
-            <div className="font-poppins font-bold text-2xl">99.4%</div>
-            <div className="text-xs font-lato text-blue-200">Satisfaction</div>
+            <div className="font-poppins font-bold text-2xl">96.4%</div>
+            <div className="text-xs font-lato text-blue-100 font-medium">Satisfaction</div>
           </div>
         </div>
       </div>

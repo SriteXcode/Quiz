@@ -61,7 +61,7 @@ export const PartnerModal = ({ partner, onClose }) => {
             {partnerLogo}
           </div>
           <div>
-            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-poppins font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 mb-1">
+            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-poppins font-bold bg-amber-500/20 text-amber-900 dark:text-amber-200 mb-1">
               {partnerType}
             </span>
             <h3 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] leading-tight">
@@ -86,7 +86,7 @@ export const PartnerModal = ({ partner, onClose }) => {
         {/* Verification Badges */}
         <div className="grid grid-cols-2 gap-3 pt-1">
           <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-3 rounded-xl text-center">
-            <div className="font-poppins font-bold text-sm text-emerald-500">
+            <div className="font-poppins font-bold text-sm text-emerald-800 dark:text-emerald-300">
               ✓ Verified Partner
             </div>
             <div className="text-[10px] font-lato text-[var(--text-muted)]">
@@ -215,7 +215,7 @@ export const PartnersSection = () => {
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
-          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 bg-amber-500/20 px-2.5 py-0.5 rounded-full">
             Accreditation & Compliance
           </span>
           <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)] mt-1">
@@ -223,7 +223,7 @@ export const PartnersSection = () => {
           </h2>
         </div>
         <span className="text-xs font-lato text-[var(--text-muted)] flex items-center space-x-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse"></span>
           <span>Hover to pause marquee • Click for verification</span>
         </span>
       </div>
@@ -254,16 +254,16 @@ export const PartnersSection = () => {
                     {partner.logoUrl || partner.icon || '⚖️'}
                   </div>
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold inline-block">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-900 dark:text-amber-200 font-bold inline-block">
                       {partner.type || 'Legal Partner'}
                     </span>
-                    <span className="text-[9px] font-bold text-emerald-500">
+                    <span className="text-[9px] font-bold text-emerald-800 dark:text-emerald-300">
                       ● Audited
                     </span>
                   </div>
-                  <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover/card:text-[var(--color-primary-600)] transition-colors mb-1.5 line-clamp-1">
+                  <h3 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover/card:text-[var(--color-primary-600)] transition-colors mb-1.5 line-clamp-1">
                     {partner.name}
-                  </h4>
+                  </h3>
                   <p className="font-lato text-xs text-[var(--text-muted)] line-clamp-3 leading-relaxed">
                     {partner.description || 'Verified institutional partner and compliance council.'}
                   </p>

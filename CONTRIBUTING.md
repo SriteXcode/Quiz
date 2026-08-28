@@ -1,12 +1,12 @@
-# Contributing to QuizMaster
+# Contributing to brainArena
 
-Thank you for your interest in contributing to **QuizMaster**! We welcome contributions from engineers, designers, and educators to help make technical assessments and interactive learning accessible, engaging, and robust.
+Thank you for your interest in contributing to **brainArena**! We welcome contributions from engineers, designers, and educators to help make technical assessments and interactive learning accessible, engaging, and robust.
 
 ---
 
 ## 📜 Code of Conduct
 
-All contributors and maintainers are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to `security@quizplatform.com`.
+All contributors and maintainers are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to `security@brainarena.com`.
 
 ---
 

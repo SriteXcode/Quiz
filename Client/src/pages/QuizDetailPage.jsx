@@ -3,7 +3,7 @@ import Skeleton from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getQuizAutoStatus } from '../utils/dateUtils';
-import { apiGetQuizLeaderboard } from '../services/api';
+import { apiGetQuizLeaderboard, apiCreatePaymentOrder, apiVerifyPayment, apiEnrollInQuiz } from '../services/api';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
 
 export const QuizDetailSkeleton = () => {
@@ -43,6 +43,7 @@ export const QuizDetailPage = ({ quiz, onBack, onStartQuiz, onRequireLogin, isLo
   const { addToast } = useToast();
 
   const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
+  const [isPracticeModalOpen, setIsPracticeModalOpen] = useState(false);
   const [leaderboardList, setLeaderboardList] = useState([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,20 +90,225 @@ Rules & Guidelines:
     { place: '4-10th', badge: '🏅 Top 10', prize: 'Pro Membership & Swag', description: 'Top 10 Certificate + Swag Box' }
   ];
 
-  const handleStart = () => {
-    // Check if user is logged in
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [hasUserPurchased, setHasUserPurchased] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [enrolledCountState, setEnrolledCountState] = useState(() => (quiz?.enrolledUsers ? quiz.enrolledUsers.length : 0));
+
+  const isPast = autoStatus === 'past';
+  const originalPrice = quiz?.price || 0;
+  const effectivePrice = isPast && quiz?.isPaid ? Math.max(1, Math.round(originalPrice * 0.10)) : originalPrice;
+  const isDiscounted = isPast && quiz?.isPaid && originalPrice > 0;
+  const isPaid = Boolean(quiz?.isPaid && originalPrice > 0);
+  const price = effectivePrice;
+  const quizId = quiz?._id || quiz?.id;
+  const isAdmin = Boolean(user && user.role === 'admin');
+
+  const enrolledEntry = user && quiz?.enrolledUsers && quiz.enrolledUsers.find(e => (e.userId?._id || e.userId || e).toString() === (user._id || user.id || user.userId || '').toString());
+  const isEnrolledInQuiz = Boolean(enrolledEntry);
+  const isEnrolledWithPaid = Boolean(enrolledEntry && (enrolledEntry.isPaid || enrolledEntry.amountPaid > 0));
+
+  const hasPurchasedInUserObj = Boolean(user && user.purchasedQuizzes && user.purchasedQuizzes.some(id => id.toString() === (quizId || '').toString()));
+
+  const isRegisteredOrUnlocked = Boolean(
+    isAdmin ||
+    hasUserPurchased ||
+    (isPaid ? (isEnrolledWithPaid || hasPurchasedInUserObj) : isEnrolledInQuiz)
+  );
+
+  const handleEnrollFreeQuiz = async () => {
     if (!isAuthenticated && !user) {
-      addToast('🔒 Please sign in or create an account to start this assessment!', 'warning');
+      addToast('🔒 Please Register or Login first to enroll in this quiz!', 'warning');
+      if (onRequireLogin) onRequireLogin();
+      return;
+    }
+
+    setIsEnrolling(true);
+    try {
+      const res = await apiEnrollInQuiz(quizId);
+      if (res && res.success !== false) {
+        addToast('🎉 Successfully registered for this quiz!', 'success');
+        setHasUserPurchased(true);
+        if (res.enrolledCount) setEnrolledCountState(res.enrolledCount);
+      } else {
+        addToast(res?.message || 'Failed to register', 'error');
+      }
+    } catch (err) {
+      addToast(err.message || 'Error registering for quiz', 'error');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayCheckout = async () => {
+    if (!isAuthenticated && !user) {
+      addToast(`🔒 This is a Paid Quiz (₹${price}). Please Register or Login first to unlock and participate!`, 'warning');
+      if (onRequireLogin) onRequireLogin();
+      return;
+    }
+
+    setIsPurchasing(true);
+    try {
+      const orderRes = await apiCreatePaymentOrder(quizId);
+
+      if (!orderRes || orderRes.success === false) {
+        addToast(orderRes?.message || 'Failed to create payment order.', 'error');
+        setIsPurchasing(false);
+        return;
+      }
+
+      if (orderRes.isFree || orderRes.alreadyPurchased) {
+        addToast('✨ Access granted to quiz challenge!', 'success');
+        setHasUserPurchased(true);
+        if (onStartQuiz) onStartQuiz(isEnded);
+        setIsPurchasing(false);
+        return;
+      }
+
+      const isScriptLoaded = await loadRazorpayScript();
+
+      const options = {
+        key: orderRes.key || 'rzp_test_quiz_platform_2026',
+        amount: orderRes.order?.amount || price * 100,
+        currency: 'INR',
+        name: 'brainArena Quiz Platform',
+        description: `Registration Fee for "${quiz?.title}"`,
+        image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        order_id: orderRes.order?.id,
+        handler: async (response) => {
+          try {
+            const verifyRes = await apiVerifyPayment({
+              razorpay_order_id: response.razorpay_order_id || orderRes.order?.id,
+              razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+              razorpay_signature: response.razorpay_signature || `sig_${Date.now()}`,
+              quizId
+            });
+
+            if (verifyRes && verifyRes.success !== false) {
+              addToast('🎉 Payment Verified! Quiz unlocked successfully.', 'success');
+              setHasUserPurchased(true);
+              if (onStartQuiz) onStartQuiz(isEnded);
+            } else {
+              addToast(verifyRes?.message || 'Payment verification failed', 'error');
+            }
+          } catch (err) {
+            addToast('Error verifying payment: ' + err.message, 'error');
+          } finally {
+            setIsPurchasing(false);
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || ''
+        },
+        theme: {
+          color: '#2563eb'
+        },
+        modal: {
+          ondismiss: () => {
+            setIsPurchasing(false);
+            addToast('Payment checkout cancelled.', 'info');
+          }
+        }
+      };
+
+      const keyStr = String(orderRes.key || '');
+      const isRealRazorpayKey = keyStr.startsWith('rzp_') && !keyStr.includes('YOUR_RAZORPAY') && keyStr !== 'rzp_test_quiz_platform_2026';
+
+      if (isScriptLoaded && window.Razorpay && isRealRazorpayKey) {
+        try {
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+          return;
+        } catch (rzpErr) {
+          console.warn('[Razorpay JS SDK init error - Falling back to Sandbox Simulation Mode]:', rzpErr.message);
+        }
+      }
+
+      // Sandbox Simulation Fallback Mode
+      const simPay = window.confirm(
+        `💳 [Razorpay Payment Simulation]\n\nComplete test payment of ₹${price} for "${quiz?.title}"?\n\n(Click OK to unlock quiz and complete registration)`
+      );
+      if (simPay) {
+        const verifyRes = await apiVerifyPayment({
+          razorpay_order_id: orderRes.order?.id || `order_sim_${Date.now()}`,
+          razorpay_payment_id: `pay_sim_${Date.now()}`,
+          razorpay_signature: `sig_sim_${Date.now()}`,
+          quizId
+        });
+        if (verifyRes && verifyRes.success !== false) {
+          addToast('🎉 Payment Verified! Quiz unlocked successfully.', 'success');
+          setHasUserPurchased(true);
+          if (onStartQuiz) onStartQuiz(isEnded);
+        } else {
+          addToast(verifyRes?.message || 'Payment verification failed', 'error');
+        }
+      } else {
+        addToast('Payment checkout cancelled.', 'info');
+      }
+      setIsPurchasing(false);
+    } catch (err) {
+      addToast('Checkout error: ' + err.message, 'error');
+      setIsPurchasing(false);
+    }
+  };
+
+  const handleStart = () => {
+    // 1. Unauthenticated Check
+    if (!isAuthenticated && !user) {
+      if (isPaid) {
+        addToast(`🔒 This is a Paid Quiz (₹${price}). Please Register or Login first to unlock!`, 'warning');
+      } else {
+        addToast('🔒 Please sign in or create an account to start this assessment!', 'warning');
+      }
       if (onRequireLogin) onRequireLogin();
       return;
     }
 
     if (isUpcoming) {
-      addToast(`⏳ Live Quiz is scheduled for ${startDate} at ${startTime}. Entry will unlock at the exact start time!`, 'warning');
+      if (!isRegisteredOrUnlocked) {
+        if (isPaid) {
+          handleRazorpayCheckout();
+        } else {
+          handleEnrollFreeQuiz();
+        }
+      } else {
+        addToast(`⏳ Live Quiz is scheduled for ${startDate} at ${startTime}. Entry will unlock at the exact start time!`, 'warning');
+      }
       return;
     }
 
-    if (onStartQuiz) onStartQuiz(isEnded);
+    if (autoStatus === 'running') {
+      if (!isRegisteredOrUnlocked) {
+        addToast('🔒 Registration for this live quiz closed when the quiz started. You cannot enter because you did not register in time.', 'error');
+        return;
+      }
+      if (onStartQuiz) onStartQuiz(false);
+      return;
+    }
+
+    if (isEnded) {
+      if (isPaid && !isRegisteredOrUnlocked) {
+        setIsPracticeModalOpen(true);
+        return;
+      }
+      if (onStartQuiz) onStartQuiz(true);
+    }
   };
 
   const handleOpenLeaderboard = async () => {
@@ -132,7 +338,6 @@ Rules & Guidelines:
   };
 
   // Robust multi-factor attendance verification
-  const quizId = quiz?._id || quiz?.id;
   const currentUserId = user?._id || user?.id || user?.userId;
   const currentUserEmail = (user?.email || '').trim().toLowerCase();
   const currentUserName = (user?.name || '').trim().toLowerCase();
@@ -252,9 +457,34 @@ Rules & Guidelines:
         <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
           
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-poppins text-[var(--text-main)] leading-tight mb-3">
-              {title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-poppins text-[var(--text-main)] leading-tight">
+                {title}
+              </h1>
+
+              {isDiscounted ? (
+                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-poppins font-black flex items-center space-x-1 shrink-0">
+                  <span>🔥 90% OFF Practice: ₹{effectivePrice}</span>
+                  <span className="line-through text-rose-500 dark:text-rose-400 font-bold text-[10px] ml-1">₹{originalPrice}</span>
+                  {isRegisteredOrUnlocked && <span className="text-emerald-500 ml-1">✓ Unlocked</span>}
+                </span>
+              ) : isPaid ? (
+                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-poppins font-black flex items-center space-x-1 shrink-0">
+                  <span>💳 ₹{price} Entry Fee</span>
+                  {isRegisteredOrUnlocked && <span className="text-emerald-500 ml-1">✓ Registered</span>}
+                </span>
+              ) : (
+                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-poppins font-black shrink-0 flex items-center space-x-1">
+                  <span>🟢 FREE</span>
+                  {isRegisteredOrUnlocked && <span className="text-emerald-500 ml-1 font-bold">✓ Registered</span>}
+                </span>
+              )}
+
+              {/* Enrolled Students Count Badge */}
+              <span className="px-3 py-1 rounded-xl bg-blue-500/10 text-[var(--color-primary-600)] border border-blue-500/20 text-xs sm:text-sm font-poppins font-bold flex items-center space-x-1 shrink-0">
+                <span>👥 {enrolledCountState} Registered</span>
+              </span>
+            </div>
 
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <span className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] mr-1">
@@ -289,26 +519,54 @@ Rules & Guidelines:
       {/* ACTION & SCHEDULE ROW WITH LIVE COUNTDOWN TIMER */}
       <div className={`grid grid-cols-1 ${isEnded ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4 items-center`}>
         
-        {/* Practice or Start Assessment */}
+        {/* Practice or Start or Register Assessment */}
         <button
-          onClick={handleStart}
-          disabled={isUpcoming}
+          onClick={
+            isUpcoming && !isRegisteredOrUnlocked
+              ? (isPaid ? handleRazorpayCheckout : handleEnrollFreeQuiz)
+              : handleStart
+          }
+          disabled={isEnrolling || isPurchasing || (isUpcoming && isRegisteredOrUnlocked)}
           className={`h-full py-4 px-5 rounded-2xl text-white font-poppins font-bold text-sm sm:text-base shadow-lg transition-all border flex items-center justify-center space-x-2 ${
-            isEnded
-              ? 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 shadow-indigo-500/20 active:scale-95 cursor-pointer'
-              : isUpcoming
-              ? 'bg-slate-700/80 border-slate-600/60 text-slate-300 opacity-90 cursor-not-allowed shadow-none'
-              : 'bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] border-emerald-400 shadow-emerald-500/20 active:scale-95 cursor-pointer'
+            isPurchasing || isEnrolling
+              ? 'bg-amber-600 opacity-90 cursor-wait'
+              : isUpcoming && isRegisteredOrUnlocked
+              ? 'bg-emerald-700/80 border-emerald-600/60 text-emerald-100 opacity-95 cursor-default shadow-none'
+              : isUpcoming && !isRegisteredOrUnlocked
+              ? isPaid
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 border-amber-400 cursor-pointer active:scale-95'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-blue-400 cursor-pointer active:scale-95'
+              : autoStatus === 'running'
+              ? isRegisteredOrUnlocked
+                ? 'bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] border-emerald-400 shadow-emerald-500/20 active:scale-95 cursor-pointer'
+                : 'bg-slate-700 text-slate-300 border-slate-600 cursor-not-allowed opacity-80'
+              : isEnded
+              ? isDiscounted && !isRegisteredOrUnlocked
+                ? 'bg-amber-600 hover:bg-amber-700 border-amber-400 shadow-amber-500/20 active:scale-95 cursor-pointer'
+                : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 shadow-indigo-500/20 active:scale-95 cursor-pointer'
+              : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 cursor-pointer'
           }`}
         >
           <span>
-            {isEnded
-              ? '🎯 Practice Quiz'
-              : isUpcoming
-              ? `🔒 Live Quiz Locked (Starts at ${startTime})`
-              : isCode
-              ? 'Start Code Challenge 🚀'
-              : 'Start Live Assessment 🚀'}
+            {isEnrolling || isPurchasing
+              ? '⌛ Processing Registration...'
+              : isUpcoming && isRegisteredOrUnlocked
+              ? `✅ Registered for Quiz (Starts at ${startTime})`
+              : isUpcoming && !isRegisteredOrUnlocked
+              ? isPaid
+                ? `💳 Register for Quiz (₹${price})`
+                : `📝 Register for Free Quiz`
+              : autoStatus === 'running'
+              ? isRegisteredOrUnlocked
+                ? (isCode ? 'Start Code Challenge 🚀' : 'Start Live Assessment 🚀')
+                : '🔒 Registration Closed (Not Registered)'
+              : isEnded
+              ? isDiscounted && !isRegisteredOrUnlocked
+                ? `💳 Register to Unlock Practice (₹${price} • 90% OFF)`
+                : !isRegisteredOrUnlocked
+                ? '📝 Register for Free Practice'
+                : '🎯 Start Practice Quiz (Unlocked)'
+              : (isCode ? 'Start Code Challenge 🚀' : 'Start Live Assessment 🚀')}
           </span>
         </button>
 
@@ -360,6 +618,92 @@ Rules & Guidelines:
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 pt-7 sm:pt-9 shadow-sm">
           <div className="font-lato text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
             {description}
+          </div>
+        </div>
+      </div>
+
+      {/* PRE-QUIZ REGISTRATION VS POST-QUIZ PRACTICE COMPARISON TABLE */}
+      <div className="relative pt-3">
+        <span className="absolute -top-1 left-4 px-4 py-1 rounded-xl bg-[var(--accent-yellow-banner)] text-slate-900 font-poppins font-bold text-xs sm:text-sm shadow-sm border border-amber-300">
+          Participation Modes Comparison
+        </span>
+
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 pt-8 sm:pt-10 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-2 border-b border-[var(--border-theme)]">
+            <div>
+              <h3 className="text-base sm:text-lg font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                <span>📊</span>
+                <span>Pre-Quiz Live Competition vs Post-Quiz Practice</span>
+              </h3>
+              <p className="text-xs font-lato text-[var(--text-muted)]">
+                Understanding the key differences between live pre-registration and post-exam practice.
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left border-collapse font-lato text-xs sm:text-sm min-w-[620px]">
+              <thead>
+                <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] font-poppins text-[11px] uppercase tracking-wider bg-[var(--bg-main)]">
+                  <th className="py-3 px-4 rounded-tl-xl font-bold">Platform Feature</th>
+                  <th className="py-3 px-4 text-center bg-blue-500/10 text-[var(--color-primary-600)] font-black">
+                    ⚡ Pre-Quiz Pre-Registration (Live Competition)
+                  </th>
+                  <th className="py-3 px-4 text-center bg-amber-500/10 text-amber-600 dark:text-amber-300 font-black rounded-tr-xl">
+                    🎯 Post-Quiz Practice (Ended Challenge)
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-theme)]">
+                <tr className="hover:bg-[var(--bg-main)]/50 transition-colors">
+                  <td className="py-3.5 px-4 font-poppins font-semibold text-[var(--text-main)]">
+                    🏆 Official Leaderboard Rank
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-blue-500/5 font-bold text-emerald-500">
+                    ✅ Yes (Official 1st Attempt Rank & XP)
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-amber-500/5 text-rose-500 font-semibold">
+                    ❌ No Recognition on Live Leaderboard
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-[var(--bg-main)]/50 transition-colors">
+                  <td className="py-3.5 px-4 font-poppins font-semibold text-[var(--text-main)]">
+                    🎁 Prize Pool & Reward Eligibility
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-blue-500/5 font-bold text-emerald-500">
+                    ✅ Full Eligibility (Cash, Medals, Trophies & Swag)
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-amber-500/5 text-slate-400 font-semibold">
+                    ❌ Not Eligible for Prize Distribution
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-[var(--bg-main)]/50 transition-colors">
+                  <td className="py-3.5 px-4 font-poppins font-semibold text-[var(--text-main)]">
+                    💡 Questions & Domain Explanations
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-blue-500/5 font-bold text-emerald-500">
+                    ✅ Live Assessment Questions + Solutions
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-amber-500/5 font-bold text-emerald-500">
+                    ✅ Full Questions + Detailed Domain Solutions
+                  </td>
+                </tr>
+
+                <tr className="hover:bg-[var(--bg-main)]/50 transition-colors">
+                  <td className="py-3.5 px-4 font-poppins font-semibold text-[var(--text-main)]">
+                    📜 Verified Certificate Generation
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-blue-500/5 font-bold text-emerald-500">
+                    ✅ Official Verified Certificate & Public ID
+                  </td>
+                  <td className="py-3.5 px-4 text-center bg-amber-500/5 text-indigo-500 font-semibold">
+                    ℹ️ Practice Mode Certificate Badge
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -603,6 +947,141 @@ Rules & Guidelines:
                 className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
               >
                 Close Leaderboard
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🎯 POST-QUIZ PRACTICE TERMS & FEATURE COMPARISON MODAL */}
+      {/* ========================================================================= */}
+      {isPracticeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
+          <div className="w-full max-w-xl bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl overflow-y-auto max-h-[90vh] custom-scrollbar relative space-y-4">
+            
+            {/* Close Button */}
+            <button
+              onClick={() => setIsPracticeModalOpen(false)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-[10px] cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center transition-colors shadow-sm"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
+            {/* Modal Header */}
+            <div className="flex items-center space-x-2.5 border-b border-[var(--border-theme)] pb-3 pr-8">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-lg font-bold shrink-0 shadow-sm">
+                🎯
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-extrabold font-poppins text-[var(--text-main)] leading-tight">
+                  Post-Quiz Practice Terms
+                </h3>
+                <p className="text-[11px] font-lato text-[var(--text-muted)]">
+                  Review terms before unlocking practice access for "{title}"
+                </p>
+              </div>
+            </div>
+
+            {/* DISCOUNT BANNER */}
+            <div className="p-3 rounded-xl bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-center justify-between flex-wrap gap-1.5 shadow-sm text-xs">
+              <div className="flex items-center space-x-2">
+                <span className="text-xl">🔥</span>
+                <div>
+                  <div className="font-poppins font-black text-xs sm:text-sm text-emerald-600 dark:text-emerald-300">
+                    Practice Rate: ₹{effectivePrice} (90% OFF)
+                  </div>
+                  <div className="text-[10px] font-lato text-[var(--text-muted)]">
+                    Original Entry Fee: <span className="line-through text-rose-500 font-bold">₹{originalPrice}</span>
+                  </div>
+                </div>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-poppins font-black text-[10px] shadow-sm">
+                SAVE 90%
+              </span>
+            </div>
+
+            {/* FEATURE COMPARISON TABLE */}
+            <div className="space-y-1.5">
+              <h4 className="font-poppins font-bold text-[11px] text-[var(--text-main)] uppercase tracking-wider">
+                Feature Comparison:
+              </h4>
+
+              <div className="overflow-x-auto custom-scrollbar border border-[var(--border-theme)] rounded-xl">
+                <table className="w-full text-left border-collapse font-lato text-[11px] sm:text-xs min-w-[420px]">
+                  <thead>
+                    <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] font-poppins text-[10px] uppercase tracking-wider bg-[var(--bg-main)]">
+                      <th className="py-2 px-2.5">Platform Feature</th>
+                      <th className="py-2 px-2.5 text-center bg-blue-500/10 text-[var(--color-primary-600)] font-bold">
+                        Pre-Quiz Live Exam
+                      </th>
+                      <th className="py-2 px-2.5 text-center bg-amber-500/10 text-amber-600 dark:text-amber-300 font-bold">
+                        🎯 Practice Mode
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-theme)]">
+                    <tr>
+                      <td className="py-2 px-2.5 font-poppins font-semibold text-[var(--text-main)]">
+                        🏆 Official Leaderboard Rank
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-blue-500/5 text-emerald-500 font-bold">
+                        ✅ Recorded (1st Attempt)
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-amber-500/5 text-rose-500 font-semibold">
+                        ❌ No Rank Recognition
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-2.5 font-poppins font-semibold text-[var(--text-main)]">
+                        🎁 Prize & Reward Eligibility
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-blue-500/5 text-emerald-500 font-bold">
+                        ✅ Eligible (Cash/Medals)
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-amber-500/5 text-slate-400 font-semibold">
+                        ❌ Not Eligible
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-2.5 font-poppins font-semibold text-[var(--text-main)]">
+                        💡 Questions & Explanations
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-blue-500/5 text-emerald-500 font-bold">
+                        ✅ Exam Questions + Solutions
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-amber-500/5 text-emerald-500 font-bold">
+                        ✅ Full Questions + Solutions
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 px-2.5 font-poppins font-semibold text-[var(--text-main)]">
+                        📜 Verified Certificate
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-blue-500/5 text-emerald-500 font-bold">
+                        ✅ Verified Certificate & ID
+                      </td>
+                      <td className="py-2 px-2.5 text-center bg-amber-500/5 text-indigo-500 font-semibold">
+                        ℹ️ Practice Badge
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* MODAL ACTION BUTTONS */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2.5 border-t border-[var(--border-theme)]">
+              <button
+                onClick={() => {
+                  setIsPracticeModalOpen(false);
+                  handleRazorpayCheckout();
+                }}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-poppins font-bold text-xs shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center justify-center space-x-1"
+              >
+                <span>💳 Register & Unlock Practice (₹{effectivePrice}) →</span>
               </button>
             </div>
 

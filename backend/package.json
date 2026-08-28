@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Quiz Platform Backend Engine",
+  "description": "brainArena Backend Engine",
   "license": "ISC",
   "author": "Ritesh Kumar Yadav",
   "type": "commonjs",
@@ -28,6 +28,7 @@
     "multer": "^2.2.0",
     "multer-storage-cloudinary": "^4.0.0",
     "nodemon": "^3.1.14",
+    "razorpay": "^2.9.8",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

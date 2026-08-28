@@ -60,7 +60,13 @@ const userSchema = new mongoose.Schema(
     avatarUrl: {
       type: String,
       default: ''
-    }
+    },
+    purchasedQuizzes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Quiz'
+      }
+    ]
   },
   {
     timestamps: true

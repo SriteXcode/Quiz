@@ -4,7 +4,7 @@ const Partner = require('../models/Partner');
 // Default initial settings data
 const defaultSiteSettings = {
   about: {
-    heroBadge: 'About Brand Platform',
+    heroBadge: 'About brainArena',
     heroTitle: 'Empowering the Next Generation of Tech Mastery',
     heroSubtitle: 'We build high-performance interactive tools to make technical skill evaluation engaging, competitive, and accessible for developers everywhere.',
     impactStats: [
@@ -39,7 +39,7 @@ const defaultSiteSettings = {
     ctaText: 'Join thousands of developers competing in live quizzes and climbing the global leaderboard today.'
   },
   contact: {
-    supportEmail: 'support@quizplatform.com',
+    supportEmail: 'support@brainarena.com',
     phone: '+91 9876543210',
     supportHours: 'Mon - Fri: 9:00 AM - 6:00 PM EST',
     headquarters: 'Innovation Tech Park, Silicon Boulevard, CA, 94025',

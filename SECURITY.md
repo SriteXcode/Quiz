@@ -1,12 +1,12 @@
 # Security Policy
 
-The QuizMaster security team takes all vulnerabilities seriously. We appreciate your efforts to responsibly disclose findings.
+The brainArena security team takes all vulnerabilities seriously. We appreciate your efforts to responsibly disclose findings.
 
 ---
 
 ## 🛡️ Supported Versions
 
-We provide security patches for the following versions of QuizMaster:
+We provide security patches for the following versions of brainArena:
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -20,7 +20,7 @@ We provide security patches for the following versions of QuizMaster:
 **Please DO NOT report security issues via public GitHub Issues or Pull Requests.**
 
 Instead, report security concerns through one of the following channels:
-- **Email**: Send detailed vulnerability reports to `security@quizplatform.com`
+- **Email**: Send detailed vulnerability reports to `security@brainarena.com`
 - **Private GitHub Security Advisory**: Use GitHub's [Private Vulnerability Reporting](https://github.com/your-username/Quiz/security/advisories/new)
 
 ### What to Include in Your Report:

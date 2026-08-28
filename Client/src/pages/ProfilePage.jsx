@@ -47,7 +47,6 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
   const [isLoadingCertificates, setIsLoadingCertificates] = useState(false);
   const [selectedCert, setSelectedCert] = useState(null);
   const [isCertModalOpen, setIsCertModalOpen] = useState(false);
-
   // Avatar Direct Upload & Adjuster State
   const headerAvatarInputRef = useRef(null);
   const modalAvatarInputRef = useRef(null);
@@ -207,6 +206,8 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     }
   }, [user]);
 
+  const reconnectedTimerRef = useRef(null);
+
   useEffect(() => {
     fetchProfileData();
 
@@ -214,16 +215,24 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       setIsOnline(true);
       setShowReconnectedBanner(true);
       fetchProfileData();
-      const timer = setTimeout(() => {
+
+      if (reconnectedTimerRef.current) {
+        clearTimeout(reconnectedTimerRef.current);
+      }
+
+      reconnectedTimerRef.current = setTimeout(() => {
         setShowReconnectedBanner(false);
-      }, 5000);
-      return () => clearTimeout(timer);
+        setWasOffline(false);
+      }, 3000);
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setWasOffline(true);
       setShowReconnectedBanner(false);
+      if (reconnectedTimerRef.current) {
+        clearTimeout(reconnectedTimerRef.current);
+      }
     };
 
     window.addEventListener('online', handleOnline);
@@ -232,6 +241,9 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (reconnectedTimerRef.current) {
+        clearTimeout(reconnectedTimerRef.current);
+      }
     };
   }, [fetchProfileData]);
 
@@ -413,8 +425,8 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
         </div>
       )}
 
-      {/* RECONNECTED ONLINE STATUS NOTE */}
-      {isOnline && (showReconnectedBanner || wasOffline) && (
+      {/* RECONNECTED BANNER */}
+      {showReconnectedBanner && (
         <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 dark:bg-emerald-950/40 border border-emerald-500/40 text-emerald-950 dark:text-emerald-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-fadeIn">
           <div className="flex items-center space-x-3.5">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
@@ -422,19 +434,24 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
             </div>
             <div>
               <div className="font-poppins font-bold text-xs sm:text-sm text-emerald-900 dark:text-emerald-200 flex items-center space-x-2">
-                <span>We are online!</span>
-                <span className="inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span>Back Online!</span>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
               </div>
               <p className="font-lato text-xs text-emerald-800/90 dark:text-emerald-300/90 mt-0.5 leading-relaxed">
-                Internet connection restored. Your profile data, certificates, and leaderboard rankings have been synced.
+                Connection restored. Syncing your latest profile stats and certificates...
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
-            <span className="px-3 py-1 rounded-xl text-[11px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-900 dark:text-emerald-200 border border-emerald-500/30">
-              ✓ Synced
-            </span>
-          </div>
+          {wasOffline && (
+            <div className="flex items-center space-x-2 self-end sm:self-center shrink-0">
+              <span className="px-3 py-1 rounded-xl text-[11px] font-mono font-bold uppercase bg-emerald-500/20 text-emerald-900 dark:text-emerald-200 border border-emerald-500/30">
+                Synced
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -443,7 +460,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
         <button
           type="button"
           onClick={handleOpenEditModal}
-          className="w-full relative h-11 sm:h-12 rounded-2xl bg-[var(--color-secondary-300)] dark:bg-[var(--color-secondary-350)] border-2 border-[var(--border-theme)] shadow-md overflow-hidden cursor-pointer group hover:border-[var(--color-primary-500)] transition-all active:scale-[0.99] select-none my-1"
+          className="w-full relative h-11 sm:h-12 rounded-2xl bg-[var(--color-secondary-300)] dark:bg-[var(--color-secondary-350)] border-2 border-[var(--border-theme)] shadow-md overflow-hidden cursor-pointer group hover:border-[var(--color-primary-500)] transition-all active:scale-[0.99] select-none my-2"
           title="Click to complete your candidate profile"
         >
           {/* Filled Progress Portion (Theme Secondary Color) */}
@@ -452,10 +469,10 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
             className="absolute inset-y-0 left-0 bg-[var(--color-secondary-500)] dark:bg-[var(--color-secondary-600)] group-hover:brightness-105 transition-all duration-500 border-r-2 border-[var(--color-secondary-700)]"
           />
 
-          {/* Single-Line Centered White Content Overlay */}
-          <div className="absolute inset-0 px-4 sm:px-6 flex items-center justify-center z-10 font-poppins font-bold text-xs sm:text-sm text-[#1A1A1A] drop-shadow-md whitespace-nowrap">
+          {/* Single-Line Centered Content Overlay */}
+          <div className="absolute inset-0 px-4 sm:px-6 flex items-center justify-center z-10 font-poppins font-bold text-xs sm:text-sm text-[#1A1A1A] dark:text-white drop-shadow-md whitespace-nowrap">
             <span className="whitespace-nowrap flex items-center justify-center space-x-1.5 min-w-0">
-              <span className="whitespace-nowrap">Complete Profile {profileCompletion.percentage}% to 100%</span>
+              <span className="whitespace-nowrap text-[#1A1A1A] dark:text-white">Complete Profile {profileCompletion.percentage}% to 100%</span>
             </span>
 
             {/* Circular Theme Primary Arrow Icon Badge Anchored Right */}
@@ -528,7 +545,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                 {user.name || 'User Profile'}
               </h1>
               <span className="inline-block px-3 py-0.5 rounded-full text-xs font-poppins font-bold bg-white/20 text-white w-fit mx-auto sm:mx-0">
-                {user.school || 'Quiz Platform Scholar'}
+                {user.school || 'brainArena Scholar'}
               </span>
             </div>
 

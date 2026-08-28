@@ -1,5 +1,5 @@
 {
-  "name": "quizmaster-monorepo",
+  "name": "brainarena-monorepo",
   "version": "1.0.0",
   "description": "Production-grade Full-Stack Developer Assessment, Quiz & Short Gyaan Platform",
   "private": true,
@@ -24,6 +24,6 @@
     "proctoring",
     "certificates"
   ],
-  "author": "QuizMaster Engineering Team",
+  "author": "brainArena Engineering Team",
   "license": "MIT"
 }

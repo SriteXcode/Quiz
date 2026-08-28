@@ -1,6 +1,6 @@
 ---
 name: 🚀 Feature Request
-about: Suggest an idea or architectural improvement for QuizMaster
+about: Suggest an idea or architectural improvement for brainArena
 title: '[FEAT] <Feature Title>'
 labels: ['enhancement', 'needs-review']
 assignees: ''

@@ -11,6 +11,7 @@ import {
   apiAdminUploadExcelShorts,
   apiAdminCreateShort
 } from '../services/api';
+import NetworkErrorPage from './NetworkErrorPage';
 
 const CATEGORIES = [
   { id: 'Saved', label: '🔖 Saved Gyaan', shortLabel: 'Saved', icon: '🔖', tag: 'Bookmarks' },
@@ -1016,7 +1017,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   };
 
   const handleShareShort = (shortItem) => {
-    const shareText = `🧠 Short Gyaan: ${shortItem.questionText}\n\nCan you solve it? Check it out on Quiz Platform! ⚡`;
+    const shareText = `🧠 Short Gyaan: ${shortItem.questionText}\n\nCan you solve it? Check it out on brainArena! ⚡`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareText);
       addToast('📋 Short Gyaan question copied to clipboard!', 'success');
@@ -1812,23 +1813,27 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
         {isLoading ? (
           <ShortGyaanSkeleton />
         ) : shorts.length === 0 ? (
-          <div className="p-6 rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--border-theme)] text-center space-y-3 shadow-md my-8 max-w-md mx-auto">
-            <span className="text-3xl block">📭</span>
-            <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)]">
-              No Questions Found
-            </h3>
-            <p className="text-[11px] sm:text-xs font-lato text-[var(--text-muted)]">
-              {activeCategory === 'Saved'
-                ? 'You have not saved any questions yet. Tap 🔖 on any card to save it.'
-                : `No questions found under "${activeCategory}".`}
-            </p>
-            <button
-              onClick={() => setActiveCategory('All')}
-              className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs sm:text-sm cursor-pointer"
-            >
-              Explore All Questions →
-            </button>
-          </div>
+          typeof navigator !== 'undefined' && !navigator.onLine ? (
+            <NetworkErrorPage onNavigate={onNavigateHome} onRetry={() => window.location.reload()} />
+          ) : (
+            <div className="p-6 rounded-3xl bg-[var(--bg-card)] border-2 border-[var(--border-theme)] text-center space-y-3 shadow-md my-8 max-w-md mx-auto">
+              <span className="text-3xl block">📭</span>
+              <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)]">
+                No Questions Found
+              </h3>
+              <p className="text-[11px] sm:text-xs font-lato text-[var(--text-muted)]">
+                {activeCategory === 'Saved'
+                  ? 'You have not saved any questions yet. Tap 🔖 on any card to save it.'
+                  : `No questions found under "${activeCategory}".`}
+              </p>
+              <button
+                onClick={() => setActiveCategory('All')}
+                className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs sm:text-sm cursor-pointer"
+              >
+                Explore All Questions →
+              </button>
+            </div>
+          )
         ) : (
           shorts.map((shortItem, idx) => {
             const sId = shortItem._id;

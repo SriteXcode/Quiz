@@ -5,7 +5,7 @@ import { PartnerModal, PartnerSkeletonCard } from '../components/PartnersSection
 export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onExploreLiveQuizzes }) => {
   const [siteSettings, setSiteSettings] = useState({
     about: {
-      heroBadge: 'About Brand Platform',
+      heroBadge: 'About brainArena',
       heroTitle: 'Empowering the Next Generation of Tech Mastery',
       heroSubtitle: 'We build high-performance interactive tools to make technical skill evaluation engaging, competitive, and accessible for developers everywhere.',
       impactStats: [
@@ -131,7 +131,7 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onEx
       {/* Hero Header Section */}
       <div className="bg-gradient-to-r from-[var(--color-primary-600)] via-[var(--color-primary-700)] to-[var(--color-secondary-600)] text-white rounded-3xl p-8 sm:p-12 text-center shadow-xl relative overflow-hidden border border-white/10">
         <span className="inline-block px-3.5 py-1 mb-4 rounded-full bg-white/20 text-xs font-poppins font-bold uppercase tracking-wider">
-          {about.heroBadge || 'About Us Platform'}
+          {about.heroBadge || 'About brainArena'}
         </span>
         <h1 className="text-3xl sm:text-5xl font-extrabold font-poppins leading-tight mb-4">
           {about.heroTitle || 'Empowering the Next Generation of Tech Mastery'}
@@ -197,7 +197,7 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onEx
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-500/15 px-2.5 py-0.5 rounded-full">
               Accreditation & Governance
             </span>
             <h2 className="text-2xl sm:text-3xl font-bold font-poppins text-[var(--text-main)] mt-1">
@@ -205,7 +205,7 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onEx
             </h2>
           </div>
           <span className="text-xs font-lato text-[var(--text-muted)] flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse"></span>
             <span>Hover to pause • Click for accreditation details</span>
           </span>
         </div>
@@ -236,16 +236,16 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onEx
                       {partner.logoUrl || partner.icon || '⚖️'}
                     </div>
                     <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold inline-block">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 font-semibold inline-block">
                         {partner.type || 'Legal Partner'}
                       </span>
-                      <span className="text-[9px] font-bold text-emerald-500">
+                      <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400">
                         ● Audited
                       </span>
                     </div>
-                    <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover/card:text-[var(--color-primary-600)] transition-colors mb-1.5 line-clamp-1">
+                    <h3 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover/card:text-[var(--color-primary-600)] transition-colors mb-1.5 line-clamp-1">
                       {partner.name}
-                    </h4>
+                    </h3>
                     <p className="font-lato text-xs text-[var(--text-muted)] line-clamp-3 leading-relaxed">
                       {partner.description || 'Verified institutional partner and compliance council.'}
                     </p>

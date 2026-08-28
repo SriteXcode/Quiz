@@ -214,6 +214,23 @@ const quizSchema = new mongoose.Schema(
       type: String,
       default: 'Web Dev'
     },
+    isPaid: {
+      type: Boolean,
+      default: false
+    },
+    price: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    enrolledUsers: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        registeredAt: { type: Date, default: Date.now },
+        isPaid: { type: Boolean, default: false },
+        amountPaid: { type: Number, default: 0 }
+      }
+    ],
     techStack: {
       type: [String],
       default: []

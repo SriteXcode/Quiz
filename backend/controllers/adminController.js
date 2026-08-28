@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Quiz = require('../models/Quiz');
 const PreviousWork = require('../models/PreviousWork');
+const Review = require('../models/Review');
 const bcrypt = require('bcryptjs');
 
 // Auto seed default data if collections are empty
@@ -98,6 +99,9 @@ const getAdminOverviewStats = async (req, res) => {
     const activeQuizzes = liveNowQuizzes + upcomingQuizzes;
     const pastQuizzes = await Quiz.countDocuments({ status: 'past' });
     const totalPreviousWorks = await PreviousWork.countDocuments();
+    const totalReviews = await Review.countDocuments();
+    const pendingReviews = await Review.countDocuments({ status: 'pending' });
+    const approvedReviews = await Review.countDocuments({ status: 'approved' });
 
     res.status(200).json({
       success: true,
@@ -112,6 +116,9 @@ const getAdminOverviewStats = async (req, res) => {
         upcomingQuizzes,
         pastQuizzes,
         totalPreviousWorks: totalPreviousWorks || 4,
+        totalReviews,
+        pendingReviews,
+        approvedReviews,
         totalRewardsDistributed: 125,
         totalXPPointsAwarded: '48,500'
       }

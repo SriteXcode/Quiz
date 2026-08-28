@@ -137,7 +137,7 @@ export default function PwaInstallCard() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center space-x-1.5">
               <h4 className="font-poppins font-bold text-sm tracking-tight text-[var(--text-main)]">
-                Install Quiz Platform
+                Install brainArena
               </h4>
               <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                 PWA

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   /* ==========================================================================
      COLOR PALETTES (Extracted from color.png)
@@ -325,4 +327,20 @@ h1, h2, h3, h4, h5, h6 {
     size: landscape;
     margin: 0;
   }
+}
+
+/* ==========================================================================
+   RAZORPAY CHECKOUT POPUP SCALE (0.90) & BACKDROP COVERAGE (100vw x 100vh)
+   ========================================================================== */
+.razorpay-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+}
+
+.razorpay-checkout-frame,
+iframe[src*="razorpay"] {
+  transform: scale(0.90) !important;
+  transform-origin: center center !important;
 }

@@ -7,7 +7,7 @@ export const PolicyPage = ({ policyType = 'terms', onBack }) => {
       sections: [
         {
           heading: '1. Acceptance of Terms',
-          content: 'By accessing or using our Quiz Platform, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you may not access or use the platform.'
+          content: 'By accessing or using brainArena, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you may not access or use the platform.'
         },
         {
           heading: '2. User Accounts & Integrity',

@@ -268,8 +268,8 @@ export const getQuizCountdownData = (quiz) => {
   if (status === 'past') {
     return {
       status: 'past',
-      label: 'Quiz Ended',
-      formattedText: 'Completed',
+      label: 'Quiz Completed',
+      formattedText: '',
       days: 0,
       hours: 0,
       minutes: 0,
@@ -321,8 +321,8 @@ export const getQuizCountdownData = (quiz) => {
     }
     return {
       status: 'past',
-      label: 'Quiz Ended',
-      formattedText: 'Completed',
+      label: 'Quiz Completed',
+      formattedText: '',
       days: 0,
       hours: 0,
       minutes: 0,

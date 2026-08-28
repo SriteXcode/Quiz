@@ -107,17 +107,17 @@ export const Navbar = ({
   };
 
   return (
-    <header ref={navRef} className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-nav)] border-b border-[var(--border-theme)] transition-colors duration-300">
+    <header ref={navRef} className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-nav)] border-2 border-[var(--border-theme)] transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2">
           
           {/* Brand Logo & Name */}
           <div className="flex items-center space-x-2 md:space-x-2.5 lg:space-x-3 cursor-pointer shrink-0" onClick={() => handleNavClick('home', 'Home')}>
             <div className="w-9 h-9 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white font-bold text-lg md:text-base lg:text-xl shadow-md shrink-0">
-              Q
+              B
             </div>
             <span className="font-poppins font-bold text-lg md:text-base lg:text-xl tracking-wide text-[var(--text-main)] shrink-0">
-              brand
+              brainArena
             </span>
           </div>
 

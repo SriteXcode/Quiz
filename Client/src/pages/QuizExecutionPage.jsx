@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { apiSubmitQuizResult, apiGetQuizLeaderboard } from '../services/api';
+import { apiSubmitQuizResult, apiGetQuizLeaderboard, apiSubmitReview, apiCheckQuizAccess, apiCreatePaymentOrder, apiVerifyPayment, apiGetQuizzes } from '../services/api';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
 import CertificateModal from '../components/CertificateModal';
@@ -33,7 +33,7 @@ export const shuffleQuestionOptions = (q) => {
   };
 };
 
-export const QuizExecutionPage = ({ quiz, onFinish, onBack, isPractice = false }) => {
+export const QuizExecutionPage = ({ quiz, onFinish, onBack, onSelectQuiz, onViewAllQuizzes, isPractice = false }) => {
   const { user, isAdmin, isAuthenticated } = useAuth();
   const { addToast } = useToast();
   const isUserAdmin = Boolean(user && (user.role === 'admin' || isAdmin));
@@ -130,6 +130,7 @@ You are building a high-frequency financial settlement engine. Given an array of
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [questionTimer, setQuestionTimer] = useState(() => getQuestionInitialTime(0));
+  const [savedQuestionTimers, setSavedQuestionTimers] = useState({});
   const [totalTimerSeconds, setTotalTimerSeconds] = useState((quiz?.durationMinutes || 30) * 60);
   const [isQuizCompleted, setIsQuizCompleted] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
@@ -144,6 +145,215 @@ You are building a high-frequency financial settlement engine. Given an array of
   const [touchStartX, setTouchStartX] = useState(null);
   const [touchEndX, setTouchEndX] = useState(null);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+
+  // Payment Access Verification State
+  const [isVerifyingAccess, setIsVerifyingAccess] = useState(true);
+  const [hasPaymentAccess, setHasPaymentAccess] = useState(true);
+  const [accessDeniedPrice, setAccessDeniedPrice] = useState(0);
+  const [isPayingInExecution, setIsPayingInExecution] = useState(false);
+
+  // Recommendations Data
+  const [allQuizzes, setAllQuizzes] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchQuizzes = async () => {
+      try {
+        const res = await apiGetQuizzes();
+        if (isMounted && res && (res.quizzes || res.data)) {
+          setAllQuizzes(res.quizzes || res.data || []);
+        }
+      } catch {
+        // Fallback quiet
+      }
+    };
+    fetchQuizzes();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Sequence: 1. Upcoming -> 2. Live Now -> 3. Practice (Past)
+  const recommendedQuizzes = useMemo(() => {
+    if (!allQuizzes || !Array.isArray(allQuizzes) || allQuizzes.length === 0) return [];
+    const currentId = quiz?._id || quiz?.id;
+
+    const otherQuizzes = allQuizzes
+      .filter((q) => (q._id || q.id) !== currentId)
+      .map((q) => ({
+        ...q,
+        computedStatus: getQuizAutoStatus(q)
+      }));
+
+    const upcoming = otherQuizzes.filter((q) => q.computedStatus === 'upcoming');
+    const running = otherQuizzes.filter((q) => q.computedStatus === 'running');
+    const past = otherQuizzes.filter((q) => q.computedStatus === 'past');
+
+    return [...upcoming, ...running, ...past];
+  }, [allQuizzes, quiz]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkAccess = async () => {
+      const qId = quiz?._id || quiz?.id;
+      if (!qId) {
+        if (isMounted) setIsVerifyingAccess(false);
+        return;
+      }
+      try {
+        const res = await apiCheckQuizAccess(qId);
+        if (isMounted) {
+          if (res && res.hasAccess === false) {
+            setHasPaymentAccess(false);
+            setAccessDeniedPrice(res.price || quiz?.price || 0);
+          } else {
+            setHasPaymentAccess(true);
+          }
+        }
+      } catch (err) {
+        console.warn('[Quiz Access Check Error]:', err.message);
+      } finally {
+        if (isMounted) setIsVerifyingAccess(false);
+      }
+    };
+
+    checkAccess();
+    return () => { isMounted = false; };
+  }, [quiz]);
+
+  const handleExecutionCheckout = async () => {
+    const qId = quiz?._id || quiz?.id;
+    setIsPayingInExecution(true);
+    try {
+      const orderRes = await apiCreatePaymentOrder(qId);
+      if (!orderRes || orderRes.success === false) {
+        addToast(orderRes?.message || 'Failed to create payment order', 'error');
+        setIsPayingInExecution(false);
+        return;
+      }
+
+      if (orderRes.isFree || orderRes.alreadyPurchased) {
+        addToast('✨ Access granted to quiz challenge!', 'success');
+        setHasPaymentAccess(true);
+        setIsPayingInExecution(false);
+        return;
+      }
+
+      const scriptLoaded = await new Promise((resolve) => {
+        if (window.Razorpay) return resolve(true);
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+      });
+
+      const options = {
+        key: orderRes.key || 'rzp_test_quiz_platform_2026',
+        amount: orderRes.order?.amount || accessDeniedPrice * 100,
+        currency: 'INR',
+        name: 'brainArena Quiz Platform',
+        description: `Entry Fee for "${quiz?.title}"`,
+        image: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        order_id: orderRes.order?.id,
+        handler: async (response) => {
+          try {
+            const verifyRes = await apiVerifyPayment({
+              razorpay_order_id: response.razorpay_order_id || orderRes.order?.id,
+              razorpay_payment_id: response.razorpay_payment_id || `pay_${Date.now()}`,
+              razorpay_signature: response.razorpay_signature || `sig_${Date.now()}`,
+              quizId: qId
+            });
+
+            if (verifyRes && verifyRes.success !== false) {
+              addToast('🎉 Payment Verified! Quiz unlocked.', 'success');
+              setHasPaymentAccess(true);
+            } else {
+              addToast(verifyRes?.message || 'Payment verification failed', 'error');
+            }
+          } catch (err) {
+            addToast('Error verifying payment: ' + err.message, 'error');
+          } finally {
+            setIsPayingInExecution(false);
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phone || ''
+        },
+        theme: { color: '#2563eb' },
+        modal: {
+          ondismiss: () => {
+            setIsPayingInExecution(false);
+            addToast('Payment checkout cancelled.', 'info');
+          }
+        }
+      };
+
+      const keyStr = String(orderRes.key || '');
+      const isRealRazorpayKey = keyStr.startsWith('rzp_') && !keyStr.includes('YOUR_RAZORPAY') && keyStr !== 'rzp_test_quiz_platform_2026';
+
+      if (scriptLoaded && window.Razorpay && isRealRazorpayKey) {
+        try {
+          const rzp = new window.Razorpay(options);
+          rzp.open();
+          return;
+        } catch (rzpErr) {
+          console.warn('[Razorpay JS SDK init error - Falling back to Sandbox Simulation Mode]:', rzpErr.message);
+        }
+      }
+
+      // Sandbox Simulation Fallback Mode
+      const simPay = window.confirm(
+        `💳 [Razorpay Payment Simulation]\n\nComplete test payment of ₹${accessDeniedPrice} for "${quiz?.title}"?\n\n(Click OK to unlock quiz and complete registration)`
+      );
+      if (simPay) {
+        const verifyRes = await apiVerifyPayment({
+          razorpay_order_id: orderRes.order?.id || `order_sim_${Date.now()}`,
+          razorpay_payment_id: `pay_sim_${Date.now()}`,
+          razorpay_signature: `sig_sim_${Date.now()}`,
+          quizId: qId
+        });
+        if (verifyRes && verifyRes.success !== false) {
+          addToast('🎉 Payment Verified! Quiz unlocked.', 'success');
+          setHasPaymentAccess(true);
+        } else {
+          addToast(verifyRes?.message || 'Payment verification failed', 'error');
+        }
+      } else {
+        addToast('Payment checkout cancelled.', 'info');
+      }
+      setIsPayingInExecution(false);
+    } catch (err) {
+      addToast('Checkout error: ' + err.message, 'error');
+      setIsPayingInExecution(false);
+    }
+  };
+
+  const handleExitClick = () => {
+    if (isQuizCompleted) {
+      if (onBack) onBack();
+      return;
+    }
+    setIsExitModalOpen(true);
+  };
+
+  const handleConfirmExit = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+    }
+    setIsExitModalOpen(false);
+    if (onBack) onBack();
+  };
+  
+  // Post-Quiz Review State
+  const [postQuizRating, setPostQuizRating] = useState(5);
+  const [postQuizQuote, setPostQuizQuote] = useState('');
+  const [isSubmittingPostQuizReview, setIsSubmittingPostQuizReview] = useState(false);
+  const [postQuizReviewSubmitted, setPostQuizReviewSubmitted] = useState(false);
 
   // References to prevent race conditions during submission and timeouts
   const userAnswersRef = useRef(userAnswers);
@@ -287,8 +497,24 @@ You are building a high-frequency financial settlement engine. Given an array of
           }
         }
         if (res.success) {
-          setSubmissionResult(res.submission);
-          if (res.submission.isFirstAttempt) {
+          setSubmissionResult(res.submission?.score ? res.submission : {
+            score,
+            accuracy,
+            earnedXP,
+            correctCount,
+            incorrectCount,
+            unattemptedCount,
+            attemptedCount,
+            totalQuestions: questions.length,
+            isFirstAttempt: true,
+            isOfficialLeaderboardEntry: true,
+            userName: candidateName,
+            userEmail: user?.email || '',
+            username: emailPrefix
+          });
+          if (res.isOfflineQueued) {
+            addToast(`⚡ Quiz Saved Offline! Your score (${score}%) & XP will sync automatically when online.`, 'info');
+          } else if (res.submission?.isFirstAttempt) {
             addToast(`🎉 Official Attempt Recorded! +${earnedXP} XP Earned ⚡ Score: ${score}%`, 'success');
           } else {
             addToast(`🔁 Replay Finished! +${earnedXP} Practice XP (Official Leaderboard rank maintained)`, 'info');
@@ -391,7 +617,7 @@ You are building a high-frequency financial settlement engine. Given an array of
     if (isQuizCompleted) return;
 
     const handleBeforeUnload = (e) => {
-      const warningMessage = '⚠️ Warning: You have an active assessment in progress! Leaving now will submit your current test progress.';
+      const warningMessage = '⚠️ Warning: You have an active assessment in progress! Leaving now will lose your current progress and cannot be resumed. You will need to restart from the beginning.';
       e.preventDefault();
       e.returnValue = warningMessage;
       return warningMessage;
@@ -476,19 +702,37 @@ You are building a high-frequency financial settlement engine. Given an array of
     return () => clearInterval(timer);
   }, [isQuizCompleted, finishQuiz]);
 
-  // Per-Question Timer Clock (Strict countdown for active question only)
+  // Per-Question Timer Clock (Strict countdown for active question, persisting remaining seconds on navigation)
   useEffect(() => {
     if (!isPerQuestionTiming || isQuizCompleted || isCodeChallenge) return;
 
-    const initialSeconds = getQuestionInitialTime(currentQuestionIndex);
+    // Retrieve saved remaining time for current question if visited before, else use max initial time
+    const initialSeconds = typeof savedQuestionTimers[currentQuestionIndex] === 'number'
+      ? savedQuestionTimers[currentQuestionIndex]
+      : getQuestionInitialTime(currentQuestionIndex);
+
     const initTimer = setTimeout(() => {
       setQuestionTimer(initialSeconds);
     }, 0);
 
+    // If time was already 0 when returning to this question, trigger timeout handler immediately
+    if (initialSeconds <= 0) {
+      handleQuestionTimeout();
+      return;
+    }
+
     let hasHandledTimeout = false;
     const timerInterval = setInterval(() => {
       setQuestionTimer((prev) => {
-        if (prev <= 1) {
+        const nextVal = prev - 1;
+
+        // Persist remaining time into savedQuestionTimers map
+        setSavedQuestionTimers((prevSaved) => ({
+          ...prevSaved,
+          [currentQuestionIndex]: Math.max(0, nextVal)
+        }));
+
+        if (nextVal <= 0) {
           clearInterval(timerInterval);
           if (!hasHandledTimeout) {
             hasHandledTimeout = true;
@@ -496,7 +740,7 @@ You are building a high-frequency financial settlement engine. Given an array of
           }
           return 0;
         }
-        return prev - 1;
+        return nextVal;
       });
     }, 1000);
 
@@ -504,7 +748,7 @@ You are building a high-frequency financial settlement engine. Given an array of
       clearTimeout(initTimer);
       clearInterval(timerInterval);
     };
-  }, [isPerQuestionTiming, currentQuestionIndex, isQuizCompleted, isCodeChallenge, getQuestionInitialTime, handleQuestionTimeout]);
+  }, [isPerQuestionTiming, currentQuestionIndex, isQuizCompleted, isCodeChallenge, savedQuestionTimers, getQuestionInitialTime, handleQuestionTimeout]);
 
   const handleRunCodeTests = () => {
     setIsRunningTests(true);
@@ -529,6 +773,7 @@ You are building a high-frequency financial settlement engine. Given an array of
     setCurrentQuestionIndex(0);
     setUserAnswers({});
     userAnswersRef.current = {};
+    setSavedQuestionTimers({});
     setTotalTimerSeconds((quiz?.durationMinutes || 30) * 60);
     setQuestionTimer(getQuestionInitialTime(0));
   };
@@ -1467,6 +1712,228 @@ You are building a high-frequency financial settlement engine. Given an array of
           </div>
         )}
 
+        {/* POST-QUIZ STUDENT REVIEW CARD */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm mt-6">
+          {postQuizReviewSubmitted ? (
+            <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2 animate-fadeIn">
+              <span className="text-3xl">🎉</span>
+              <h4 className="font-poppins font-bold text-base text-emerald-700 dark:text-emerald-300">
+                Thank You for Your Feedback!
+              </h4>
+              <p className="text-xs text-[var(--text-muted)] font-lato">
+                Your review for <strong>{quiz?.title}</strong> has been saved and will inspire fellow students.
+              </p>
+            </div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!postQuizQuote.trim()) {
+                  addToast('Please enter a short review or feedback text.', 'warning');
+                  return;
+                }
+                setIsSubmittingPostQuizReview(true);
+                try {
+                  const res = await apiSubmitReview({
+                    userName: user?.name || 'Student Candidate',
+                    userEmail: user?.email || '',
+                    role: user?.studentClass || user?.school || 'Student Candidate',
+                    rating: postQuizRating,
+                    quote: postQuizQuote.trim(),
+                    quizId: quiz?._id || quiz?.id,
+                    quizTitle: quiz?.title || ''
+                  });
+                  if (res && res.success !== false) {
+                    addToast('✨ Review submitted successfully!', 'success');
+                    setPostQuizReviewSubmitted(true);
+                  } else {
+                    addToast(res?.message || 'Failed to submit review', 'error');
+                  }
+                } catch (err) {
+                  addToast(err.message || 'Error submitting review', 'error');
+                } finally {
+                  setIsSubmittingPostQuizReview(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-theme)] pb-3">
+                <div className="flex items-center space-x-3">
+                  <span className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-500 flex items-center justify-center text-xl font-bold shrink-0">
+                    ⭐
+                  </span>
+                  <div>
+                    <h4 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)]">
+                      How was your experience with "{quiz?.title || 'this Quiz'}"?
+                    </h4>
+                    <p className="text-xs text-[var(--text-muted)] font-lato">
+                      Submit a review for this assessment!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-1 shrink-0">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setPostQuizRating(star)}
+                      className="text-xl sm:text-2xl transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                    >
+                      <span className={star <= postQuizRating ? 'text-amber-400' : 'text-slate-300 dark:text-slate-700'}>
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                rows={2}
+                value={postQuizQuote}
+                onChange={(e) => setPostQuizQuote(e.target.value)}
+                placeholder="Share your thoughts on question difficulty, timer, or overall learning value..."
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs sm:text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary-500)] resize-none"
+              />
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isSubmittingPostQuizReview}
+                  className="px-5 py-2 rounded-xl bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] text-white font-semibold text-xs transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+                >
+                  {isSubmittingPostQuizReview ? (
+                    <span>Submitting...</span>
+                  ) : (
+                    <>
+                      <span>Submit Review</span>
+                      <span>🚀</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* MORE QUIZ RECOMMENDATIONS SECTION (SEQUENCED: UPCOMING -> LIVE NOW -> PRACTICE) */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-4">
+            <div>
+              <h3 className="text-lg sm:text-xl font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                <span>🚀</span>
+                <span>More Recommended Quiz Challenges</span>
+              </h3>
+              <p className="text-xs font-lato text-[var(--text-muted)]">
+                Upcoming live exams, live challenges, and practice quizzes ordered by sequence.
+              </p>
+            </div>
+            <button
+              onClick={onViewAllQuizzes ? onViewAllQuizzes : () => { if (onBack) onBack(); }}
+              className="text-xs font-poppins font-bold text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center space-x-1"
+            >
+              <span>View All Quizzes</span>
+              <span>→</span>
+            </button>
+          </div>
+
+          {recommendedQuizzes.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {recommendedQuizzes.slice(0, 6).map((item) => {
+                const itemStatus = item.computedStatus;
+                const isUpcoming = itemStatus === 'upcoming';
+                const isRunning = itemStatus === 'running';
+                const isEnded = itemStatus === 'past';
+                const origPrice = item.price || 0;
+                const effPrice = isEnded && item.isPaid ? Math.max(1, Math.round(origPrice * 0.10)) : origPrice;
+                const isDisc = isEnded && item.isPaid && origPrice > 0;
+                const isUserRegistered = Boolean(isUserAdmin || (item.enrolledUsers && user && item.enrolledUsers.some((u) => (u.userId === user._id || u.userId === user.id))));
+
+                return (
+                  <div
+                    key={item._id || item.id || item.title}
+                    onClick={() => onSelectQuiz ? onSelectQuiz(item) : onBack()}
+                    className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-5 hover:border-[var(--color-primary-400)] transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1 relative overflow-hidden shadow-xs hover:shadow-md"
+                  >
+                    {/* Status Ribbon */}
+                    {isUpcoming && (
+                      <div className="absolute top-0 right-0 bg-amber-500 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
+                        ⏳ Upcoming
+                      </div>
+                    )}
+                    {isRunning && (
+                      <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
+                        🔴 Live Now
+                      </div>
+                    )}
+                    {isEnded && (
+                      <div className="absolute top-0 right-0 bg-slate-600 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
+                        🏁 Practice
+                      </div>
+                    )}
+
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-1.5 pt-1">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
+                          {item.category || 'Web Dev'}
+                        </span>
+                        {isDisc ? (
+                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
+                            <span>🔥 ₹{effPrice}</span>
+                            <span className="line-through text-rose-500 dark:text-rose-400 text-[9px] font-bold">₹{origPrice}</span>
+                          </span>
+                        ) : item.isPaid && origPrice > 0 ? (
+                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                            💳 ₹{origPrice}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                            🟢 FREE
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors line-clamp-2">
+                        {item.title}
+                      </h4>
+
+                      <p className="text-xs font-lato text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                        {item.description || 'Test your skills in this interactive challenge!'}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between mt-4">
+                      <div className="flex items-center space-x-1.5 text-[11px] font-lato text-[var(--text-muted)] font-bold">
+                        <span>⏱️ {item.durationMinutes ? `${item.durationMinutes}m` : '20m'}</span>
+                        <span>•</span>
+                        <span className="text-[var(--color-primary-600)]">👥 {item.enrolledUsers ? item.enrolledUsers.length : 0}</span>
+                      </div>
+
+                      <span className={`px-3 py-1 rounded-xl font-poppins font-bold text-[11px] transition-all shadow-xs ${
+                        isUpcoming
+                          ? isUserRegistered ? 'bg-emerald-700 text-white' : 'bg-amber-600 text-white'
+                          : isRunning
+                          ? isUserRegistered ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'
+                          : isUserRegistered ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
+                      }`}>
+                        {isUpcoming
+                          ? isUserRegistered ? '✅ Registered' : '📝 Register'
+                          : isRunning
+                          ? isUserRegistered ? 'Compete 🚀' : '🔒 Closed'
+                          : isUserRegistered ? '🎯 Practice' : '📝 Register for Practice'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-xs text-[var(--text-muted)]">
+              No other quiz recommendations available right now.
+            </div>
+          )}
+        </div>
+
         {/* CERTIFICATE MODAL */}
         <CertificateModal
           isOpen={isCertificateOpen}
@@ -1525,6 +1992,64 @@ You are building a high-frequency financial settlement engine. Given an array of
   }
 
   // =========================================================================
+  // QUIZ ACCESS DENIED GUARD (REGISTRATION CUT-OFF & PAYMENT ACCESS)
+  // =========================================================================
+  if (!isVerifyingAccess && !hasPaymentAccess) {
+    const quizAutoStatus = getQuizAutoStatus(quiz);
+    const isLiveRunning = quizAutoStatus === 'running';
+
+    return (
+      <div className="max-w-lg mx-auto py-12 px-4 text-center space-y-6 animate-fadeIn">
+        <div className="p-8 sm:p-10 rounded-3xl bg-[var(--bg-card)] border-2 border-amber-500/50 shadow-2xl space-y-6">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold text-3xl mx-auto border border-amber-500/20 animate-bounce">
+            🔒
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="font-poppins font-black text-xl sm:text-2xl text-[var(--text-main)]">
+              {isLiveRunning ? 'Registration Closed for Live Quiz' : 'Access / Payment Required'}
+            </h2>
+            <p className="text-xs sm:text-sm font-lato text-[var(--text-secondary)] leading-relaxed">
+              {isLiveRunning ? (
+                <>
+                  Registration for this live quiz closed at start time. Only candidates who registered before the quiz started are allowed to participate in live assessment.
+                </>
+              ) : (
+                <>
+                  This assessment requires registration or unlock payment of <strong>₹{accessDeniedPrice}</strong> (90% OFF Practice Rate).
+                </>
+              )}
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs font-poppins font-bold text-amber-700 dark:text-amber-300">
+            {isLiveRunning ? '🚫 Registration Ended at Start Time' : `💳 Practice Entry Fee: ₹${accessDeniedPrice} (90% OFF)`}
+          </div>
+
+          <div className="space-y-3 pt-2">
+            {!isLiveRunning && (
+              <button
+                onClick={handleExecutionCheckout}
+                disabled={isPayingInExecution}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-poppins font-bold text-sm shadow-xl shadow-amber-500/25 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isPayingInExecution ? '⌛ Opening Razorpay Checkout...' : `💳 Pay ₹${accessDeniedPrice} to Unlock Practice`}
+              </button>
+            )}
+
+            <button
+              onClick={onBack}
+              className="w-full py-2.5 px-6 rounded-2xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-poppins font-bold text-xs hover:bg-[var(--bg-card)] cursor-pointer transition-all active:scale-95"
+            >
+              ← Return to Quiz Catalog
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
   // REAL-WORLD CODE CHALLENGE WORKSPACE
   // =========================================================================
   if (isCodeChallenge) {
@@ -1533,7 +2058,7 @@ You are building a high-frequency financial settlement engine. Given an array of
         <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center space-x-3">
             <button
-              onClick={onBack}
+              onClick={handleExitClick}
               className="px-3 py-1.5 rounded-lg border border-[var(--border-theme)] text-xs font-poppins font-bold cursor-pointer hover:bg-[var(--bg-main)]"
             >
               ← Exit
@@ -1789,7 +2314,7 @@ You are building a high-frequency financial settlement engine. Given an array of
       <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3">
           <button
-            onClick={onBack}
+            onClick={handleExitClick}
             className="px-3 py-1.5 rounded-lg border border-[var(--border-theme)] text-xs font-poppins font-bold cursor-pointer hover:bg-[var(--bg-main)]"
           >
             ← Exit
@@ -1974,6 +2499,48 @@ You are building a high-frequency financial settlement engine. Given an array of
           )}
         </div>
       </div>
+
+      {/* EXAM EXIT CONFIRMATION MODAL */}
+      {isExitModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border-2 border-rose-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-center">
+            <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center text-3xl font-bold mx-auto border border-rose-500/20 animate-pulse">
+              ⚠️
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold font-poppins text-rose-600 dark:text-rose-400">
+                Leave Active Quiz?
+              </h3>
+              <p className="text-xs sm:text-sm font-lato text-[var(--text-secondary)] leading-relaxed">
+                Your current test progress will be lost and <strong>cannot be resumed</strong>. If you leave now, you will need to restart the assessment from the beginning.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs font-poppins font-bold text-rose-700 dark:text-rose-300">
+              🚫 Progress cannot be resumed after exiting.
+            </div>
+
+            <div className="flex items-center justify-center space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsExitModalOpen(false)}
+                className="w-1/2 py-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-poppins font-bold text-xs hover:bg-[var(--bg-card)] cursor-pointer transition-all active:scale-95"
+              >
+                Continue Quiz 🎯
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmExit}
+                className="w-1/2 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-poppins font-bold text-xs shadow-lg shadow-rose-500/20 cursor-pointer transition-all active:scale-95"
+              >
+                Leave & Exit 🚪
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

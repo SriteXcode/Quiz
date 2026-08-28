@@ -27,6 +27,12 @@ const {
   updateMessagePriority,
   deleteContactMessage
 } = require('../controllers/siteContentController');
+const {
+  getAdminReviews,
+  createAdminReview,
+  updateReviewStatus,
+  deleteReview
+} = require('../controllers/reviewController');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 
 // All routes here are protected and require valid Admin JWT Token
@@ -84,5 +90,17 @@ router.get('/messages', getAdminMessages);
 router.put('/messages/:id/read', toggleMessageRead);
 router.put('/messages/:id/priority', updateMessagePriority);
 router.delete('/messages/:id', deleteContactMessage);
+
+// =========================================================================
+// ⭐ ADMIN REVIEW & TESTIMONIAL MODERATION
+// =========================================================================
+// @route   GET /api/admin/reviews
+// @route   POST /api/admin/reviews
+// @route   PUT /api/admin/reviews/:id
+// @route   DELETE /api/admin/reviews/:id
+router.get('/reviews', getAdminReviews);
+router.post('/reviews', createAdminReview);
+router.put('/reviews/:id', updateReviewStatus);
+router.delete('/reviews/:id', deleteReview);
 
 module.exports = router;

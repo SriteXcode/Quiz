@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 // Reusable Layout & Showcase Components
 import Navbar from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
@@ -9,27 +9,28 @@ import { ReviewSection } from './components/ReviewSection';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import PwaInstallCard from './components/PwaInstallCard';
-
-// Pages
-import QuizDetailPage from './pages/QuizDetailPage';
-import QuizExecutionPage from './pages/QuizExecutionPage';
-import QuizPage from './pages/QuizPage';
-import ProfilePage from './pages/ProfilePage';
-import ShortGyaanPage from './pages/ShortGyaanPage';
-import PolicyPage from './pages/PolicyPage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import NotFoundPage from './pages/NotFoundPage';
-import { AuthPage } from './pages/AuthPage';
-
-// Admin Portal
-import AdminDashboard from './admin/AdminDashboard';
-
 import InitialLogoLoader from './components/InitialLogoLoader';
+import GlobalNetworkBanner from './components/GlobalNetworkBanner';
+import UniversalReviewModal from './components/UniversalReviewModal';
+
+// Dynamic Lazy-Loaded Pages & Heavy Subsystems
+const QuizDetailPage = lazy(() => import('./pages/QuizDetailPage'));
+const QuizExecutionPage = lazy(() => import('./pages/QuizExecutionPage'));
+const QuizPage = lazy(() => import('./pages/QuizPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const ShortGyaanPage = lazy(() => import('./pages/ShortGyaanPage'));
+const PolicyPage = lazy(() => import('./pages/PolicyPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+const NetworkErrorPage = lazy(() => import('./pages/NetworkErrorPage'));
+const AuthPage = lazy(() => import('./pages/AuthPage').then((module) => ({ default: module.AuthPage })));
+const AdminDashboard = lazy(() => import('./admin/AdminDashboard'));
 
 // Services & Utils
-import { apiGetQuizzes } from './services/api';
+import { apiGetQuizzes, request } from './services/api';
 import { getQuizAutoStatus } from './utils/dateUtils';
+import { syncPendingOfflineActions } from './utils/offlineSync';
 
 // Contexts
 import { useAuth } from './context/AuthContext';
@@ -62,6 +63,7 @@ export const App = () => {
     return localStorage.getItem('quiz_platform_active_policy') || null;
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isGlobalReviewModalOpen, setIsGlobalReviewModalOpen] = useState(false);
 
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
@@ -74,6 +76,21 @@ export const App = () => {
     window.history.pushState({ page: activeTab }, '', window.location.href);
 
     const handlePopState = () => {
+      if (isExecutingQuiz) {
+        const confirmLeave = window.confirm(
+          '⚠️ Are you sure you want to leave this quiz?\n\nYour current progress will be lost and cannot be resumed. If you leave now, you will need to restart the assessment from the beginning.'
+        );
+        if (confirmLeave) {
+          setIsExecutingQuiz(false);
+          setSelectedQuiz(null);
+          setIsPracticeMode(false);
+          addToast('Quiz exited. Progress reset.', 'info');
+        } else {
+          window.history.pushState({ page: activeTab }, '', window.location.href);
+        }
+        return;
+      }
+
       const now = Date.now();
       const timeDiff = now - lastBackPressTimeRef.current;
       const isDoubleBack = timeDiff < 2000;
@@ -110,7 +127,7 @@ export const App = () => {
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [activeTab, addToast]);
+  }, [activeTab, isExecutingQuiz, addToast]);
 
   useEffect(() => {
     if (!isAuthLoading) {
@@ -225,6 +242,55 @@ export const App = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Global Network Connectivity State (Online / Offline)
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [showReconnectedBanner, setShowReconnectedBanner] = useState(false);
+  const reconnectedTimerRef = useRef(null);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowReconnectedBanner(true);
+      window.dispatchEvent(new CustomEvent('app:online-reconnected'));
+
+      // Automatically flush and sync any pending offline actions (quiz results, likes, bookmarks)
+      syncPendingOfflineActions(request).then(({ syncedCount }) => {
+        if (syncedCount > 0) {
+          addToast(`⚡ Auto-Synced ${syncedCount} offline action${syncedCount > 1 ? 's' : ''} to server!`, 'success');
+        }
+      }).catch((err) => {
+        console.warn('Offline sync error:', err);
+      });
+
+      if (reconnectedTimerRef.current) {
+        clearTimeout(reconnectedTimerRef.current);
+      }
+
+      reconnectedTimerRef.current = setTimeout(() => {
+        setShowReconnectedBanner(false);
+      }, 3000);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowReconnectedBanner(false);
+      if (reconnectedTimerRef.current) {
+        clearTimeout(reconnectedTimerRef.current);
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      if (reconnectedTimerRef.current) {
+        clearTimeout(reconnectedTimerRef.current);
+      }
+    };
+  }, [addToast]);
+
   const isAuthModalOpen = activeTab === 'signup' || activeTab === 'login';
   const isShortsTab = activeTab === 'short-gyaan' || activeTab === 'shorts-gyaan';
 
@@ -235,6 +301,13 @@ export const App = () => {
   return (
     <div className={`bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 flex flex-col font-lato ${isShortsTab ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'}`}>
       
+      {/* Sticky Global Network Offline / Reconnected Banner */}
+      <GlobalNetworkBanner
+        isOnline={isOnline}
+        showReconnectedBanner={showReconnectedBanner}
+        onDismissReconnected={() => setShowReconnectedBanner(false)}
+      />
+
       {/* Top Sticky Navbar */}
       <Navbar
         theme={theme}
@@ -255,100 +328,123 @@ export const App = () => {
       />
 
       {/* Main Page Layout Container */}
-      <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8 pb-16 md:pb-0'}`}>
-        {activePolicy !== null ? (
-          <PolicyPage
-            policyType={activePolicy}
-            onBack={handleBackToHome}
-          />
-        ) : isExecutingQuiz ? (
-          <QuizExecutionPage
-            quiz={selectedQuiz}
-            isPractice={isPracticeMode}
-            onBack={() => {
-              setIsExecutingQuiz(false);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        ) : selectedQuiz !== null ? (
-          <QuizDetailPage
-            quiz={selectedQuiz}
-            isLoading={false}
-            onStartQuiz={handleStartQuiz}
-            onRequireLogin={() => setActiveTab('login')}
-            onBack={() => {
-              setSelectedQuiz(null);
-              setActiveTab('quiz');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        ) : activeTab === 'profile' ? (
-          <ProfilePage
-            onNavigateToQuiz={handleNavigateToQuizPage}
-            onNavigateHome={handleBackToHome}
-            onNavigateAdmin={() => {
-              setSelectedQuiz(null);
-              setIsExecutingQuiz(false);
-              setIsPracticeMode(false);
-              setActivePolicy(null);
-              setActiveTab('admin');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        ) : activeTab === 'admin' ? (
-          <AdminDashboard />
-        ) : (activeTab === 'short-gyaan' || activeTab === 'shorts-gyaan') ? (
-          <ShortGyaanPage
-            onRequireAuth={(mode) => setActiveTab(mode || 'login')}
-            onNavigateHome={handleBackToHome}
-          />
-        ) : activeTab === 'about' ? (
-          <AboutPage
-            onNavigateToQuiz={handleNavigateToQuizPage}
-            onExploreQuizzes={handleExploreLiveQuizzes}
-            onExploreLiveQuizzes={handleExploreLiveQuizzes}
-            onNavigate={(tab) => {
-              if (tab === 'quiz') handleNavigateToQuizPage();
-              else setActiveTab(tab);
-            }}
-          />
-        ) : activeTab === 'contact' ? (
-          <ContactPage />
-        ) : activeTab === 'quiz' ? (
-          <QuizPage
-            onSelectQuiz={handleSelectQuiz}
-          />
-        ) : activeTab === 'home' ? (
-          <div className="space-y-12">
-            {/* Hero Banner */}
-            <HeroBanner onExploreLiveQuizzes={handleExploreLiveQuizzes} />
-
-            {/* Live Quizzes Section */}
-            <LiveQuizzes
-              onSelectQuiz={handleSelectQuiz}
-              onViewAll={handleNavigateToQuizPage}
+      <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-2 pb-4 md:pb-0'}`}>
+        <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center font-poppins text-sm text-[var(--text-muted)] animate-pulse">Loading brainArena...</div>}>
+          {activePolicy !== null ? (
+            <PolicyPage
+              policyType={activePolicy}
+              onBack={handleBackToHome}
             />
-
-            {/* Previous Work Showcase */}
-            <PreviousWorks
-              onSelectQuiz={handleSelectQuiz}
-              onViewAll={handleNavigateToQuizPage}
+          ) : isExecutingQuiz ? (
+            <QuizExecutionPage
+              quiz={selectedQuiz}
+              isPractice={isPracticeMode}
+              onSelectQuiz={(q) => {
+                setIsExecutingQuiz(false);
+                setSelectedQuiz(q);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onViewAllQuizzes={() => {
+                setIsExecutingQuiz(false);
+                setSelectedQuiz(null);
+                setActiveTab('quiz');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              onBack={() => {
+                setIsExecutingQuiz(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
+          ) : selectedQuiz !== null ? (
+            <QuizDetailPage
+              quiz={selectedQuiz}
+              isLoading={false}
+              onStartQuiz={handleStartQuiz}
+              onRequireLogin={() => setActiveTab('login')}
+              onBack={() => {
+                setSelectedQuiz(null);
+                setActiveTab('quiz');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          ) : activeTab === 'profile' ? (
+            <ProfilePage
+              onNavigateToQuiz={handleNavigateToQuizPage}
+              onNavigateHome={handleBackToHome}
+              onNavigateAdmin={() => {
+                setSelectedQuiz(null);
+                setIsExecutingQuiz(false);
+                setIsPracticeMode(false);
+                setActivePolicy(null);
+                setActiveTab('admin');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          ) : activeTab === 'admin' ? (
+            !isOnline ? (
+              <NetworkErrorPage
+                onNavigate={(tab) => {
+                  setActiveTab(tab);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                onRetry={() => window.location.reload()}
+              />
+            ) : (
+              <AdminDashboard />
+            )
+          ) : (activeTab === 'short-gyaan' || activeTab === 'shorts-gyaan') ? (
+            <ShortGyaanPage
+              onRequireAuth={(mode) => setActiveTab(mode || 'login')}
+              onNavigateHome={handleBackToHome}
+            />
+          ) : activeTab === 'about' ? (
+            <AboutPage
+              onNavigateToQuiz={handleNavigateToQuizPage}
+              onExploreQuizzes={handleExploreLiveQuizzes}
+              onExploreLiveQuizzes={handleExploreLiveQuizzes}
+              onNavigate={(tab) => {
+                if (tab === 'quiz') handleNavigateToQuizPage();
+                else setActiveTab(tab);
+              }}
+            />
+          ) : activeTab === 'contact' ? (
+            <ContactPage />
+          ) : activeTab === 'quiz' ? (
+            <QuizPage
+              onSelectQuiz={handleSelectQuiz}
+            />
+          ) : (activeTab === 'home' || activeTab === 'login' || activeTab === 'signup') ? (
+            <div className="space-y-12">
+              {/* Hero Banner */}
+              <HeroBanner onExploreLiveQuizzes={handleExploreLiveQuizzes} />
 
-            {/* Partners */}
-            <PartnersSection />
+              {/* Live Quizzes Section */}
+              <LiveQuizzes
+                onSelectQuiz={handleSelectQuiz}
+                onViewAll={handleNavigateToQuizPage}
+              />
 
-            {/* Reviews */}
-            <ReviewSection />
-          </div>
-        ) : (
-          <NotFoundPage
-            onNavigate={(tab) => {
-              setActiveTab(tab);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
-        )}
+              {/* Previous Work Showcase */}
+              <PreviousWorks
+                onSelectQuiz={handleSelectQuiz}
+                onViewAll={handleNavigateToQuizPage}
+              />
+
+              {/* Partners */}
+              <PartnersSection />
+
+              {/* Reviews */}
+              <ReviewSection />
+            </div>
+          ) : (
+            <NotFoundPage
+              onNavigate={(tab) => {
+                setActiveTab(tab);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          )}
+        </Suspense>
       </main>
 
       {/* Footer (Hidden on Shorts Gyaan and Quiz Execution workspace) */}
@@ -370,13 +466,15 @@ export const App = () => {
 
       {/* Auth Modal (Login / Register) */}
       {isAuthModalOpen && (
-        <AuthPage
-          isOpen={isAuthModalOpen}
-          initialMode={activeTab === 'signup' ? 'signup' : 'login'}
-          onClose={() => {
-            setActiveTab('home');
-          }}
-        />
+        <Suspense fallback={null}>
+          <AuthPage
+            isOpen={isAuthModalOpen}
+            initialMode={activeTab === 'signup' ? 'signup' : 'login'}
+            onClose={() => {
+              setActiveTab('home');
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Small Devices Fixed Bottom Navigation Bar (Hidden on Shorts Gyaan and Quiz Execution workspace) */}
@@ -398,6 +496,12 @@ export const App = () => {
 
       {/* PWA Install & Notification Permission Floating Card */}
       <PwaInstallCard />
+
+      {/* Universal Review Modal */}
+      <UniversalReviewModal
+        isOpen={isGlobalReviewModalOpen}
+        onClose={() => setIsGlobalReviewModalOpen(false)}
+      />
 
     </div>
   );

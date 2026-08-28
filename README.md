@@ -1,4 +1,4 @@
-# 🏆 QuizMaster — Production Full-Stack Assessment & Learning Platform
+# 🏆 brainArena — Production Full-Stack Assessment & Learning Platform
 
 <div align="center">
 
@@ -36,9 +36,9 @@
 
 ## 🌟 Platform Overview
 
-**QuizMaster** is built for engineering teams, educational institutions, and developers. It combines rigorous full-stack technical evaluations with engaging, bite-sized micro-learning concepts.
+**brainArena** is built for engineering teams, educational institutions, and developers. It combines rigorous full-stack technical evaluations with engaging, bite-sized micro-learning concepts.
 
-Whether running high-stakes timed coding challenges with webcam proctoring, generating tamper-proof completion certificates, or practicing core computer science concepts through vertical Reels, QuizMaster provides a polished experience across all screen sizes.
+Whether running high-stakes timed coding challenges with webcam proctoring, generating tamper-proof completion certificates, or practicing core computer science concepts through vertical Reels, brainArena provides a polished experience across all screen sizes.
 
 ---
 
@@ -252,7 +252,7 @@ Both **Quiz Assessments** and **Short Gyaan Reels** support 1-click Excel `.xlsx
 
 ## 👁️ Anti-Cheating & Proctoring
 
-QuizMaster includes an integrated browser-based anti-cheating suite:
+brainArena includes an integrated browser-based anti-cheating suite:
 - **Webcam Proctoring**: Candidate webcam stream with face presence verification.
 - **Audio Sensitivity**: Background noise & multi-voice anomaly alerts.
 - **Fullscreen & Focus Monitoring**: Detects window blur, tab switching, and developer tools inspection.
@@ -273,7 +273,7 @@ The optimized production bundle is generated in `Client/dist/`.
 ```bash
 cd backend
 npm install -g pm2
-pm2 start server.js --name "quizmaster-api"
+pm2 start server.js --name "brainarena-api"
 pm2 save
 ```
 

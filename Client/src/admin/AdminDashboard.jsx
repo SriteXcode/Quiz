@@ -23,7 +23,11 @@ import {
   apiGetAdminMessages,
   apiToggleMessageRead,
   apiUpdateMessagePriority,
-  apiDeleteMessage
+  apiDeleteMessage,
+  apiGetAdminReviews,
+  apiCreateAdminReview,
+  apiUpdateReview,
+  apiDeleteReview
 } from '../services/api';
 import {
   downloadQuizQuestionsTemplate,
@@ -254,6 +258,24 @@ export const AdminDashboard = () => {
     order: 1
   });
 
+  // Reviews & Testimonials Moderation State
+  const [reviewsList, setReviewsList] = useState([]);
+  const [reviewStats, setReviewStats] = useState({ total: 0, approved: 0, pending: 0, rejected: 0, featured: 0, avgRating: 5.0 });
+  const [reviewStatusFilter, setReviewStatusFilter] = useState('all');
+  const [reviewSearchQuery, setReviewSearchQuery] = useState('');
+  const [isReviewAdminModalOpen, setIsReviewAdminModalOpen] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState(null);
+  const [reviewAdminFormData, setReviewAdminFormData] = useState({
+    userName: '',
+    userEmail: '',
+    role: 'Verified Student',
+    rating: 5,
+    quote: '',
+    quizTitle: '',
+    status: 'approved',
+    isFeatured: true
+  });
+
   // Eager parallel data loader: fetches all tabs concurrently so every tab has live data
   useEffect(() => {
     if (!isAdmin) return;
@@ -261,7 +283,7 @@ export const AdminDashboard = () => {
     const fetchAllAdminData = async () => {
       setIsLoadingMessages(true);
       try {
-        const [statsRes, usersRes, quizzesRes, worksRes, siteRes, partnersRes, msgsRes] =
+        const [statsRes, usersRes, quizzesRes, worksRes, siteRes, partnersRes, msgsRes, reviewsRes] =
           await Promise.allSettled([
             apiGetAdminStats(),
             apiGetAdminUsers(searchQuery, roleFilter),
@@ -274,7 +296,8 @@ export const AdminDashboard = () => {
               readFilter: msgReadFilter,
               priorityFilter: msgPriorityFilter,
               search: msgSearchQuery
-            })
+            }),
+            apiGetAdminReviews(reviewStatusFilter, reviewSearchQuery)
           ]);
 
         if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value.stats) {
@@ -299,6 +322,10 @@ export const AdminDashboard = () => {
           if (msgsRes.value.messages?.length) setMessagesList(msgsRes.value.messages);
           if (msgsRes.value.stats) setMessageStats(msgsRes.value.stats);
         }
+        if (reviewsRes.status === 'fulfilled' && reviewsRes.value?.success) {
+          if (Array.isArray(reviewsRes.value.reviews)) setReviewsList(reviewsRes.value.reviews);
+          if (reviewsRes.value.stats) setReviewStats(reviewsRes.value.stats);
+        }
       } catch {
         console.warn('[Admin Parallel Load]: Fallback active');
       } finally {
@@ -307,7 +334,7 @@ export const AdminDashboard = () => {
     };
 
     fetchAllAdminData();
-  }, [isAdmin, activeTab, searchQuery, roleFilter, msgDateFilter, msgReadFilter, msgPriorityFilter, msgSearchQuery]);
+  }, [isAdmin, activeTab, searchQuery, roleFilter, msgDateFilter, msgReadFilter, msgPriorityFilter, msgSearchQuery, reviewStatusFilter, reviewSearchQuery]);
 
   const handleToggleMessageRead = async (id, currentIsRead) => {
     try {
@@ -486,6 +513,128 @@ You are building a high-frequency financial settlement engine. Given an array of
     quizFormData.endPeriod
   );
 
+  // ==========================================
+  // REVIEW & TESTIMONIAL MODERATION ACTIONS
+  // ==========================================
+  const handleUpdateReviewStatusAdmin = async (id, status) => {
+    try {
+      const res = await apiUpdateReview(id, { status });
+      if (res && res.success !== false) {
+        setReviewsList((prev) =>
+          prev.map((r) => ((r._id === id || r.id === id) ? { ...r, status } : r))
+        );
+        addToast(`Review status updated to ${status.toUpperCase()}`, 'success');
+      }
+    } catch {
+      setReviewsList((prev) =>
+        prev.map((r) => ((r._id === id || r.id === id) ? { ...r, status } : r))
+      );
+      addToast(`Updated review status to ${status.toUpperCase()}`, 'info');
+    }
+  };
+
+  const handleToggleReviewFeaturedAdmin = async (id, currentIsFeatured) => {
+    const nextFeatured = !currentIsFeatured;
+    try {
+      const res = await apiUpdateReview(id, { isFeatured: nextFeatured });
+      if (res && res.success !== false) {
+        setReviewsList((prev) =>
+          prev.map((r) => ((r._id === id || r.id === id) ? { ...r, isFeatured: nextFeatured } : r))
+        );
+        addToast(`Review ${nextFeatured ? 'featured on homepage' : 'unfeatured'}`, 'info');
+      }
+    } catch {
+      setReviewsList((prev) =>
+        prev.map((r) => ((r._id === id || r.id === id) ? { ...r, isFeatured: nextFeatured } : r))
+      );
+      addToast(`Review ${nextFeatured ? 'featured on homepage' : 'unfeatured'}`, 'info');
+    }
+  };
+
+  const handleDeleteReviewAdmin = async (id, authorName) => {
+    if (!window.confirm(`Delete review from "${authorName || 'Student'}"?`)) return;
+    try {
+      await apiDeleteReview(id);
+      setReviewsList((prev) => prev.filter((r) => (r._id !== id && r.id !== id)));
+      addToast(`Deleted review from "${authorName}"`, 'info');
+    } catch {
+      setReviewsList((prev) => prev.filter((r) => (r._id !== id && r.id !== id)));
+      addToast(`Deleted review from "${authorName}"`, 'info');
+    }
+  };
+
+  const handleOpenCreateReviewModalAdmin = () => {
+    setEditingReviewId(null);
+    setReviewAdminFormData({
+      userName: '',
+      userEmail: '',
+      role: 'Verified Student',
+      rating: 5,
+      quote: '',
+      quizTitle: '',
+      status: 'approved',
+      isFeatured: true
+    });
+    setIsReviewAdminModalOpen(true);
+  };
+
+  const handleOpenEditReviewModalAdmin = (review) => {
+    setEditingReviewId(review._id || review.id);
+    setReviewAdminFormData({
+      userName: review.userName || review.author || '',
+      userEmail: review.userEmail || '',
+      role: review.role || 'Verified Student',
+      rating: review.rating || 5,
+      quote: review.quote || '',
+      quizTitle: review.quizTitle || '',
+      status: review.status || 'approved',
+      isFeatured: review.isFeatured !== undefined ? review.isFeatured : true
+    });
+    setIsReviewAdminModalOpen(true);
+  };
+
+  const handleSaveReviewSubmitAdmin = async (e) => {
+    e.preventDefault();
+    if (!reviewAdminFormData.userName || !reviewAdminFormData.quote) {
+      addToast('Name and review quote text are required.', 'warning');
+      return;
+    }
+
+    try {
+      if (editingReviewId) {
+        const res = await apiUpdateReview(editingReviewId, reviewAdminFormData);
+        if (res && res.success !== false) {
+          setReviewsList((prev) =>
+            prev.map((r) => ((r._id === editingReviewId || r.id === editingReviewId) ? (res.review || { ...r, ...reviewAdminFormData }) : r))
+          );
+          addToast('Review updated successfully!', 'success');
+        } else {
+          setReviewsList((prev) =>
+            prev.map((r) => ((r._id === editingReviewId || r.id === editingReviewId) ? { ...r, ...reviewAdminFormData } : r))
+          );
+          addToast('Review updated successfully!', 'success');
+        }
+      } else {
+        const res = await apiCreateAdminReview(reviewAdminFormData);
+        if (res && res.success !== false && res.review) {
+          setReviewsList((prev) => [res.review, ...prev]);
+          addToast('New testimonial created and published! 🎉', 'success');
+        } else {
+          const mockR = {
+            _id: generateTempId(),
+            ...reviewAdminFormData,
+            createdAt: new Date().toISOString()
+          };
+          setReviewsList((prev) => [mockR, ...prev]);
+          addToast('New testimonial created and published! 🎉', 'success');
+        }
+      }
+      setIsReviewAdminModalOpen(false);
+    } catch (err) {
+      addToast(`Error saving review: ${err.message}`, 'error');
+    }
+  };
+
   const handleToggleRole = async (targetUser) => {
     const nextRole = targetUser.role === 'admin' ? 'student' : 'admin';
     try {
@@ -540,6 +689,8 @@ You are building a high-frequency financial settlement engine. Given an array of
       timerType: 'per_question_general',
       generalQuestionTimerSeconds: 15,
       category: 'Web Dev',
+      isPaid: false,
+      price: 0,
       techStack: 'JavaScript, React, Node.js',
       durationMinutes: 60,
       quickTimerSeconds: 15,
@@ -620,6 +771,8 @@ You are building a high-frequency financial settlement engine. Given an array of
       timerType: quiz.timerType || 'per_question_general',
       generalQuestionTimerSeconds: quiz.generalQuestionTimerSeconds || 15,
       category: quiz.category || 'Web Dev',
+      isPaid: Boolean(quiz.isPaid),
+      price: quiz.price || 0,
       techStack: Array.isArray(quiz.techStack) ? quiz.techStack.join(', ') : (quiz.techStack || ''),
       durationMinutes: quiz.durationMinutes || 60,
       quickTimerSeconds: quiz.quickTimerSeconds || 15,
@@ -1217,6 +1370,13 @@ You are building a high-frequency financial settlement engine. Given an array of
       badgeColor: messageStats.unreadCount > 0 ? 'bg-rose-500 text-white font-bold animate-pulse' : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
     },
     {
+      id: 'reviews',
+      icon: '⭐',
+      label: 'Student Reviews',
+      badge: reviewStats.pending > 0 ? `${reviewStats.pending} Pending` : `${reviewsList.length || stats.totalReviews || 0}`,
+      badgeColor: reviewStats.pending > 0 ? 'bg-amber-500 text-slate-950 font-bold animate-pulse' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+    },
+    {
       id: 'rewards',
       icon: '🏆',
       label: 'Rewards & Tiers',
@@ -1472,6 +1632,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                   {activeTab === 'site-info' && 'About Us & Contact Manager'}
                   {activeTab === 'partners' && 'Legal Partners & Sponsors Manager'}
                   {activeTab === 'messages' && 'Contact Inquiries & Support Hub'}
+                  {activeTab === 'reviews' && 'Student Reviews & Testimonial Moderation'}
                   {activeTab === 'rewards' && 'Leaderboard & Reward Tiers'}
                 </span>
               </h1>
@@ -1483,11 +1644,19 @@ You are building a high-frequency financial settlement engine. Given an array of
                 {activeTab === 'site-info' && 'Customize public About Us banner copy, impact counters, core values, and contact details.'}
                 {activeTab === 'partners' && 'Maintain institutional accreditation partners, verification councils, and corporate sponsors.'}
                 {activeTab === 'messages' && 'Triage and resolve incoming user inquiries, sponsorship proposals, and feedback with priority & read-status filtering.'}
+                {activeTab === 'reviews' && 'Approve, reject, feature, edit, or delete student reviews submitted after quizzes or via universal feedback forms.'}
                 {activeTab === 'rewards' && 'Configure reward distributions, cash prizes, and rank-group tiers.'}
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                onClick={handleOpenCreateReviewModalAdmin}
+                className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-poppins font-bold text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-amber-300"
+              >
+                <span>⭐ Add Testimonial</span>
+              </button>
+
               <button
                 onClick={handleOpenCreateQuizModal}
                 className="px-4 py-2.5 rounded-2xl bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] text-white font-poppins font-bold text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-emerald-400"
@@ -2791,6 +2960,212 @@ You are building a high-frequency financial settlement engine. Given an array of
         </div>
       )}
 
+      {/* TAB 8: ⭐ STUDENT REVIEWS & TESTIMONIAL MODERATION */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* STATS OVERVIEW HEADER */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+              <span className="text-xl block mb-1">⭐</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
+                {reviewStats.avgRating || 5.0} / 5
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Average Rating</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+              <span className="text-xl block mb-1">💬</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
+                {reviewStats.total || reviewsList.length}
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Total Reviews</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+              <span className="text-xl block mb-1">✅</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
+                {reviewStats.approved || 0}
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Approved</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+              <span className="text-xl block mb-1">⏳</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
+                {reviewStats.pending || 0}
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Pending</div>
+            </div>
+
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm col-span-2 sm:col-span-1">
+              <span className="text-xl block mb-1">🏆</span>
+              <div className="font-poppins font-bold text-xl sm:text-2xl text-purple-500">
+                {reviewStats.featured || 0}
+              </div>
+              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Featured</div>
+            </div>
+          </div>
+
+          {/* FILTER & SEARCH BAR */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+              <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mr-1 shrink-0">
+                Filter:
+              </span>
+              {['all', 'approved', 'pending', 'rejected'].map((statusKey) => (
+                <button
+                  key={statusKey}
+                  onClick={() => setReviewStatusFilter(statusKey)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold capitalize transition-all cursor-pointer shrink-0 ${
+                    reviewStatusFilter === statusKey
+                      ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                      : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
+                  }`}
+                >
+                  {statusKey}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-2 w-full sm:w-auto">
+              <input
+                type="text"
+                placeholder="Search reviews by name or text..."
+                value={reviewSearchQuery}
+                onChange={(e) => setReviewSearchQuery(e.target.value)}
+                className="w-full sm:w-64 px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs text-[var(--text-main)] focus:outline-none"
+              />
+              <button
+                onClick={handleOpenCreateReviewModalAdmin}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-poppins font-bold cursor-pointer shrink-0 shadow-sm transition-all"
+              >
+                + Add Review
+              </button>
+            </div>
+          </div>
+
+          {/* REVIEWS TABLE / LIST */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 sm:p-6 space-y-4 shadow-sm">
+            {reviewsList.length === 0 ? (
+              <div className="text-center py-12 text-xs font-lato text-[var(--text-muted)]">
+                No reviews found matching filter.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left font-lato text-xs sm:text-sm">
+                  <thead>
+                    <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
+                      <th className="py-2.5 px-3">Reviewer</th>
+                      <th className="py-2.5 px-3 text-center">Rating</th>
+                      <th className="py-2.5 px-3">Review Content</th>
+                      <th className="py-2.5 px-3 text-center">Status</th>
+                      <th className="py-2.5 px-3 text-center">Featured</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-theme)]">
+                    {reviewsList.map((rev) => {
+                      const id = rev._id || rev.id;
+                      const name = rev.userName || rev.author || 'Anonymous';
+                      return (
+                        <tr key={id} className="hover:bg-[var(--bg-main)] transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                              {name}
+                            </div>
+                            <div className="text-[10px] text-[var(--text-muted)]">
+                              {rev.role || 'Student Candidate'}
+                            </div>
+                            {rev.userEmail && (
+                              <div className="text-[10px] font-mono text-[var(--color-primary-600)]">
+                                {rev.userEmail}
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex items-center justify-center text-amber-400 text-xs">
+                              {Array.from({ length: rev.rating || 5 }).map((_, i) => (
+                                <span key={i}>★</span>
+                              ))}
+                            </div>
+                            <span className="text-[10px] font-bold text-amber-600">
+                              {rev.rating || 5}/5
+                            </span>
+                          </td>
+
+                          <td className="py-3 px-3 max-w-xs sm:max-w-md">
+                            <p className="text-xs text-[var(--text-main)] italic line-clamp-2 leading-relaxed">
+                              "{rev.quote}"
+                            </p>
+                            {rev.quizTitle && (
+                              <span className="inline-block mt-1 text-[9px] font-poppins font-bold bg-blue-500/10 text-[var(--color-primary-600)] px-2 py-0.5 rounded-full">
+                                🎯 Quiz: {rev.quizTitle}
+                              </span>
+                            )}
+                          </td>
+
+                          <td className="py-3 px-3 text-center">
+                            <select
+                              value={rev.status || 'approved'}
+                              onChange={(e) => handleUpdateReviewStatusAdmin(id, e.target.value)}
+                              className={`px-2 py-1 rounded-lg text-[11px] font-poppins font-bold cursor-pointer focus:outline-none border ${
+                                rev.status === 'approved'
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                                  : rev.status === 'pending'
+                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                                  : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                              }`}
+                            >
+                              <option value="approved">Approved</option>
+                              <option value="pending">Pending</option>
+                              <option value="rejected">Rejected</option>
+                            </select>
+                          </td>
+
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              onClick={() => handleToggleReviewFeaturedAdmin(id, rev.isFeatured)}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-poppins font-bold cursor-pointer transition-all ${
+                                rev.isFeatured
+                                  ? 'bg-amber-400 text-slate-950 shadow-xs'
+                                  : 'bg-[var(--bg-main)] text-[var(--text-muted)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
+                              }`}
+                              title={rev.isFeatured ? 'Featured on homepage carousel' : 'Click to feature on homepage'}
+                            >
+                              {rev.isFeatured ? '⭐ Featured' : '☆ Standard'}
+                            </button>
+                          </td>
+
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end space-x-1.5">
+                              <button
+                                onClick={() => handleOpenEditReviewModalAdmin(rev)}
+                                className="p-1.5 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 text-xs cursor-pointer"
+                                title="Edit Review Details"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => handleDeleteReviewAdmin(id, name)}
+                                className="p-1.5 rounded-lg border border-transparent text-rose-500 hover:bg-rose-500/10 text-xs cursor-pointer"
+                                title="Delete Review"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
         </main>
       </div>
 
@@ -2990,6 +3365,72 @@ You are building a high-frequency financial settlement engine. Given an array of
                             className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
                           />
                         </div>
+                      </div>
+
+                      {/* QUIZ PRICING & ENTRY FEE (FREE vs PAID RAZORPAY) */}
+                      <div className="p-3.5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-3">
+                        <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider">
+                          💳 Quiz Pricing & Registration Access *
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div
+                            onClick={() => setQuizFormData({ ...quizFormData, isPaid: false, price: 0 })}
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center space-x-3 ${
+                              !quizFormData.isPaid
+                                ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 shadow-xs'
+                                : 'border-[var(--border-theme)] bg-[var(--bg-card)]'
+                            }`}
+                          >
+                            <span className="text-xl">🟢</span>
+                            <div>
+                              <div className="font-poppins font-bold text-xs text-emerald-700 dark:text-emerald-300">
+                                Free Quiz (₹0)
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)]">
+                                Open to all candidate practice without fee.
+                              </div>
+                            </div>
+                          </div>
+
+                          <div
+                            onClick={() => setQuizFormData({ ...quizFormData, isPaid: true, price: quizFormData.price || 99 })}
+                            className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center space-x-3 ${
+                              quizFormData.isPaid
+                                ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/40 shadow-xs'
+                                : 'border-[var(--border-theme)] bg-[var(--bg-card)]'
+                            }`}
+                          >
+                            <span className="text-xl">💳</span>
+                            <div>
+                              <div className="font-poppins font-bold text-xs text-amber-700 dark:text-amber-300">
+                                Paid Quiz (Razorpay)
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)]">
+                                Requires Razorpay payment & user registration to unlock.
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {quizFormData.isPaid && (
+                          <div className="pt-2 animate-fadeIn">
+                            <label className="block font-poppins font-bold text-xs mb-1">
+                              Entry Fee Amount (INR ₹) *
+                            </label>
+                            <div className="relative flex items-center">
+                              <span className="absolute left-3 font-bold text-amber-500 text-sm">₹</span>
+                              <input
+                                type="number"
+                                min="1"
+                                required={quizFormData.isPaid}
+                                placeholder="99"
+                                value={quizFormData.price || ''}
+                                onChange={(e) => setQuizFormData({ ...quizFormData, price: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                                className="w-full pl-8 pr-3 py-2 rounded-xl border border-amber-400 bg-[var(--bg-card)] text-sm font-poppins font-bold text-[var(--text-main)] focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div>
@@ -4456,6 +4897,156 @@ You are building a high-frequency financial settlement engine. Given an array of
                 <span>🗑️ Delete Message</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* ⭐ ADMIN REVIEW CREATOR & EDITOR MODAL */}
+      {/* ========================================================================= */}
+      {isReviewAdminModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-lg bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[92vh] relative">
+            <button
+              onClick={() => setIsReviewAdminModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center space-x-3 mb-6">
+              <span className="text-3xl">⭐</span>
+              <div>
+                <h3 className="text-xl font-bold font-poppins text-[var(--text-main)]">
+                  {editingReviewId ? 'Edit Student Review' : 'Add Custom Testimonial'}
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Manage reviewer details, ratings, moderation status, and homepage feature toggle.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveReviewSubmitAdmin} className="space-y-4 text-xs font-poppins">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Reviewer Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Rahul Srivastav"
+                    value={reviewAdminFormData.userName}
+                    onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, userName: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Role / School / Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. BCA Student / Web Dev"
+                    value={reviewAdminFormData.role}
+                    onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, role: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Email Address (Optional)</label>
+                  <input
+                    type="email"
+                    placeholder="reviewer@example.com"
+                    value={reviewAdminFormData.userEmail}
+                    onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, userEmail: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Quiz Title Reference</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. React 19 Mastery Exam"
+                    value={reviewAdminFormData.quizTitle}
+                    onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, quizTitle: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Rating (1 to 5 Stars)</label>
+                  <select
+                    value={reviewAdminFormData.rating}
+                    onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, rating: Number(e.target.value) })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-bold cursor-pointer"
+                  >
+                    <option value={5}>5 Stars (★★★★★)</option>
+                    <option value={4}>4 Stars (★★★★☆)</option>
+                    <option value={3}>3 Stars (★★★☆☆)</option>
+                    <option value={2}>2 Stars (★★☆☆☆)</option>
+                    <option value={1}>1 Star (★☆☆☆☆)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Moderation Status</label>
+                  <select
+                    value={reviewAdminFormData.status}
+                    onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, status: e.target.value })}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-bold cursor-pointer"
+                  >
+                    <option value="approved">Approved (Public)</option>
+                    <option value="pending">Pending Review</option>
+                    <option value="rejected">Rejected (Hidden)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-[var(--text-main)] block">Review Text / Quote *</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Enter detailed feedback comment..."
+                  value={reviewAdminFormData.quote}
+                  onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, quote: e.target.value })}
+                  className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="adminReviewFeatured"
+                  checked={reviewAdminFormData.isFeatured}
+                  onChange={(e) => setReviewAdminFormData({ ...reviewAdminFormData, isFeatured: e.target.checked })}
+                  className="w-4 h-4 rounded text-amber-500 focus:ring-amber-400 cursor-pointer"
+                />
+                <label htmlFor="adminReviewFeatured" className="font-bold text-[var(--text-main)] cursor-pointer">
+                  ⭐ Feature this review prominently on Homepage Carousel
+                </label>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReviewAdminModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-poppins font-bold text-xs shadow-md cursor-pointer"
+                >
+                  {editingReviewId ? 'Save Changes' : 'Publish Testimonial'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -32,9 +32,11 @@ export const QuizCountdownBadge = ({ quiz, size = 'sm', className = '' }) => {
           <span>{countdown.label}</span>
         </div>
 
-        <div className="font-mono font-extrabold text-xl sm:text-2xl tracking-tight">
-          {countdown.formattedText}
-        </div>
+        {countdown.formattedText && (
+          <div className="font-mono font-extrabold text-xl sm:text-2xl tracking-tight">
+            {countdown.formattedText}
+          </div>
+        )}
       </div>
     );
   }
@@ -62,7 +64,7 @@ export const QuizCountdownBadge = ({ quiz, size = 'sm', className = '' }) => {
       )}
 
       <span>{countdown.label}</span>
-      <span className="font-extrabold">{countdown.formattedText}</span>
+      {countdown.formattedText && <span className="font-extrabold">{countdown.formattedText}</span>}
     </div>
   );
 };

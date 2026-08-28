@@ -5,7 +5,7 @@ const siteSettingsSchema = new mongoose.Schema(
     about: {
       heroBadge: {
         type: String,
-        default: 'About Brand Platform'
+        default: 'About brainArena'
       },
       heroTitle: {
         type: String,
@@ -40,7 +40,7 @@ const siteSettingsSchema = new mongoose.Schema(
     contact: {
       supportEmail: {
         type: String,
-        default: 'support@quizplatform.com'
+        default: 'support@brainarena.com'
       },
       phone: {
         type: String,

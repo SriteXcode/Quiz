@@ -135,7 +135,7 @@ export const CertificateModal = ({
       
       ctx.fillStyle = theme.canvasAccent;
       ctx.font = 'bold 44px sans-serif';
-      ctx.fillText('★ ★ ★  QUIZ PLATFORM GLOBAL CERTIFICATION  ★ ★ ★', width / 2, 230);
+      ctx.fillText('★ ★ ★  BRAINARENA GLOBAL CERTIFICATION  ★ ★ ★', width / 2, 230);
 
       ctx.fillStyle = theme.canvasText;
       ctx.font = 'bold 92px "Cinzel", "Playfair Display", Georgia, serif';
@@ -287,7 +287,7 @@ export const CertificateModal = ({
 
       ctx.fillStyle = '#64748b';
       ctx.font = '20px "Lato", sans-serif';
-      ctx.fillText('Quiz Platform Certification Board', width - 320, footerY + 115);
+      ctx.fillText('brainArena Certification Board', width - 320, footerY + 115);
 
       // Verification Tag
       ctx.textAlign = 'center';
@@ -345,7 +345,7 @@ export const CertificateModal = ({
   };
 
   const handleShareLinkedIn = () => {
-    const summary = encodeURIComponent(`I am thrilled to announce that I scored ${score}% on the proctored ${quizTitle} assessment on Quiz Platform! 🏆 Certificate ID: ${certificateId}`);
+    const summary = encodeURIComponent(`I am thrilled to announce that I scored ${score}% on the proctored ${quizTitle} assessment on brainArena! 🏆 Certificate ID: ${certificateId}`);
     const url = `https://www.linkedin.com/feed/?shareActive=true&text=${summary}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -420,7 +420,7 @@ export const CertificateModal = ({
             <div className="text-center space-y-0.5 relative z-10 pt-0.5">
               <div className="flex items-center justify-center space-x-1 text-[7px] sm:text-[8px] font-poppins font-bold tracking-widest uppercase opacity-80" style={{ color: theme.accentColor }}>
                 <span>★ ★ ★</span>
-                <span>QUIZ PLATFORM GLOBAL CERTIFICATION</span>
+                <span>BRAINARENA GLOBAL CERTIFICATION</span>
                 <span>★ ★ ★</span>
               </div>
 
@@ -499,7 +499,7 @@ export const CertificateModal = ({
                 </div>
                 <div className="h-0.5 w-14 ml-auto bg-black/20" />
                 <div className="text-[6px] sm:text-[7px] font-poppins font-bold uppercase opacity-80">Director of Certification</div>
-                <div className="text-[5.5px] sm:text-[6.5px] font-lato opacity-60">Quiz Platform Global Board</div>
+                <div className="text-[5.5px] sm:text-[6.5px] font-lato opacity-60">brainArena Global Board</div>
               </div>
 
             </div>

@@ -8,6 +8,8 @@ const previousWorkRoutes = require('./routes/previousWorkRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const shortGyaanRoutes = require('./routes/shortGyaanRoutes');
 const siteRoutes = require('./routes/siteRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
@@ -40,7 +42,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'Online',
-    message: 'Quiz Platform Backend API Engine is running.',
+    message: 'brainArena Backend API Engine is running.',
     allowedOrigins,
     version: '1.0.0'
   });
@@ -53,6 +55,8 @@ app.use('/api/previous-works', previousWorkRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/shorts', shortGyaanRoutes);
 app.use('/api/site', siteRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 Handler
 app.use((req, res) => {

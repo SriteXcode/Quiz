@@ -14,12 +14,7 @@
   <rect width="512" height="512" rx="112" fill="url(#pwaGrad512)" filter="url(#pwaShadow)" />
   <rect x="8" y="8" width="496" height="496" rx="104" fill="none" stroke="rgba(255, 255, 255, 0.25)" stroke-width="6" />
 
-  <!-- Stylized Q Badge -->
-  <g transform="translate(48, 48) scale(6.5)">
-    <path
-      d="M32 14 C23.16 14 16 21.16 16 30 C16 38.84 23.16 46 32 46 C35.48 46 38.68 44.88 41.28 43.0 L45.2 47.0 C45.98 47.78 47.24 47.78 48.02 47.0 C48.8 46.22 48.8 44.96 48.02 44.18 L44.3 40.46 C46.6 37.52 48 33.92 48 30 C48 21.16 40.84 14 32 14 Z M32 20 C37.52 20 42 24.48 42 30 C42 32.74 40.9 35.22 39.12 37.04 L35.6 33.52 C35.98 32.44 36.2 31.26 36.2 30 C36.2 27.68 34.32 25.8 32 25.8 C29.68 25.8 27.8 27.68 27.8 30 C27.8 32.32 29.68 34.2 32 34.2 C32.78 34.2 33.52 33.98 34.16 33.6 L37.28 36.72 C35.74 38.74 33.32 40 32 40 C26.48 40 22 35.52 22 30 C22 24.48 26.48 20 32 20 Z"
-      fill="#FFFFFF"
-    />
-    <circle cx="45" cy="18" r="3" fill="#FBBF24" />
-  </g>
+  <!-- Stylized B Badge -->
+  <text x="256" y="340" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="280" text-anchor="middle" fill="#FFFFFF">B</text>
+  <circle cx="380" cy="144" r="20" fill="#FBBF24" />
 </svg>

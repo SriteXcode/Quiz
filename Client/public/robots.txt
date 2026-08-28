@@ -8,4 +8,4 @@ Disallow: /admin
 Disallow: /admin/
 
 # Sitemap location
-Sitemap: https://quiz-platform.com/sitemap.xml
+Sitemap: https://www.brainarena.in/sitemap.xml

@@ -3,6 +3,7 @@ import Skeleton from '../components/Skeleton';
 import { apiGetPreviousWorks, apiGetQuizzes } from '../services/api';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
+import NetworkErrorPage from './NetworkErrorPage';
 
 export const QuizPageSkeleton = () => {
   return (
@@ -104,8 +105,18 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
     };
 
     loadData();
+
+    const handleReconnected = () => {
+      loadData();
+    };
+
+    window.addEventListener('online', handleReconnected);
+    window.addEventListener('app:online-reconnected', handleReconnected);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('online', handleReconnected);
+      window.removeEventListener('app:online-reconnected', handleReconnected);
     };
   }, []);
 
@@ -278,19 +289,26 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
       {/* QUIZ CARDS GRID */}
       {filteredQuizzes.length === 0 ? (
-        <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] p-8">
-          <span className="text-4xl block mb-2">🔍</span>
-          <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">No quizzes found</h3>
-          <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
-            Try adjusting your search criteria or filter tags.
-          </p>
-        </div>
+        typeof navigator !== 'undefined' && !navigator.onLine ? (
+          <NetworkErrorPage onRetry={() => window.location.reload()} />
+        ) : (
+          <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] p-8">
+            <span className="text-4xl block mb-2">🔍</span>
+            <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">No quizzes found</h3>
+            <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
+              Try adjusting your search criteria or filter tags.
+            </p>
+          </div>
+        )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {filteredQuizzes.map((quiz) => {
             const isCode = quiz.quizType === 'code';
             const isQuick = quiz.mcqSubtype === 'quick';
             const isCompleted = quiz.computedStatus === 'past';
+            const originalPrice = quiz.price || 0;
+            const effectivePrice = isCompleted && quiz.isPaid ? Math.max(1, Math.round(originalPrice * 0.10)) : originalPrice;
+            const isDiscounted = isCompleted && quiz.isPaid && originalPrice > 0;
 
             return (
               <div
@@ -306,9 +324,25 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
-                      {quiz.category || 'Web Dev'}
-                    </span>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
+                        {quiz.category || 'Web Dev'}
+                      </span>
+                      {isDiscounted ? (
+                        <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
+                          <span>🔥 ₹{effectivePrice}</span>
+                          <span className="line-through text-rose-500 dark:text-rose-400 text-[9px] font-bold">₹{originalPrice}</span>
+                        </span>
+                      ) : quiz.isPaid && originalPrice > 0 ? (
+                        <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                          💳 ₹{originalPrice}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                          🟢 FREE
+                        </span>
+                      )}
+                    </div>
 
                     {/* Quiz Type Pill */}
                     {isCode ? (
@@ -318,7 +352,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                     ) : (
                       <span className={`px-2 py-0.5 rounded text-[10px] font-poppins font-bold ${
                         isQuick
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200'
                           : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
                       }`}>
                         {isQuick ? '⚡ Quick' : '📝 Standard'}
@@ -336,7 +370,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
                   {/* Rewards preview if available */}
                   {quiz.rewards && quiz.rewards.length > 0 && (
-                    <div className="bg-[var(--bg-main)] p-2 rounded-xl border border-[var(--border-theme)] text-[11px] font-lato text-amber-600 dark:text-amber-400 font-semibold mb-3 flex items-center space-x-1.5">
+                    <div className="bg-[var(--bg-main)] p-2 rounded-xl border border-[var(--border-theme)] text-[11px] font-lato text-amber-900 dark:text-amber-200 font-bold mb-3 flex items-center space-x-1.5">
                       <span>🏆</span>
                       <span className="truncate">{quiz.rewards[0].badge}: {quiz.rewards[0].prize}</span>
                     </div>
@@ -349,9 +383,11 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                 </div>
 
                 <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
-                  <span className="text-[11px] font-lato text-[var(--text-muted)] font-bold">
-                    ⏱️ {quiz.durationMinutes ? `${quiz.durationMinutes}m` : quiz.duration || '20m'}
-                  </span>
+                  <div className="flex items-center space-x-2 text-[11px] font-lato text-[var(--text-muted)] font-bold">
+                    <span>⏱️ {quiz.durationMinutes ? `${quiz.durationMinutes}m` : quiz.duration || '20m'}</span>
+                    <span>•</span>
+                    <span className="text-[var(--color-primary-600)]">👥 {quiz.enrolledUsers ? quiz.enrolledUsers.length : 0} Enrolled</span>
+                  </div>
 
                   <button
                     className={`px-3.5 py-1.5 rounded-xl font-poppins font-bold text-xs transition-all shadow-sm ${
@@ -362,7 +398,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                         : 'bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white'
                     }`}
                   >
-                    {isCompleted ? '🎯 Practice' : quiz.computedStatus === 'running' ? 'Compete 🚀' : 'View Details'}
+                    {isCompleted ? '📝 Register for Practice' : quiz.computedStatus === 'running' ? 'Compete 🚀' : '📝 Register'}
                   </button>
                 </div>
               </div>

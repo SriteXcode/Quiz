@@ -44,8 +44,18 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
     };
 
     fetchLiveQuizzes();
+
+    const handleReconnected = () => {
+      fetchLiveQuizzes();
+    };
+
+    window.addEventListener('online', handleReconnected);
+    window.addEventListener('app:online-reconnected', handleReconnected);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('online', handleReconnected);
+      window.removeEventListener('app:online-reconnected', handleReconnected);
     };
   }, []);
 
@@ -106,6 +116,9 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
               const isQuick = quiz.mcqSubtype === 'quick';
               const status = getQuizAutoStatus(quiz);
               const isEnded = status === 'past';
+              const originalPrice = quiz.price || 0;
+              const effectivePrice = isEnded && quiz.isPaid ? Math.max(1, Math.round(originalPrice * 0.10)) : originalPrice;
+              const isDiscounted = isEnded && quiz.isPaid && originalPrice > 0;
 
               return (
                 <div
@@ -116,15 +129,31 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                   {/* Top Priority Ribbon for Live items */}
                   {status === 'running' && (
                     <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-poppins font-extrabold uppercase px-3 py-0.5 rounded-bl-xl shadow-sm">
-                      🔴 Live Now
+                      Live Now
                     </div>
                   )}
 
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
-                        {quiz.category || 'Web Dev'}
-                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
+                          {quiz.category || 'Web Dev'}
+                        </span>
+                        {isDiscounted ? (
+                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
+                            <span>🔥 ₹{effectivePrice}</span>
+                            <span className="line-through text-rose-500 dark:text-rose-400 text-[9px] font-bold">₹{originalPrice}</span>
+                          </span>
+                        ) : quiz.isPaid && originalPrice > 0 ? (
+                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                            💳 ₹{originalPrice}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                            🟢 FREE
+                          </span>
+                        )}
+                      </div>
 
                       {/* Type Badge */}
                       {isCode ? (
@@ -152,7 +181,7 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
 
                     {/* REWARDS SNIPPET (Top 1st prize & group perks) */}
                     {quiz.rewards && quiz.rewards.length > 0 && (
-                      <div className="bg-[var(--bg-main)] p-2 rounded-xl border border-[var(--border-theme)] text-[11px] font-lato text-amber-600 dark:text-amber-400 font-semibold mb-3 flex items-center space-x-1.5">
+                      <div className="bg-[var(--bg-main)] p-2 rounded-xl border border-[var(--border-theme)] text-[11px] font-lato text-amber-900 dark:text-amber-200 font-bold mb-3 flex items-center space-x-1.5">
                         <span>🏆</span>
                         <span className="truncate">{quiz.rewards[0].badge}: {quiz.rewards[0].prize}</span>
                       </div>
@@ -165,9 +194,11 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                   </div>
 
                   <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
-                    <span className="text-[11px] font-lato text-[var(--text-muted)] font-bold">
-                      ⏱️ {quiz.durationMinutes || quiz.duration || '20m'}
-                    </span>
+                    <div className="flex items-center space-x-2 text-[11px] font-lato text-[var(--text-muted)] font-bold">
+                      <span>⏱️ {quiz.durationMinutes || quiz.duration || '20m'}</span>
+                      <span>•</span>
+                      <span className="text-[var(--color-primary-600)]">👥 {quiz.enrolledUsers ? quiz.enrolledUsers.length : 0} Enrolled</span>
+                    </div>
 
                     <button
                       className={`px-3 py-1.5 rounded-xl font-poppins font-bold text-xs transition-all shadow-sm ${
@@ -178,7 +209,7 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                           : 'bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)]'
                       }`}
                     >
-                      {isEnded ? '🎯 Practice' : status === 'running' ? 'Compete 🚀' : 'View Details'}
+                      {isEnded ? '📝 Register for Practice' : status === 'running' ? 'Compete 🚀' : '📝 Register'}
                     </button>
                   </div>
                 </div>

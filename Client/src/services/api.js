@@ -1,11 +1,15 @@
+import { enqueueOfflineAction } from '../utils/offlineSync';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
- * Universal Request Helper with Token Authentication (supports JSON & FormData)
+ * Universal Request Helper with Token Authentication & Offline Preloaded Cache Fallback & Offline Queueing
  */
-const request = async (endpoint, options = {}) => {
+export const request = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
   const token = localStorage.getItem('quiz_token') || localStorage.getItem('token');
+  const method = (options.method || 'GET').toUpperCase();
+  const cacheKey = `offline_cache_${endpoint}`;
 
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
@@ -23,18 +27,97 @@ const request = async (endpoint, options = {}) => {
     headers
   };
 
+  const parsedBody = options.body;
   if (!isFormData && options.body && typeof options.body === 'object') {
     config.body = JSON.stringify(options.body);
   }
 
-  const res = await fetch(url, config);
-  const data = await res.json().catch(() => ({}));
+  // If browser is offline, handle GET via cache and POST/PUT via offline action queue
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    if (method === 'GET') {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // ignore parse error
+      }
+    } else {
+      // Offline mutation (POST, PUT, DELETE) -> Queue for sync when online
+      let actionType = 'GENERIC_MUTATION';
+      if (endpoint.includes('/submit')) actionType = 'SUBMIT_QUIZ';
+      else if (endpoint.includes('/like')) actionType = 'TOGGLE_LIKE';
+      else if (endpoint.includes('/save')) actionType = 'TOGGLE_SAVE';
 
-  if (!res.ok) {
-    throw new Error(data.message || `Request failed with status ${res.status}`);
+      enqueueOfflineAction({
+        type: actionType,
+        endpoint,
+        method,
+        payload: parsedBody
+      });
+
+      return {
+        success: true,
+        isOfflineQueued: true,
+        message: 'Action recorded offline. Will sync when back online.',
+        submission: actionType === 'SUBMIT_QUIZ' ? { score: 100, isFirstAttempt: true, offlineQueued: true } : undefined
+      };
+    }
   }
 
-  return data;
+  try {
+    const res = await fetch(url, config);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.message || `Request failed with status ${res.status}`);
+    }
+
+    // Save successful GET response data to preloaded offline cache
+    if (method === 'GET' && data && data.success !== false) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch {
+        // quota exceeded or storage unavailable
+      }
+    }
+
+    return data;
+  } catch (err) {
+    // On network failure during GET requests, fallback to preloaded cache if available
+    if (method === 'GET') {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          return JSON.parse(cached);
+        }
+      } catch {
+        // ignore parse error
+      }
+    } else if (method !== 'GET') {
+      // Network fetch error on mutation -> queue offline action
+      let actionType = 'GENERIC_MUTATION';
+      if (endpoint.includes('/submit')) actionType = 'SUBMIT_QUIZ';
+      else if (endpoint.includes('/like')) actionType = 'TOGGLE_LIKE';
+      else if (endpoint.includes('/save')) actionType = 'TOGGLE_SAVE';
+
+      enqueueOfflineAction({
+        type: actionType,
+        endpoint,
+        method,
+        payload: parsedBody
+      });
+
+      return {
+        success: true,
+        isOfflineQueued: true,
+        message: 'Action recorded offline. Will sync when back online.',
+        submission: actionType === 'SUBMIT_QUIZ' ? { score: 100, isFirstAttempt: true, offlineQueued: true } : undefined
+      };
+    }
+    throw err;
+  }
 };
 
 // ==========================================
@@ -388,6 +471,89 @@ export const apiDeleteMessage = async (messageId) => {
   });
 };
 
+// =========================================================================
+// ⭐ REVIEW & TESTIMONIAL API FUNCTIONS
+// =========================================================================
+export const apiGetPublicReviews = async () => {
+  return await request('/reviews', {
+    method: 'GET'
+  });
+};
+
+export const apiSubmitReview = async (reviewData) => {
+  return await request('/reviews', {
+    method: 'POST',
+    body: reviewData
+  });
+};
+
+export const apiGetAdminReviews = async (status = 'all', search = '') => {
+  const queryParams = new URLSearchParams();
+  if (status && status !== 'all') queryParams.append('status', status);
+  if (search) queryParams.append('search', search);
+
+  const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+  return await request(`/admin/reviews${queryString}`, {
+    method: 'GET'
+  });
+};
+
+export const apiCreateAdminReview = async (reviewData) => {
+  return await request('/admin/reviews', {
+    method: 'POST',
+    body: reviewData
+  });
+};
+
+export const apiUpdateReview = async (reviewId, updateData) => {
+  return await request(`/admin/reviews/${reviewId}`, {
+    method: 'PUT',
+    body: updateData
+  });
+};
+
+export const apiDeleteReview = async (reviewId) => {
+  return await request(`/admin/reviews/${reviewId}`, {
+    method: 'DELETE'
+  });
+};
+
+// =========================================================================
+// 💳 RAZORPAY PAYMENT API FUNCTIONS
+// =========================================================================
+export const apiGetRazorpayKey = async () => {
+  return await request('/payments/key', {
+    method: 'GET'
+  });
+};
+
+export const apiCreatePaymentOrder = async (quizId) => {
+  return await request('/payments/create-order', {
+    method: 'POST',
+    body: { quizId }
+  });
+};
+
+export const apiVerifyPayment = async (paymentData) => {
+  return await request('/payments/verify', {
+    method: 'POST',
+    body: paymentData
+  });
+};
+
+export const apiEnrollInQuiz = async (quizId) => {
+  return await request('/payments/enroll', {
+    method: 'POST',
+    body: { quizId }
+  });
+};
+
+export const apiCheckQuizAccess = async (quizId) => {
+  return await request(`/payments/access/${quizId}`, {
+    method: 'GET'
+  });
+};
+
 export default {
   apiRegister,
   apiLogin,
@@ -432,5 +598,16 @@ export default {
   apiGetAdminMessages,
   apiToggleMessageRead,
   apiUpdateMessagePriority,
-  apiDeleteMessage
+  apiDeleteMessage,
+  apiGetPublicReviews,
+  apiSubmitReview,
+  apiGetAdminReviews,
+  apiCreateAdminReview,
+  apiUpdateReview,
+  apiDeleteReview,
+  apiGetRazorpayKey,
+  apiCreatePaymentOrder,
+  apiVerifyPayment,
+  apiEnrollInQuiz,
+  apiCheckQuizAccess
 };

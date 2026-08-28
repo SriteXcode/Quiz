@@ -66,7 +66,7 @@ const shortGyaanSchema = new mongoose.Schema(
     }],
     author: {
       type: String,
-      default: 'Quiz Platform Master'
+      default: 'brainArena Master'
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

@@ -74,10 +74,10 @@ export const Footer = ({ onNavigatePolicy }) => {
             <div className="space-y-3 shrink-0">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white font-bold text-xl shadow-md">
-                  Q
+                  B
                 </div>
                 <span className="font-poppins font-bold text-2xl tracking-wide text-[var(--text-main)]">
-                  brand
+                  brainArena
                 </span>
               </div>
 
@@ -110,9 +110,9 @@ export const Footer = ({ onNavigatePolicy }) => {
           <div className="grid grid-cols-3 gap-8 border-amber-200/60 dark:border-slate-800/60">
             {/* Column 1: Platform */}
             <div className="space-y-3">
-              <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] uppercase tracking-wider">
+              <h2 className="font-poppins font-bold text-sm text-[var(--text-main)] uppercase tracking-wider">
                 Platform
-              </h4>
+              </h2>
               <ul className="space-y-2.5 font-lato text-sm text-[var(--text-secondary)]">
                 <li><a href="#live" className="hover:text-[var(--color-primary-600)] transition-colors">Live Quizzes</a></li>
                 <li><a href="#challenges" className="hover:text-[var(--color-primary-600)] transition-colors">Leaderboards</a></li>
@@ -123,9 +123,9 @@ export const Footer = ({ onNavigatePolicy }) => {
 
             {/* Column 2: Categories */}
             <div className="space-y-3">
-              <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] uppercase tracking-wider">
+              <h2 className="font-poppins font-bold text-sm text-[var(--text-main)] uppercase tracking-wider">
                 Categories
-              </h4>
+              </h2>
               <ul className="space-y-2.5 font-lato text-sm text-[var(--text-secondary)]">
                 <li><a href="#web" className="hover:text-[var(--color-primary-600)] transition-colors">Web Dev</a></li>
                 <li><a href="#ai" className="hover:text-[var(--color-primary-600)] transition-colors">Data & AI</a></li>
@@ -136,9 +136,9 @@ export const Footer = ({ onNavigatePolicy }) => {
 
             {/* Column 3: Company */}
             <div className="space-y-3">
-              <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] uppercase tracking-wider">
+              <h2 className="font-poppins font-bold text-sm text-[var(--text-main)] uppercase tracking-wider">
                 Company
-              </h4>
+              </h2>
               <ul className="space-y-2.5 font-lato text-sm text-[var(--text-secondary)]">
                 <li><a href="#about" className="hover:text-[var(--color-primary-600)] transition-colors">About Us</a></li>
                 <li><a href="#careers" className="hover:text-[var(--color-primary-600)] transition-colors">Careers</a></li>
@@ -166,10 +166,10 @@ export const Footer = ({ onNavigatePolicy }) => {
           <div className="space-y-2">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 rounded-lg bg-[var(--color-primary-600)] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-                Q
+                B
               </div>
               <span className="font-poppins font-bold text-xl tracking-wide text-[var(--text-main)]">
-                brand
+                brainArena
               </span>
             </div>
             <p className="font-lato text-xs text-[var(--text-secondary)] leading-relaxed">
@@ -182,9 +182,9 @@ export const Footer = ({ onNavigatePolicy }) => {
             
             {/* Social Media Y-Axis with Social Media Name */}
             <div>
-              <h4 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
+              <h2 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
                 Follow Us
-              </h4>
+              </h2>
               <div className="flex flex-col space-y-2.5">
                 {socialLinks.map((social) => (
                   <a
@@ -205,9 +205,9 @@ export const Footer = ({ onNavigatePolicy }) => {
 
             {/* Parallel to Social Media: Platform */}
             <div>
-              <h4 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
+              <h2 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
                 Platform
-              </h4>
+              </h2>
               <ul className="space-y-2 font-lato text-xs text-[var(--text-secondary)]">
                 <li><a href="#live" className="hover:text-[var(--color-primary-600)] transition-colors">Live Quizzes</a></li>
                 <li><a href="#challenges" className="hover:text-[var(--color-primary-600)] transition-colors">Leaderboards</a></li>
@@ -223,9 +223,9 @@ export const Footer = ({ onNavigatePolicy }) => {
             
             {/* Categories */}
             <div>
-              <h4 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
+              <h2 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
                 Categories
-              </h4>
+              </h2>
               <ul className="space-y-2 font-lato text-xs text-[var(--text-secondary)]">
                 <li><a href="#web" className="hover:text-[var(--color-primary-600)] transition-colors">Web Dev</a></li>
                 <li><a href="#ai" className="hover:text-[var(--color-primary-600)] transition-colors">Data & AI</a></li>
@@ -236,9 +236,9 @@ export const Footer = ({ onNavigatePolicy }) => {
 
             {/* Company */}
             <div>
-              <h4 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
+              <h2 className="font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider mb-3">
                 Company
-              </h4>
+              </h2>
               <ul className="space-y-2 font-lato text-xs text-[var(--text-secondary)]">
                 <li><a href="#about" className="hover:text-[var(--color-primary-600)] transition-colors">About Us</a></li>
                 <li><a href="#careers" className="hover:text-[var(--color-primary-600)] transition-colors">Careers</a></li>
@@ -259,8 +259,8 @@ export const Footer = ({ onNavigatePolicy }) => {
         </div>
 
         {/* Bottom Bar Spaced Around */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-around text-xs font-lato text-[var(--text-muted)] gap-4">
-          <p>© {new Date().getFullYear()} Brand Inc. All rights reserved.</p>
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-around text-xs font-lato text-[var(--text-secondary)] font-medium gap-4">
+          <p>© {new Date().getFullYear()} brainArena Inc. All rights reserved.</p>
           <div className="flex flex-wrap justify-center gap-6">
             <button
               onClick={() => onNavigatePolicy && onNavigatePolicy('terms')}
