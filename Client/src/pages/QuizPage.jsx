@@ -4,6 +4,7 @@ import { apiGetPreviousWorks, apiGetQuizzes } from '../services/api';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
 import NetworkErrorPage from './NetworkErrorPage';
+import { useAuth } from '../context/AuthContext';
 
 export const QuizPageSkeleton = () => {
   return (
@@ -44,10 +45,16 @@ export const QuizPageSkeleton = () => {
 };
 
 export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
+  const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'running' | 'upcoming' | 'past'
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const categoryDropdownRef = useRef(null);
+  const [selectedPricing, setSelectedPricing] = useState('All'); // 'All' | 'free' | 'paid'
+  const [isPricingDropdownOpen, setIsPricingDropdownOpen] = useState(false);
+  const pricingDropdownRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [dynamicQuizzes, setDynamicQuizzes] = useState([]);
   const [pastWorksList, setPastWorksList] = useState([]);
@@ -57,6 +64,12 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
     const handleClickOutside = (event) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
         setIsCategoryDropdownOpen(false);
+      }
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+        setIsFilterDropdownOpen(false);
+      }
+      if (pricingDropdownRef.current && !pricingDropdownRef.current.contains(event.target)) {
+        setIsPricingDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -134,10 +147,10 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
   ];
 
   const filterTabs = [
-    { id: 'all', label: '🌟 All Challenges' },
-    { id: 'running', label: '🔴 Live Now' },
-    { id: 'upcoming', label: '⏳ Upcoming' },
-    { id: 'past', label: '🎯 Completed / Practice' }
+    { id: 'all', label: 'All Challenges' },
+    { id: 'running', label: 'Live Now' },
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'past', label: 'Completed / Practice' }
   ];
 
   const categories = ['All', 'Web Dev', 'Frontend', 'Backend', 'CS Algo', 'Data & AI', 'UI / UX', 'DevOps'];
@@ -165,11 +178,13 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
     .filter((quiz) => {
       const matchesFilter = activeFilter === 'all' || quiz.computedStatus === activeFilter;
       const matchesCategory = selectedCategory === 'All' || quiz.category === selectedCategory;
+      const isPaidQuiz = Boolean(quiz.isPaid && (quiz.price || 0) > 0);
+      const matchesPricing = selectedPricing === 'All' || (selectedPricing === 'free' ? !isPaidQuiz : isPaidQuiz);
       const matchesSearch =
         (quiz.title && quiz.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (Array.isArray(quiz.techStack) && quiz.techStack.some((tech) => tech.toLowerCase().includes(searchQuery.toLowerCase())));
 
-      return matchesFilter && matchesCategory && matchesSearch;
+      return matchesFilter && matchesCategory && matchesPricing && matchesSearch;
     })
     .sort((a, b) => {
       return getStatusPriorityWeight(a.computedStatus) - getStatusPriorityWeight(b.computedStatus);
@@ -207,57 +222,97 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
         </div>
       </div>
 
-      {/* FILTER TABS & CATEGORY DROPDOWN (PARALLEL RIGHT) */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-3 border-b border-[var(--border-theme)]">
-        {/* Left: Status Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          {filterTabs.map((tab) => {
-            const count = allQuizzes.filter((q) => tab.id === 'all' || q.computedStatus === tab.id).length;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleFilterClick(tab.id, tab.label)}
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-poppins font-bold transition-all cursor-pointer ${
-                  activeFilter === tab.id
-                    ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                    : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
-                }`}
-              >
-                {tab.label} ({count})
-              </button>
-            );
-          })}
+      {/* STICKY FILTER BAR (BELOW NAV BAR, DROPDOWNS TOUCH SLIDER ON MOBILE) */}
+      <div className="sticky top-[64px] z-30 bg-[var(--bg-main)]/95 backdrop-blur-md py-2.5 px-2 border-b border-[var(--border-theme)] flex items-center justify-between gap-2 transition-all duration-300">
+        
+        {/* Left: Active Count Badge */}
+        <div className="flex items-center space-x-2 shrink-0">
+          <span className="px-2 py-1 sm:px-2.5 rounded-xl text-xs font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 border border-[var(--color-primary-200)] dark:border-blue-800">
+            <span>{filteredQuizzes.length} Quizzes</span>
+          </span>
         </div>
 
-        {/* Right: Category Dropdown (All, Web Dev, Frontend, Backend, CS Algo, Data & AI, UI / UX, DevOps) */}
-        <div className="flex items-center space-x-2.5 w-full md:w-auto shrink-0 relative" ref={categoryDropdownRef}>
-          <span className="text-xs font-poppins font-bold text-[var(--text-muted)] whitespace-nowrap flex items-center space-x-1">
-            <span>📂</span>
-            <span>Category:</span>
-          </span>
-          <div className="relative flex-1 md:w-56">
+        {/* Right: Horizontal Touch Slider Container for Dropdown Controls */}
+        <div className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto no-scrollbar py-1 max-w-[calc(100%-95px)] sm:max-w-none ml-auto shrink-0 snap-x">
+          
+          {/* 1. Challenge Type Dropdown */}
+          <div className="relative shrink-0 snap-start" ref={filterDropdownRef}>
             <button
               type="button"
-              onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-              className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-semibold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-sm transition-all"
+              onClick={() => {
+                setIsFilterDropdownOpen(!isFilterDropdownOpen);
+                setIsCategoryDropdownOpen(false);
+                setIsPricingDropdownOpen(false);
+              }}
+              className="flex items-center justify-between px-3 sm:px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-xs transition-all space-x-1.5"
             >
-              <span className="truncate">
-                {selectedCategory === 'All' ? '🌐 All Categories' : `💻 ${selectedCategory}`}
+              <span className="truncate max-w-[110px] sm:max-w-[160px]">
+                {filterTabs.find((t) => t.id === activeFilter)?.label || 'All Challenges'}
               </span>
-              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 ml-2 font-bold ${isCategoryDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
+              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 font-bold ${isFilterDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
                 ▼
               </span>
             </button>
 
-            {/* Floating Dropdown Menu: Adds scrollbar when list goes larger than 5 */}
+            {isFilterDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-52 sm:w-60 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-50 p-1.5 animate-fadeIn max-h-64 overflow-y-auto custom-scrollbar">
+                <div className="px-3 py-1.5 text-[10px] font-poppins font-black uppercase text-[var(--text-muted)] border-b border-[var(--border-theme)] mb-1 sticky top-0 bg-[var(--bg-card)] z-10">
+                  Challenge Type
+                </div>
+                {filterTabs.map((tab) => {
+                  const count = allQuizzes.filter((q) => tab.id === 'all' || q.computedStatus === tab.id).length;
+                  const isSel = activeFilter === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => {
+                        handleFilterClick(tab.id);
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                        isSel
+                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 font-bold'
+                          : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--border-theme)] text-[var(--text-muted)] font-bold">
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 2. Category Dropdown */}
+          <div className="relative shrink-0 snap-start" ref={categoryDropdownRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                setIsFilterDropdownOpen(false);
+                setIsPricingDropdownOpen(false);
+              }}
+              className="flex items-center justify-between px-3 sm:px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-xs transition-all space-x-1.5"
+            >
+              <span className="truncate max-w-[100px] sm:max-w-[150px]">
+                {selectedCategory === 'All' ? 'Category: All' : selectedCategory}
+              </span>
+              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 font-bold ${isCategoryDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
+                ▼
+              </span>
+            </button>
+
             {isCategoryDropdownOpen && (
-              <div
-                className={`absolute right-0 mt-1.5 w-full min-w-[210px] bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-30 p-1.5 animate-fadeIn ${
-                  categories.length > 5 ? 'max-h-[195px] overflow-y-auto custom-scrollbar' : ''
-                }`}
-              >
+              <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-50 p-1.5 animate-fadeIn max-h-64 overflow-y-auto custom-scrollbar">
+                <div className="px-3 py-1.5 text-[10px] font-poppins font-black uppercase text-[var(--text-muted)] border-b border-[var(--border-theme)] mb-1 sticky top-0 bg-[var(--bg-card)] z-10">
+                  Select Category
+                </div>
                 {categories.map((cat) => {
-                  const isSelected = selectedCategory === cat;
+                  const isSel = selectedCategory === cat;
                   return (
                     <button
                       key={cat}
@@ -266,24 +321,76 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                         handleCategoryClick(cat);
                         setIsCategoryDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-poppins font-semibold transition-colors cursor-pointer text-left ${
-                        isSelected
-                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-slate-800 dark:text-blue-400 font-bold'
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                        isSel
+                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 font-bold'
                           : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'
                       }`}
                     >
                       <span className="truncate">
-                        {cat === 'All' ? '🌐 All Categories' : `💻 ${cat}`}
+                        {cat === 'All' ? 'All Categories' : cat}
                       </span>
-                      {isSelected && (
-                        <span className="text-[var(--color-primary-600)] font-bold text-xs ml-2">✓</span>
-                      )}
+                      {isSel && <span className="text-[var(--color-primary-600)] font-bold text-xs ml-1">✓</span>}
                     </button>
                   );
                 })}
               </div>
             )}
           </div>
+
+          {/* 3. Pricing Filter Dropdown */}
+          <div className="relative shrink-0 snap-start" ref={pricingDropdownRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsPricingDropdownOpen(!isPricingDropdownOpen);
+                setIsFilterDropdownOpen(false);
+                setIsCategoryDropdownOpen(false);
+              }}
+              className="flex items-center justify-between px-3 sm:px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-xs transition-all space-x-1.5"
+            >
+              <span className="truncate max-w-[90px] sm:max-w-[130px]">
+                {selectedPricing === 'All' ? 'Pricing: All' : selectedPricing === 'free' ? 'Free Only' : 'Paid Only'}
+              </span>
+              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 font-bold ${isPricingDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {isPricingDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-44 sm:w-52 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-50 p-1.5 animate-fadeIn max-h-64 overflow-y-auto custom-scrollbar">
+                <div className="px-3 py-1.5 text-[10px] font-poppins font-black uppercase text-[var(--text-muted)] border-b border-[var(--border-theme)] mb-1 sticky top-0 bg-[var(--bg-card)] z-10">
+                  Pricing Access
+                </div>
+                {[
+                  { id: 'All', label: 'All Pricing Access' },
+                  { id: 'free', label: 'Free Quizzes Only' },
+                  { id: 'paid', label: 'Paid / Practice Only' }
+                ].map((item) => {
+                  const isSel = selectedPricing === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPricing(item.id);
+                        setIsPricingDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center justify-between transition-colors cursor-pointer ${
+                        isSel
+                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 font-bold'
+                          : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {isSel && <span className="text-[var(--color-primary-600)] font-bold text-xs ml-1">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
@@ -306,6 +413,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
             const isCode = quiz.quizType === 'code';
             const isQuick = quiz.mcqSubtype === 'quick';
             const isCompleted = quiz.computedStatus === 'past';
+            const isUserRegistered = Boolean(user && quiz.enrolledUsers && quiz.enrolledUsers.some(u => (u.userId === user._id || u.userId === user.id || u === user._id || u === user.id)));
             const originalPrice = quiz.price || 0;
             const effectivePrice = isCompleted && quiz.isPaid ? Math.max(1, Math.round(originalPrice * 0.10)) : originalPrice;
             const isDiscounted = isCompleted && quiz.isPaid && originalPrice > 0;
@@ -395,10 +503,18 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                         ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
                         : quiz.computedStatus === 'running'
                         ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                        : isUserRegistered
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                         : 'bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white'
                     }`}
                   >
-                    {isCompleted ? '📝 Register for Practice' : quiz.computedStatus === 'running' ? 'Compete 🚀' : '📝 Register'}
+                    {isCompleted
+                      ? (isUserRegistered || !quiz.isPaid ? '🎯 Practice' : '📝 Unlock Practice')
+                      : quiz.computedStatus === 'running'
+                      ? 'Compete 🚀'
+                      : isUserRegistered
+                      ? '✅ Registered'
+                      : '📝 Register'}
                   </button>
                 </div>
               </div>

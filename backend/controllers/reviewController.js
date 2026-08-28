@@ -54,9 +54,20 @@ const seedInitialReviewsIfEmpty = async () => {
 const getPublicReviews = async (req, res) => {
   try {
     await seedInitialReviewsIfEmpty();
-    const reviews = await Review.find({ status: 'approved' })
+    const rawReviews = await Review.find({ status: 'approved' })
+      .populate('userId', 'avatarUrl avatar profileImage picture name')
       .sort({ isFeatured: -1, createdAt: -1 })
       .lean();
+
+    const reviews = rawReviews.map((r) => {
+      const nameForSeed = r.userName || (r.userId ? r.userId.name : 'Candidate');
+      const fallbackUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nameForSeed)}`;
+      const userPhoto = r.avatarUrl || (r.userId ? (r.userId.avatarUrl || r.userId.avatar || r.userId.profileImage || r.userId.picture) : '');
+      return {
+        ...r,
+        avatarUrl: userPhoto || fallbackUrl
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -77,7 +88,7 @@ const getPublicReviews = async (req, res) => {
 // @access  Public (Optional User Auth attached if available)
 const submitReview = async (req, res) => {
   try {
-    const { userName, userEmail, role, rating, quote, quizId, quizTitle } = req.body;
+    const { userName, userEmail, role, rating, quote, quizId, quizTitle, avatarUrl } = req.body;
 
     if (!quote || !quote.trim()) {
       return res.status(400).json({
@@ -99,6 +110,10 @@ const submitReview = async (req, res) => {
     ];
     const randomStyle = bgStyles[Math.floor(Math.random() * bgStyles.length)];
 
+    const nameForSeed = userName || (req.user ? req.user.name : 'Candidate');
+    const fallbackAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(nameForSeed)}`;
+    const userAvatar = avatarUrl || (req.user ? (req.user.avatarUrl || req.user.avatar || req.user.profileImage || req.user.picture) : '') || fallbackAvatar;
+
     const newReview = await Review.create({
       userId: req.user ? req.user._id : null,
       userName: userName || (req.user ? req.user.name : 'Anonymous Student'),
@@ -108,6 +123,7 @@ const submitReview = async (req, res) => {
       quote: quote.trim(),
       quizId: quizId || null,
       quizTitle: quizTitle || '',
+      avatarUrl: userAvatar,
       bgColor: randomStyle.bgColor,
       avatarBg: randomStyle.avatarBg,
       status: 'approved', // Auto-approved by default per user choice
@@ -200,7 +216,7 @@ const getAdminReviews = async (req, res) => {
 // @access  Private (Admin)
 const createAdminReview = async (req, res) => {
   try {
-    const { userName, userEmail, role, rating, quote, status, isFeatured, quizTitle } = req.body;
+    const { userName, userEmail, role, rating, quote, status, isFeatured, quizTitle, avatarUrl } = req.body;
 
     if (!userName || !quote) {
       return res.status(400).json({
@@ -217,6 +233,7 @@ const createAdminReview = async (req, res) => {
       rating: Number(rating) || 5,
       quote: quote.trim(),
       quizTitle: (quizTitle || '').trim(),
+      avatarUrl: (avatarUrl || req.body.avatar || '').trim(),
       status: status || 'approved',
       isFeatured: isFeatured !== undefined ? Boolean(isFeatured) : true
     });

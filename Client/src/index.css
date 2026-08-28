@@ -344,3 +344,12 @@ iframe[src*="razorpay"] {
   transform: scale(0.90) !important;
   transform-origin: center center !important;
 }
+
+/* Hide scrollbar for Chrome, Safari, Opera, Edge, Firefox */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

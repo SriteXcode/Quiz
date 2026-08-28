@@ -3,6 +3,7 @@ import Skeleton from './Skeleton';
 import { apiGetQuizzes } from '../services/api';
 import QuizCountdownBadge from './QuizCountdownBadge';
 import { getQuizAutoStatus } from '../utils/dateUtils';
+import { useAuth } from '../context/AuthContext';
 
 export const LiveQuizSkeletonCard = () => {
   return (
@@ -25,6 +26,7 @@ export const LiveQuizSkeletonCard = () => {
 };
 
 export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll }) => {
+  const { user } = useAuth();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -119,12 +121,13 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
               const originalPrice = quiz.price || 0;
               const effectivePrice = isEnded && quiz.isPaid ? Math.max(1, Math.round(originalPrice * 0.10)) : originalPrice;
               const isDiscounted = isEnded && quiz.isPaid && originalPrice > 0;
+              const isRegistered = Boolean(user && quiz.enrolledUsers && quiz.enrolledUsers.some(u => (u.userId === user._id || u.userId === user.id || u === user._id || u === user.id)));
 
               return (
                 <div
                   key={quiz._id || quiz.id || quiz.title}
                   onClick={() => onSelectQuiz && onSelectQuiz(quiz)}
-                  className="w-[240px] sm:w-[280px] md:w-[300px] shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between snap-start group cursor-pointer hover:-translate-y-1 relative overflow-hidden"
+                  className="w-[250px] xs:w-[270px] sm:w-[280px] md:w-[300px] shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between snap-start group cursor-pointer hover:-translate-y-1 relative overflow-hidden"
                 >
                   {/* Top Priority Ribbon for Live items */}
                   {status === 'running' && (
@@ -171,15 +174,15 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                       )}
                     </div>
 
-                    <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors line-clamp-2 leading-snug mb-1">
+                    <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors line-clamp-2 leading-snug mb-2">
                       {quiz.title}
                     </h3>
 
                     <p className="font-lato text-xs text-[var(--text-muted)] line-clamp-2 mb-3">
-                      {quiz.quickDetails || quiz.description || 'Test your knowledge and compete in real-time.'}
+                      {quiz.quickDetails || quiz.description || 'Test your proficiency and compete on real-time leaderboards.'}
                     </p>
 
-                    {/* REWARDS SNIPPET (Top 1st prize & group perks) */}
+                    {/* Rewards preview if available */}
                     {quiz.rewards && quiz.rewards.length > 0 && (
                       <div className="bg-[var(--bg-main)] p-2 rounded-xl border border-[var(--border-theme)] text-[11px] font-lato text-amber-900 dark:text-amber-200 font-bold mb-3 flex items-center space-x-1.5">
                         <span>🏆</span>
@@ -187,7 +190,7 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                       </div>
                     )}
 
-                    {/* LIVE COUNTDOWN BADGE */}
+                    {/* Countdown Timer Badge */}
                     <div className="mb-2">
                       <QuizCountdownBadge quiz={quiz} />
                     </div>
@@ -206,10 +209,18 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                           ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                           : status === 'running'
                           ? 'bg-rose-600 text-white hover:bg-rose-700'
+                          : isRegistered
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                           : 'bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)]'
                       }`}
                     >
-                      {isEnded ? '📝 Register for Practice' : status === 'running' ? 'Compete 🚀' : '📝 Register'}
+                      {isEnded
+                        ? (isRegistered || !quiz.isPaid ? '🎯 Practice' : '📝 Unlock Practice')
+                        : status === 'running'
+                        ? 'Compete 🚀'
+                        : isRegistered
+                        ? '✅ Registered'
+                        : '📝 Register'}
                     </button>
                   </div>
                 </div>

@@ -561,11 +561,11 @@ Rules & Guidelines:
                 ? (isCode ? 'Start Code Challenge 🚀' : 'Start Live Assessment 🚀')
                 : '🔒 Registration Closed (Not Registered)'
               : isEnded
-              ? isDiscounted && !isRegisteredOrUnlocked
-                ? `💳 Register to Unlock Practice (₹${price} • 90% OFF)`
-                : !isRegisteredOrUnlocked
-                ? '📝 Register for Free Practice'
-                : '🎯 Start Practice Quiz (Unlocked)'
+              ? (isRegisteredOrUnlocked || !isPaid)
+                ? '🎯 Start Practice Quiz'
+                : isDiscounted
+                ? `💳 Unlock Practice (₹${price} • 90% OFF)`
+                : '📝 Unlock Practice'
               : (isCode ? 'Start Code Challenge 🚀' : 'Start Live Assessment 🚀')}
           </span>
         </button>

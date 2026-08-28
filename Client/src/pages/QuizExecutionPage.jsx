@@ -1741,7 +1741,8 @@ You are building a high-frequency financial settlement engine. Given an array of
                     rating: postQuizRating,
                     quote: postQuizQuote.trim(),
                     quizId: quiz?._id || quiz?.id,
-                    quizTitle: quiz?.title || ''
+                    quizTitle: quiz?.title || '',
+                    avatarUrl: user?.avatarUrl || user?.avatar || user?.profileImage || ''
                   });
                   if (res && res.success !== false) {
                     addToast('✨ Review submitted successfully!', 'success');
@@ -1790,6 +1791,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
               <textarea
                 rows={2}
+                maxLength={220}
                 value={postQuizQuote}
                 onChange={(e) => setPostQuizQuote(e.target.value)}
                 placeholder="Share your thoughts on question difficulty, timer, or overall learning value..."
@@ -1920,7 +1922,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                           ? isUserRegistered ? '✅ Registered' : '📝 Register'
                           : isRunning
                           ? isUserRegistered ? 'Compete 🚀' : '🔒 Closed'
-                          : isUserRegistered ? '🎯 Practice' : '📝 Register for Practice'}
+                          : (isUserRegistered || !item.isPaid) ? '🎯 Practice' : '📝 Unlock Practice'}
                       </span>
                     </div>
                   </div>

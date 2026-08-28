@@ -39,7 +39,8 @@ export const UniversalReviewModal = ({ isOpen, onClose, onSuccess, initialQuiz =
         rating,
         quote: quote.trim(),
         quizId: initialQuiz?._id || initialQuiz?.id || null,
-        quizTitle: initialQuiz?.title || initialQuiz?.quizTitle || ''
+        quizTitle: initialQuiz?.title || initialQuiz?.quizTitle || '',
+        avatarUrl: user?.avatarUrl || user?.avatar || user?.profileImage || ''
       };
 
       const res = await apiSubmitReview(payload);
@@ -147,14 +148,20 @@ export const UniversalReviewModal = ({ isOpen, onClose, onSuccess, initialQuiz =
 
           {/* Review Quote Text */}
           <div>
-            <label className="block text-xs font-semibold text-[var(--text-muted)] mb-1">
-              Your Feedback / Review *
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs font-semibold text-[var(--text-muted)]">
+                Your Feedback / Review *
+              </label>
+              <span className={`text-[10px] font-mono font-bold ${quote.length >= 200 ? 'text-amber-500' : 'text-[var(--text-muted)]'}`}>
+                {quote.length}/220 chars max
+              </span>
+            </div>
             <textarea
-              rows={4}
+              rows={3}
+              maxLength={220}
               value={quote}
               onChange={(e) => setQuote(e.target.value)}
-              placeholder="What did you like about the quiz platform or practice experience?"
+              placeholder="What did you like about the quiz platform or practice experience? (Keep it crisp)"
               required
               className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-sm text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-[var(--color-secondary-500)] resize-none"
             />

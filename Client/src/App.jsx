@@ -328,7 +328,7 @@ export const App = () => {
       />
 
       {/* Main Page Layout Container */}
-      <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-2 pb-4 md:pb-0'}`}>
+      <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-2 pb-20 md:pb-4'}`}>
         <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center font-poppins text-sm text-[var(--text-muted)] animate-pulse">Loading brainArena...</div>}>
           {activePolicy !== null ? (
             <PolicyPage

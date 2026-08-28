@@ -43,6 +43,11 @@ const reviewSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    avatarUrl: {
+      type: String,
+      default: '',
+      trim: true
+    },
     bgColor: {
       type: String,
       default: 'bg-[var(--color-secondary-600)] text-white'

@@ -113,36 +113,36 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
   return (
     <section className="mb-6 overflow-hidden py-4">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+      <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3 mb-6 sm:mb-8">
         <div>
           <div className="flex items-center space-x-2">
-            <h2 className="text-xl sm:text-2xl font-bold font-poppins text-[var(--text-main)]">
+            <h2 className="text-lg sm:text-2xl font-bold font-poppins text-[var(--text-main)]">
               Student & Community Reviews
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-[var(--text-muted)] font-lato mt-0.5">
+          <p className="text-[11px] sm:text-sm text-[var(--text-muted)] font-lato mt-0.5">
             Real feedback from candidates, developers, and educators.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 shrink-0">
+        <div className="flex items-center space-x-2 shrink-0 self-end xs:self-auto ml-auto">
           <button
             onClick={() => setIsReviewModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] text-white text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 flex items-center space-x-1.5 cursor-pointer"
+            className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[var(--color-secondary-600)] hover:bg-[var(--color-secondary-700)] text-white text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-95 flex items-center space-x-1 cursor-pointer"
           >
             <span>+ Write Review</span>
           </button>
-          <div className="flex items-center space-x-1 pl-2 border-l border-[var(--border-theme)]">
+          <div className="flex items-center space-x-1 pl-1.5 sm:pl-2 border-l border-[var(--border-theme)]">
             <button
               onClick={prevCard}
-              className="p-2 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95 text-xs sm:text-base"
+              className="p-1.5 sm:p-2 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95 text-xs sm:text-base"
               aria-label="Previous Review Card"
             >
               ←
             </button>
             <button
               onClick={nextCard}
-              className="p-2 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95 text-xs sm:text-base"
+              className="p-1.5 sm:p-2 rounded-xl border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95 text-xs sm:text-base"
               aria-label="Next Review Card"
             >
               →
@@ -155,7 +155,7 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
       <div
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
-        className="relative min-h-[220px] xs:min-h-[240px] sm:min-h-[280px] flex items-center justify-center"
+        className="relative min-h-[200px] xs:min-h-[215px] sm:min-h-[230px] flex items-center justify-center"
       >
         {reviews.map((review, index) => {
           const position = getCardPosition(index);
@@ -164,9 +164,9 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
           if (position === 'front') {
             positionClasses = 'z-30 scale-100 opacity-100 translate-x-0 shadow-xl rotate-0 pointer-events-auto';
           } else if (position === 'left') {
-            positionClasses = 'z-10 lg:scale-95 md:scale-85 sm:scale-70 opacity-50 sm:opacity-60 -translate-x-6 sm:-translate-x-32 md:-translate-x-24 -rotate-5 hover:opacity-80 cursor-pointer pointer-events-auto';
+            positionClasses = 'z-10 lg:scale-95 md:scale-85 sm:scale-70 opacity-100 -translate-x-6 sm:-translate-x-32 md:-translate-x-24 -rotate-5 cursor-pointer pointer-events-auto';
           } else if (position === 'right') {
-            positionClasses = 'z-10 lg:scale-95 md:scale-85 sm:scale-70 opacity-50 sm:opacity-60 translate-x-6 sm:translate-x-32 md:translate-x-24 rotate-5 hover:opacity-80 cursor-pointer pointer-events-auto';
+            positionClasses = 'z-10 lg:scale-95 md:scale-85 sm:scale-70 opacity-100 translate-x-6 sm:translate-x-32 md:translate-x-24 rotate-5 cursor-pointer pointer-events-auto';
           }
 
           const isBackgroundCard = position !== 'front';
@@ -176,57 +176,56 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
             : (review.avatarBg || 'bg-white text-[var(--color-secondary-700)] dark:bg-slate-900 dark:text-emerald-400 shadow-md border-2 border-white/50 font-bold');
           const authorName = review.userName || review.author || 'Anonymous';
 
+          const userImageSrc = review.avatarUrl || review.avatar || review.userAvatar || review.profileImage || review.picture ||
+            (review.userId && typeof review.userId === 'object' ? (review.userId.avatarUrl || review.userId.avatar || review.userId.profileImage || review.userId.picture) : null) || null;
+          const rawQuote = review.quote || '';
+          const displayQuote = rawQuote.length > 170 ? `${rawQuote.slice(0, 170)}...` : rawQuote;
+
           return (
             <div
               key={review._id || review.id || index}
               onClick={() => position !== 'front' && setActiveIndex(index)}
-              className={`absolute w-[82%] xs:w-[85%] sm:w-full max-w-[280px] sm:max-w-xl md:max-w-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-8 transition-all duration-300 ease-in-out transform border border-white/20 ${cardBgClass} ${positionClasses}`}
+              className={`absolute w-[84%] xs:w-[88%] sm:w-full max-w-[300px] sm:max-w-xl md:max-w-2xl h-[175px] xs:h-[185px] sm:h-[200px] rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all duration-300 ease-in-out transform border border-white/20 overflow-hidden flex flex-col justify-between ${cardBgClass} ${positionClasses}`}
             >
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-6">
+              <div className="flex flex-col space-y-2 sm:space-y-3">
                 
-                {/* Avatar */}
-                <div className={`w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl ${avatarBgClass} flex items-center justify-center font-poppins text-lg sm:text-2xl shrink-0 overflow-hidden relative`}>
-                  {review.avatarUrl || review.avatar || review.userAvatar || review.profileImage || review.picture ? (
-                    <img
-                      src={review.avatarUrl || review.avatar || review.userAvatar || review.profileImage || review.picture}
-                      alt={authorName}
-                      className="w-full h-full object-cover rounded-xl sm:rounded-2xl"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <span>{authorName.charAt(0).toUpperCase()}</span>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 text-center sm:text-left">
-                  {/* Rating Stars & Quiz Tag */}
-                  <div className="flex items-center justify-center sm:justify-start space-x-2 mb-1.5 sm:mb-3">
-                    <div className="flex items-center text-amber-300 space-x-0.5">
-                      {Array.from({ length: review.rating || 5 }).map((_, i) => (
-                        <span key={i} className="text-xs sm:text-lg">★</span>
-                      ))}
-                    </div>
-                    {review.quizTitle && (
-                      <span className="text-[10px] sm:text-xs bg-black/20 text-white/90 px-2 py-0.5 rounded-full font-medium truncate max-w-[140px] sm:max-w-[200px]">
-                        🎯 {review.quizTitle}
-                      </span>
-                    )}
+                {/* 1. TOP SECTION: NAME CARD (AVATAR + BOLD NAME + CLASS/ROLE/DESIGNATION BELOW IT) */}
+                <div className="flex items-center space-x-3 sm:space-x-4">
+                  {/* Profile Avatar Image with Seamless Fallback */}
+                  <div className={`w-10 h-10 sm:w-13 sm:h-13 rounded-xl sm:rounded-2xl shrink-0 overflow-hidden relative shadow-md flex items-center justify-center border-2 border-white/60 ${avatarBgClass} font-poppins text-base sm:text-xl`}>
+                    {userImageSrc ? (
+                      <img
+                        src={userImageSrc}
+                        alt={authorName}
+                        className="absolute inset-0 w-full h-full object-cover rounded-xl sm:rounded-2xl z-10"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : null}
+                    <span className="font-extrabold">{authorName.charAt(0).toUpperCase()}</span>
                   </div>
 
-                  <p className="font-lato italic text-xs sm:text-base leading-snug sm:leading-relaxed mb-2 sm:mb-4 line-clamp-3 sm:line-clamp-none">
-                    "{review.quote}"
-                  </p>
-
+                  {/* Name (Bold) & Designation Below Name */}
                   <div>
-                    <h3 className="font-poppins font-bold text-xs sm:text-lg">
+                    <h3 className="font-poppins font-extrabold text-sm sm:text-base leading-tight text-white truncate max-w-[180px] sm:max-w-[280px]">
                       {authorName}
                     </h3>
-                    <p className="font-lato text-[10px] sm:text-xs opacity-90">
-                      {review.role || 'Student Candidate'}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="font-lato px-1.5 py-0.5 rounded bg-white/20 font-semibold text-[10px] sm:text-xs text-white/90 truncate max-w-[120px] sm:max-w-[180px]">
+                        {review.role || review.designation || review.studentClass || 'Student Candidate'}
+                      </p>
+                      <div className="flex items-center text-amber-300 space-x-0.5">
+                        {Array.from({ length: review.rating || 5 }).map((_, i) => (
+                          <span key={i} className="text-xs sm:text-sm">★</span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* 2. SECOND ROW: REAL WORDS & REVIEW DESCRIPTION */}
+                <p className="font-lato italic text-xs sm:text-sm leading-relaxed text-white/95 line-clamp-3 sm:line-clamp-4 pt-1">
+                  "{displayQuote}"
+                </p>
 
               </div>
             </div>

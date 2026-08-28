@@ -107,17 +107,21 @@ export const Navbar = ({
   };
 
   return (
-    <header ref={navRef} className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-nav)] border-2 border-[var(--border-theme)] transition-colors duration-300">
+    <header ref={navRef} className="sticky top-0 z-50 backdrop-blur-md bg-[var(--bg-nav)]/95 border-b border-[var(--border-theme)] shadow-xs transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-4 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-2">
           
           {/* Brand Logo & Name */}
           <div className="flex items-center space-x-2 md:space-x-2.5 lg:space-x-3 cursor-pointer shrink-0" onClick={() => handleNavClick('home', 'Home')}>
-            <div className="w-9 h-9 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white font-bold text-lg md:text-base lg:text-xl shadow-md shrink-0">
-              B
+            <div className="w-9 h-9 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white p-2 shadow-sm shrink-0 transition-transform hover:scale-105">
+              <svg className="w-full h-full text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
             </div>
-            <span className="font-poppins font-bold text-lg md:text-base lg:text-xl tracking-wide text-[var(--text-main)] shrink-0">
-              brainArena
+            <span className="font-poppins font-extrabold text-lg md:text-base lg:text-xl tracking-tight text-[var(--text-main)] shrink-0">
+              brain<span className="text-[var(--color-primary-600)]">Arena</span>
             </span>
           </div>
 
