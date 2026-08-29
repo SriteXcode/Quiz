@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
@@ -180,7 +180,62 @@ export const AdminDashboard = () => {
   const [workSearchQuery, setWorkSearchQuery] = useState('');
   const [quizFilterType, setQuizFilterType] = useState('all');
   const [quizStatusFilter, setQuizStatusFilter] = useState('all'); // 'all' | 'active' | 'live' | 'upcoming' | 'past'
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const ADMIN_TAB_KEYS = useMemo(() => [
+    'overview',
+    'users',
+    'quizzes',
+    'previous-works',
+    'site-info',
+    'partners',
+    'messages',
+    'reviews',
+    'rewards'
+  ], []);
+
+  const activeTabIndex = useMemo(() => {
+    const idx = ADMIN_TAB_KEYS.indexOf(activeTab);
+    return idx >= 0 ? idx : 0;
+  }, [activeTab, ADMIN_TAB_KEYS]);
+
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+  const tabButtonRefs = useRef({});
+
+  useEffect(() => {
+    if (tabButtonRefs.current[activeTab]) {
+      tabButtonRefs.current[activeTab].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [activeTab]);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && activeTabIndex < ADMIN_TAB_KEYS.length - 1) {
+      setActiveTab(ADMIN_TAB_KEYS[activeTabIndex + 1]);
+    } else if (isRightSwipe && activeTabIndex > 0) {
+      setActiveTab(ADMIN_TAB_KEYS[activeTabIndex - 1]);
+    }
+
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
 
   // Contact Messages & Inquiries State
   const [messagesList, setMessagesList] = useState([]);
@@ -502,6 +557,102 @@ You are building a high-frequency financial settlement engine. Given an array of
     completedDate: 'May 2026',
     totalQuestions: 50
   });
+
+  // ==========================================
+  // 🏆 GLOBAL REWARDS & TIERS MANAGEMENT STATE
+  // ==========================================
+  const DEFAULT_GLOBAL_REWARDS = [
+    { id: 'rev_tier_1', place: '1st', badge: '🥇 Winner', prize: '$500 Cash + Gold Trophy', description: 'Top Rank Award + Exclusive Swag Kit' },
+    { id: 'rev_tier_2', place: '2nd', badge: '🥈 Runner Up', prize: '$250 Cash + Silver Medal', description: '2nd Rank Certificate + Pro Subscription' },
+    { id: 'rev_tier_3', place: '3rd', badge: '🥉 3rd Place', prize: '$100 Cash + Bronze Medal', description: '3rd Rank Certificate + Pro Subscription' },
+    { id: 'rev_tier_4', place: '4-10th', badge: '🏅 Top 10 (Group)', prize: 'Pro Membership & Swag', description: 'Top 10 Certificate of Excellence' },
+    { id: 'rev_tier_5', place: '11-50th', badge: '🎖️ Top 50 (Group)', prize: '500 XP Points & Badge', description: 'Certificate of Merit' }
+  ];
+
+  const [globalRewards, setGlobalRewards] = useState(() => {
+    try {
+      const saved = localStorage.getItem('global_rewards_tiers');
+      return saved ? JSON.parse(saved) : DEFAULT_GLOBAL_REWARDS;
+    } catch {
+      return DEFAULT_GLOBAL_REWARDS;
+    }
+  });
+
+  const [isRewardTierModalOpen, setIsRewardTierModalOpen] = useState(false);
+  const [editingRewardTierId, setEditingRewardTierId] = useState(null);
+  const [rewardTierFormData, setRewardTierFormData] = useState({
+    place: '1st',
+    badge: '🥇 Winner',
+    prize: '$500 Cash + Gold Trophy',
+    description: 'Top Rank Award + Exclusive Swag Kit'
+  });
+
+  const saveGlobalRewardsToStorage = (newList) => {
+    setGlobalRewards(newList);
+    try {
+      localStorage.setItem('global_rewards_tiers', JSON.stringify(newList));
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
+  const handleOpenCreateRewardTierModal = () => {
+    setEditingRewardTierId(null);
+    setRewardTierFormData({
+      place: '',
+      badge: '🏆 Winner Tier',
+      prize: '',
+      description: ''
+    });
+    setIsRewardTierModalOpen(true);
+  };
+
+  const handleOpenEditRewardTierModal = (reward) => {
+    setEditingRewardTierId(reward.id || reward._id);
+    setRewardTierFormData({
+      place: reward.place || '',
+      badge: reward.badge || '',
+      prize: reward.prize || '',
+      description: reward.description || ''
+    });
+    setIsRewardTierModalOpen(true);
+  };
+
+  const handleDeleteRewardTier = (id, badgeName) => {
+    if (!window.confirm(`Are you sure you want to remove reward tier "${badgeName || 'this tier'}"?`)) return;
+    const newList = globalRewards.filter((r) => r.id !== id && r._id !== id);
+    saveGlobalRewardsToStorage(newList);
+    addToast(`🗑️ Removed reward tier "${badgeName || 'Tier'}"`, 'info');
+  };
+
+  const handleSaveRewardTierSubmit = (e) => {
+    e.preventDefault();
+    if (!rewardTierFormData.place || !rewardTierFormData.prize) {
+      addToast('Please fill in rank place and prize title.', 'warning');
+      return;
+    }
+
+    if (editingRewardTierId) {
+      const newList = globalRewards.map((r) => {
+        if (r.id === editingRewardTierId || r._id === editingRewardTierId) {
+          return { ...r, ...rewardTierFormData };
+        }
+        return r;
+      });
+      saveGlobalRewardsToStorage(newList);
+      addToast(`✨ Updated reward tier "${rewardTierFormData.badge}"`, 'success');
+    } else {
+      const newReward = {
+        id: `rev_tier_${Date.now()}`,
+        ...rewardTierFormData
+      };
+      const newList = [...globalRewards, newReward];
+      saveGlobalRewardsToStorage(newList);
+      addToast(`🎉 Created new global reward tier "${rewardTierFormData.badge}"`, 'success');
+    }
+
+    setIsRewardTierModalOpen(false);
+  };
 
   // Dynamically calculate total duration whenever start/end date or time or AM/PM changes
   const dynamicDuration = calculateDynamicQuizDuration(
@@ -1408,195 +1559,59 @@ You are building a high-frequency financial settlement engine. Given an array of
     <div className="max-w-[1600px] mx-auto py-5 px-3 sm:px-6 animate-fadeIn space-y-5">
       
       {/* ========================================================================= */}
-      {/* 📱 MOBILE / TABLET TOP TOGGLE HEADER BAR (Visible only on < lg) */}
+      {/* 1. STICKY ADMIN PORTAL HEADER & HORIZONTAL TAB SLIDER CONTAINER */}
       {/* ========================================================================= */}
-      <div className="lg:hidden bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-            className="w-10 h-10 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-center font-bold text-lg"
-            title="Toggle Admin Navigation Menu"
-          >
-            {isMobileSidebarOpen ? '✕' : '☰'}
-          </button>
-          <div>
-            <div className="text-[10px] font-mono uppercase font-bold text-[var(--color-primary-600)]">
-              Admin Portal
-            </div>
-            <div className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-1.5">
-              <span>{currentActiveTabMeta.icon}</span>
-              <span>{currentActiveTabMeta.label}</span>
-            </div>
-          </div>
-        </div>
+      <div className="sticky top-14 sm:top-16 z-30 space-y-3 bg-[var(--bg-main)]/95 backdrop-blur-md py-2 transition-all">
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleOpenCreateQuizModal}
-            className="px-3 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer active:scale-95 transition-all flex items-center space-x-1"
-            title="Create New Quiz"
-          >
-            <span>➕</span>
-            <span className="hidden sm:inline">Quiz</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 📱 MOBILE HORIZONTAL SCROLLABLE TAB SELECTOR */}
-      <div className="lg:hidden flex items-center space-x-2 overflow-x-auto pb-2 pt-0.5 custom-scrollbar snap-x snap-mandatory">
-        {adminNavTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`shrink-0 px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center space-x-1.5 transition-all cursor-pointer snap-start ${
-                isActive
-                  ? 'bg-[var(--color-primary-600)] text-white shadow-md shadow-blue-500/20 font-bold'
-                  : 'bg-[var(--bg-card)] border border-[var(--border-theme)] text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-              }`}
-            >
-              <span>{tab.icon}</span>
-              <span>{tab.label}</span>
-              {tab.badge !== undefined && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
-                  isActive ? 'bg-white/20 text-white' : tab.badgeColor
-                }`}>
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* ========================================================================= */}
-      {/* MAIN TWO-COLUMN LAYOUT: SIDEBAR (LEFT) + FULL PAGE CANVAS (RIGHT) */}
-      {/* ========================================================================= */}
-      <div className="flex flex-col lg:flex-row items-start gap-6 relative">
-        
-        {/* ========================================================================= */}
-        {/* 📱 MOBILE SIDEBAR DRAWER OVERLAY (< lg) */}
-        {/* ========================================================================= */}
-        {isMobileSidebarOpen && (
-          <div
-            className="lg:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity"
-            onClick={() => setIsMobileSidebarOpen(false)}
-          >
-            <div
-              className="w-72 max-w-[85vw] h-full bg-[var(--bg-card)] border-r border-[var(--border-theme)] p-5 shadow-2xl overflow-y-auto flex flex-col justify-between"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="space-y-6">
-                {/* Mobile Drawer Header */}
-                <div className="flex items-center justify-between pb-4 border-b border-[var(--border-theme)]">
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--color-primary-600)] text-white flex items-center justify-center text-lg font-bold shadow-md">
-                      🛡️
-                    </div>
-                    <div>
-                      <div className="font-poppins font-bold text-sm text-[var(--text-main)]">Admin Panel</div>
-                      <div className="text-[10px] font-lato text-[var(--text-muted)]">Control Center</div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setIsMobileSidebarOpen(false)}
-                    className="w-8 h-8 rounded-full border border-[var(--border-theme)] text-[var(--text-secondary)] hover:text-white hover:bg-rose-500 text-xs font-bold transition-colors cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {/* Mobile Nav Links */}
-                <nav className="space-y-1.5 font-poppins text-xs font-semibold">
-                  {adminNavTabs.map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => {
-                          setActiveTab(tab.id);
-                          setIsMobileSidebarOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer ${
-                          isActive
-                            ? 'bg-[var(--color-primary-600)] text-white font-bold shadow-md shadow-blue-500/20'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-main)] hover:text-[var(--text-main)]'
-                        }`}
-                      >
-                        <div className="flex items-center space-x-3">
-                          <span className="text-base">{tab.icon}</span>
-                          <span>{tab.label}</span>
-                        </div>
-                        {tab.badge !== undefined && (
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                            isActive
-                              ? 'bg-white/20 text-white'
-                              : tab.badgeColor || 'bg-[var(--bg-main)] text-[var(--text-muted)]'
-                          }`}>
-                            {tab.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-
-              {/* Mobile Drawer Bottom Simple Status */}
-              <div className="pt-4 border-t border-[var(--border-theme)] flex items-center justify-between text-[11px] font-mono text-[var(--text-muted)]">
-                <span>Admin Suite</span>
-                <span className="text-emerald-500 font-bold">● Active</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* 💻 DESKTOP STICKY SIDEBAR (Visible only on lg: and up) */}
-        {/* ========================================================================= */}
-        <aside className="hidden lg:flex flex-col w-64 xl:w-72 shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm sticky top-20 self-start space-y-6">
-          {/* Sidebar Brand / Identity Header */}
-          <div className="flex items-center space-x-3 pb-4 border-b border-[var(--border-theme)]">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-800)] text-white flex items-center justify-center text-2xl shadow-lg border border-white/20 shrink-0">
+        {/* ADMIN PORTAL HEADER CARD (MATCHING ADMINDASHBOARD.PNG) */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-md flex items-center justify-between gap-4">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-[var(--color-primary-600)] to-[var(--color-primary-800)] text-white flex items-center justify-center text-xl sm:text-2xl shadow-md shrink-0">
               🛡️
             </div>
-            <div className="min-w-0">
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-poppins font-bold bg-amber-400 text-slate-900 uppercase tracking-wider block w-fit">
-                Super Admin
-              </span>
-              <h2 className="font-poppins font-bold text-sm text-[var(--text-main)] truncate mt-0.5">
-                Control Portal
-              </h2>
+            <div>
+              <h1 className="font-poppins font-extrabold text-base sm:text-lg text-[var(--text-main)] leading-tight">
+                Admin Portal
+              </h1>
+              <p className="text-xs font-poppins font-medium text-[var(--color-primary-600)] dark:text-[var(--color-primary-400)] mt-0.5">
+                Active tab - {currentActiveTabMeta.label}
+              </p>
             </div>
           </div>
 
-          {/* Sidebar Nav Items */}
-          <nav className="space-y-1.5 font-poppins text-xs font-semibold">
+          {/* Right Action: Plus Button to Create New Quiz */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleOpenCreateQuizModal}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-bold text-xl shadow-md cursor-pointer active:scale-95 transition-all flex items-center justify-center border border-white/20"
+              title="Create New Quiz"
+            >
+              <span>+</span>
+            </button>
+          </div>
+        </div>
+
+        {/* HORIZONTAL TAB NAVIGATION SLIDER BAR (FOR BOTH SMALL AND LARGE DEVICES) */}
+        <div className="bg-[var(--bg-main)] py-2 px-3 rounded-2xl border border-[var(--border-theme)] shadow-md flex items-center justify-center">
+          <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar scroll-smooth flex-1 justify-start py-0.5">
             {adminNavTabs.map((tab) => {
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
+                  ref={(el) => (tabButtonRefs.current[tab.id] = el)}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl transition-all cursor-pointer group ${
+                  className={`px-3.5 sm:px-5 py-2 rounded-xl font-poppins font-bold text-xs sm:text-sm whitespace-nowrap transition-all cursor-pointer flex items-center space-x-1.5 shrink-0 ${
                     isActive
-                      ? 'bg-[var(--color-primary-600)] text-white font-bold shadow-lg shadow-blue-500/25 scale-[1.02]'
-                      : 'text-[var(--text-secondary)] hover:bg-[var(--bg-main)] hover:text-[var(--text-main)]'
+                      ? 'bg-[var(--color-primary-600)] text-white shadow-md scale-[1.02]'
+                      : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] hover:text-[var(--text-main)]'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <span className={`text-base transition-transform group-hover:scale-110 ${isActive ? 'scale-110' : ''}`}>
-                      {tab.icon}
-                    </span>
-                    <span>{tab.label}</span>
-                  </div>
-
+                  <span>{tab.icon}</span>
+                  <span>{tab.label}</span>
                   {tab.badge !== undefined && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-colors ${
-                      isActive
-                        ? 'bg-white/20 text-white'
-                        : tab.badgeColor || 'bg-[var(--bg-main)] text-[var(--text-muted)]'
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                      isActive ? 'bg-white/20 text-white' : tab.badgeColor
                     }`}>
                       {tab.badge}
                     </span>
@@ -1604,1570 +1619,1622 @@ You are building a high-frequency financial settlement engine. Given an array of
                 </button>
               );
             })}
-          </nav>
-        </aside>
-
-        {/* ========================================================================= */}
-        {/* 📄 RIGHT-SIDE MAIN PAGE CANVAS (Occupies all remaining space) */}
-        {/* ========================================================================= */}
-        <main className="flex-1 min-w-0 space-y-6 w-full">
-          {/* Top Page Header Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-[var(--color-primary-900)] to-slate-900 text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center space-x-2 mb-1">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-amber-400 text-slate-900 uppercase">
-                  Active Section
-                </span>
-                <span className="text-xs font-mono text-blue-200">
-                  / admin / {activeTab}
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-extrabold font-poppins flex items-center space-x-2">
-                <span>{currentActiveTabMeta.icon}</span>
-                <span>
-                  {activeTab === 'overview' && 'System Overview & Analytics'}
-                  {activeTab === 'users' && 'User Directory & Permissions'}
-                  {activeTab === 'quizzes' && 'Quiz & Coding Challenge Hub'}
-                  {activeTab === 'previous-works' && 'Previous Works & Archives'}
-                  {activeTab === 'site-info' && 'About Us & Contact Manager'}
-                  {activeTab === 'partners' && 'Legal Partners & Sponsors Manager'}
-                  {activeTab === 'messages' && 'Contact Inquiries & Support Hub'}
-                  {activeTab === 'reviews' && 'Student Reviews & Testimonial Moderation'}
-                  {activeTab === 'rewards' && 'Leaderboard & Reward Tiers'}
-                </span>
-              </h1>
-              <p className="text-xs font-lato text-blue-200 mt-1">
-                {activeTab === 'overview' && 'Live platform telemetry, student registrations, active vs live quiz status, and performance metrics.'}
-                {activeTab === 'users' && 'Manage all registered student accounts, promote to admins, and update role permissions.'}
-                {activeTab === 'quizzes' && 'Build, schedule, monitor live running countdowns, and configure reward structures.'}
-                {activeTab === 'previous-works' && 'Publish verified competition showcases, winner archives, and portfolio artifacts.'}
-                {activeTab === 'site-info' && 'Customize public About Us banner copy, impact counters, core values, and contact details.'}
-                {activeTab === 'partners' && 'Maintain institutional accreditation partners, verification councils, and corporate sponsors.'}
-                {activeTab === 'messages' && 'Triage and resolve incoming user inquiries, sponsorship proposals, and feedback with priority & read-status filtering.'}
-                {activeTab === 'reviews' && 'Approve, reject, feature, edit, or delete student reviews submitted after quizzes or via universal feedback forms.'}
-                {activeTab === 'rewards' && 'Configure reward distributions, cash prizes, and rank-group tiers.'}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <button
-                onClick={handleOpenCreateReviewModalAdmin}
-                className="px-4 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-poppins font-bold text-xs shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-amber-300"
-              >
-                <span>⭐ Add Testimonial</span>
-              </button>
-
-              <button
-                onClick={handleOpenCreateQuizModal}
-                className="px-4 py-2.5 rounded-2xl bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] text-white font-poppins font-bold text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-emerald-400"
-              >
-                <span>➕ Create Quiz</span>
-              </button>
-
-              <button
-                onClick={handleOpenCreateWorkModal}
-                className="px-4 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs shadow-lg shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer flex items-center space-x-1.5 border border-indigo-400"
-              >
-                <span>💼 Previous Work</span>
-              </button>
-            </div>
           </div>
+        </div>
 
-      {/* TAB 1: OVERVIEW STATS */}
-      {activeTab === 'overview' && (
-        <div className="space-y-8 animate-fadeIn">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {/* 1. Students */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">🎓</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
-                {stats.totalStudents || 0}
-              </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Students</div>
-            </div>
+      </div>
 
-            {/* 2. Admins */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">🛡️</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
-                {stats.totalAdmins || 0}
-              </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Admins</div>
-            </div>
+      {/* ========================================================================= */}
+      {/* 2. SLIDE LEFT / RIGHT TAB CONTENT CAROUSEL (WITH TOUCH SWIPE GESTURES) */}
+      {/* ========================================================================= */}
+      <div
+        className="relative overflow-hidden w-full min-h-[400px] touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div
+          className="flex w-full transition-transform duration-300 ease-out items-start"
+          style={{ transform: `translateX(-${activeTabIndex * 100}%)` }}
+        >
 
-            {/* 3. Active Quizzes (Live + Upcoming) */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">⚡</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
-                {activeQuizzesList.length}
+        {/* SLIDE 0: OVERVIEW */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 0 ? 'auto' : 0, overflow: activeTabIndex === 0 ? 'visible' : 'hidden' }}
+        >
+          <div className="space-y-8 animate-fadeIn">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {/* 1. Students */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">🎓</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
+                  {stats.totalStudents || 0}
+                </div>
+                <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Students</div>
               </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-bold">Active Quizzes</div>
-              <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
-                Live ({liveRunningQuizzes.length}) + Up ({upcomingQuizzesList.length})
-              </div>
-            </div>
 
-            {/* 4. Live Running (ONLY Currently Running Quizzes) */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">🔴</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-rose-500">
-                {liveRunningQuizzes.length}
+              {/* 2. Admins */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">🛡️</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
+                  {stats.totalAdmins || 0}
+                </div>
+                <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Admins</div>
               </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-bold">Live (Running Now)</div>
-              <div className="text-[9px] font-mono text-rose-500 mt-0.5 font-bold">
-                Running Only
-              </div>
-            </div>
 
-            {/* 5. Upcoming Quizzes */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">⏳</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-indigo-500">
-                {upcomingQuizzesList.length}
+              {/* 3. Active Quizzes (Live + Upcoming) */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">⚡</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
+                  {activeQuizzesList.length}
+                </div>
+                <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-bold">Active Quizzes</div>
+                <div className="text-[9px] font-mono text-[var(--text-muted)] mt-0.5">
+                  Live ({liveRunningQuizzes.length}) + Up ({upcomingQuizzesList.length})
+                </div>
               </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Upcoming Quizzes</div>
-            </div>
 
-            {/* 6. Previous Works */}
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">💼</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-cyan-500">
-                {previousWorksList.length || stats.totalPreviousWorks || 0}
+              {/* 4. Live Running (ONLY Currently Running Quizzes) */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">🔴</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-rose-500">
+                  {liveRunningQuizzes.length}
+                </div>
+                <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-bold">Live (Running Now)</div>
+                <div className="text-[9px] font-mono text-rose-500 mt-0.5 font-bold">
+                  Running Only
+                </div>
               </div>
-              <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Previous Works</div>
+
+              {/* 5. Upcoming Quizzes */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">⏳</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-indigo-500">
+                  {upcomingQuizzesList.length}
+                </div>
+                <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Upcoming Quizzes</div>
+              </div>
+
+              {/* 6. Previous Works */}
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-5 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">💼</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-cyan-500">
+                  {previousWorksList.length || stats.totalPreviousWorks || 0}
+                </div>
+                <div className="text-[11px] font-lato text-[var(--text-muted)] uppercase font-semibold">Previous Works</div>
+              </div>
             </div>
           </div>
         </div>
-      )}
 
-      {/* TAB 2: USER MANAGEMENT */}
-      {activeTab === 'users' && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
-            <div>
-              <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
-                Registered Users Management
-              </h3>
-              <span className="text-xs font-lato text-[var(--text-muted)]">
-                Search, filter, promote roles, and manage user access
-              </span>
+        {/* SLIDE 1: USERS */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 1 ? 'auto' : 0, overflow: activeTabIndex === 1 ? 'visible' : 'hidden' }}
+        >
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+              <div>
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                  Registered Users Management
+                </h3>
+                <span className="text-xs font-lato text-[var(--text-muted)]">
+                  Search, filter, promote roles, and manage user access
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <input
+                  type="text"
+                  placeholder="Search name, email, school..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setUserCurrentPage(1);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)]"
+                />
+
+                <select
+                  value={roleFilter}
+                  onChange={(e) => {
+                    setRoleFilter(e.target.value);
+                    setUserCurrentPage(1);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
+                >
+                  <option value="all">All Roles</option>
+                  <option value="student">Students Only</option>
+                  <option value="admin">Admins Only</option>
+                </select>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-              <input
-                type="text"
-                placeholder="Search name, email, school..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setUserCurrentPage(1);
-                }}
-                className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)]"
-              />
+            {/* PAGINATED USERS TABLE */}
+            {(() => {
+              const totalUserPages = Math.ceil(usersList.length / USERS_PER_PAGE) || 1;
+              const validUserPage = Math.min(Math.max(1, userCurrentPage), totalUserPages);
+              const startUserIdx = (validUserPage - 1) * USERS_PER_PAGE;
+              const paginatedUsers = usersList.slice(startUserIdx, startUserIdx + USERS_PER_PAGE);
 
-              <select
-                value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setUserCurrentPage(1);
-                }}
-                className="px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs font-lato focus:outline-none focus:border-[var(--color-primary-600)] cursor-pointer"
-              >
-                <option value="all">All Roles</option>
-                <option value="student">Students Only</option>
-                <option value="admin">Admins Only</option>
-              </select>
-            </div>
-          </div>
-
-          {/* PAGINATED USERS TABLE */}
-          {(() => {
-            const totalUserPages = Math.ceil(usersList.length / USERS_PER_PAGE) || 1;
-            const validUserPage = Math.min(Math.max(1, userCurrentPage), totalUserPages);
-            const startUserIdx = (validUserPage - 1) * USERS_PER_PAGE;
-            const paginatedUsers = usersList.slice(startUserIdx, startUserIdx + USERS_PER_PAGE);
-
-            return (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left font-lato text-xs sm:text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
-                        <th className="py-3 px-2">User</th>
-                        <th className="py-3 px-2">Email</th>
-                        <th className="py-3 px-2">Role</th>
-                        <th className="py-3 px-2">School / College</th>
-                        <th className="py-3 px-2 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border-theme)]">
-                      {paginatedUsers.length === 0 ? (
-                        <tr>
-                          <td colSpan="5" className="py-8 text-center text-[var(--text-muted)]">
-                            No users found.
-                          </td>
+              return (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left font-lato text-xs sm:text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
+                          <th className="py-3 px-2">User</th>
+                          <th className="py-3 px-2">Email</th>
+                          <th className="py-3 px-2">Role</th>
+                          <th className="py-3 px-2">School / College</th>
+                          <th className="py-3 px-2 text-right">Actions</th>
                         </tr>
-                      ) : (
-                        paginatedUsers.map((u) => (
-                          <tr key={u._id || u.email} className="hover:bg-[var(--bg-main)] transition-colors">
-                            <td className="py-3 px-2 font-bold text-[var(--text-main)] flex items-center space-x-2">
-                              <span>{u.role === 'admin' ? '🛡️' : '🎓'}</span>
-                              <span>{u.name}</span>
-                            </td>
-                            <td className="py-3 px-2 text-[var(--text-secondary)]">{u.email}</td>
-                            <td className="py-3 px-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold uppercase ${
-                                u.role === 'admin'
-                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
-                              }`}>
-                                {u.role}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 text-[var(--text-muted)]">{u.school || 'N/A'}</td>
-                            <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
-                              {u._id === (user?._id || user?.id) ? (
-                                <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-poppins font-bold border border-amber-500/30">
-                                  🛡️ Logged-in Admin (Protected)
-                                </span>
-                              ) : u.role === 'admin' ? (
-                                <>
-                                  <button
-                                    onClick={() => handleToggleRole(u)}
-                                    className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
-                                  >
-                                    Demote to Student
-                                  </button>
-                                  <span
-                                    className="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-xs font-poppins font-semibold border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-75 inline-block"
-                                    title="Admin accounts cannot be deleted"
-                                  >
-                                    Protected Admin
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => handleToggleRole(u)}
-                                    className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
-                                  >
-                                    Promote to Admin
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteUser(u._id, u.name)}
-                                    className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-theme)]">
+                        {paginatedUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" className="py-8 text-center text-[var(--text-muted)]">
+                              No users found.
                             </td>
                           </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* USER DIRECTORY PAGINATION CONTROLS */}
-                {usersList.length > USERS_PER_PAGE && (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[var(--border-theme)] mt-2">
-                    <span className="text-xs font-lato text-[var(--text-muted)]">
-                      Showing <span className="font-bold text-[var(--text-main)]">{startUserIdx + 1}</span> to{' '}
-                      <span className="font-bold text-[var(--text-main)]">{Math.min(startUserIdx + USERS_PER_PAGE, usersList.length)}</span> of{' '}
-                      <span className="font-bold text-[var(--text-main)]">{usersList.length}</span> registered users
-                    </span>
-
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        onClick={() => setUserCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={validUserPage <= 1}
-                        className="px-3 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
-                      >
-                        ← Prev
-                      </button>
-
-                      {Array.from({ length: totalUserPages }, (_, i) => i + 1).map((pg) => (
-                        <button
-                          key={pg}
-                          onClick={() => setUserCurrentPage(pg)}
-                          className={`w-7 h-7 rounded-lg text-xs font-poppins font-bold transition-all cursor-pointer ${
-                            validUserPage === pg
-                              ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                              : 'border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                          }`}
-                        >
-                          {pg}
-                        </button>
-                      ))}
-
-                      <button
-                        onClick={() => setUserCurrentPage((p) => Math.min(totalUserPages, p + 1))}
-                        disabled={validUserPage >= totalUserPages}
-                        className="px-3 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
-                      >
-                        Next →
-                      </button>
-                    </div>
+                        ) : (
+                          paginatedUsers.map((u) => (
+                            <tr key={u._id || u.email} className="hover:bg-[var(--bg-main)] transition-colors">
+                              <td className="py-3 px-2 font-bold text-[var(--text-main)] flex items-center space-x-2">
+                                <span>{u.role === 'admin' ? '🛡️' : '🎓'}</span>
+                                <span>{u.name}</span>
+                              </td>
+                              <td className="py-3 px-2 text-[var(--text-secondary)]">{u.email}</td>
+                              <td className="py-3 px-2">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold uppercase ${
+                                  u.role === 'admin'
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300'
+                                }`}>
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td className="py-3 px-2 text-[var(--text-muted)]">{u.school || 'N/A'}</td>
+                              <td className="py-3 px-2 text-right space-x-2 whitespace-nowrap">
+                                {u._id === (user?._id || user?.id) ? (
+                                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 text-xs font-poppins font-bold border border-amber-500/30">
+                                    🛡️ Logged-in Admin (Protected)
+                                  </span>
+                                ) : u.role === 'admin' ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleToggleRole(u)}
+                                      className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                                    >
+                                      Demote to Student
+                                    </button>
+                                    <span
+                                      className="px-2.5 py-1 rounded-lg bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-400 text-xs font-poppins font-semibold border border-slate-300 dark:border-slate-700 cursor-not-allowed opacity-75 inline-block"
+                                      title="Admin accounts cannot be deleted"
+                                    >
+                                      Protected Admin
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleToggleRole(u)}
+                                      className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs font-poppins font-semibold text-[var(--color-primary-600)] cursor-pointer"
+                                    >
+                                      Promote to Admin
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteUser(u._id, u.name)}
+                                      className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer transition-colors"
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                )}
-              </>
-            );
-          })()}
-        </div>
-      )}
 
-      {/* TAB 3: QUIZ CREATOR & LIST */}
-      {activeTab === 'quizzes' && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
-                  Quiz & Code Challenge Manager
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                  {quizzesList.length} Quizzes
+                  {/* USER DIRECTORY PAGINATION CONTROLS */}
+                  {usersList.length > USERS_PER_PAGE && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-[var(--border-theme)] mt-2">
+                      <span className="text-xs font-lato text-[var(--text-muted)]">
+                        Showing <span className="font-bold text-[var(--text-main)]">{startUserIdx + 1}</span> to{' '}
+                        <span className="font-bold text-[var(--text-main)]">{Math.min(startUserIdx + USERS_PER_PAGE, usersList.length)}</span> of{' '}
+                        <span className="font-bold text-[var(--text-main)]">{usersList.length}</span> registered users
+                      </span>
+
+                      <div className="flex items-center space-x-1.5">
+                        <button
+                          onClick={() => setUserCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={validUserPage <= 1}
+                          className="px-3 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        >
+                          ← Prev
+                        </button>
+
+                        {Array.from({ length: totalUserPages }, (_, i) => i + 1).map((pg) => (
+                          <button
+                            key={pg}
+                            onClick={() => setUserCurrentPage(pg)}
+                            className={`w-7 h-7 rounded-lg text-xs font-poppins font-bold transition-all cursor-pointer ${
+                              validUserPage === pg
+                                ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                : 'border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                            }`}
+                          >
+                            {pg}
+                          </button>
+                        ))}
+
+                        <button
+                          onClick={() => setUserCurrentPage((p) => Math.min(totalUserPages, p + 1))}
+                          disabled={validUserPage >= totalUserPages}
+                          className="px-3 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs font-poppins font-semibold text-[var(--text-main)] hover:bg-[var(--bg-card)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* SLIDE 2: QUIZZES */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 2 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 2 ? 'auto' : 0, overflow: activeTabIndex === 2 ? 'visible' : 'hidden' }}
+        >
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                    Quiz & Code Challenge Manager
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                    {quizzesList.length} Quizzes
+                  </span>
+                </div>
+                <span className="text-xs font-lato text-[var(--text-muted)]">
+                  Total duration automatically syncs from Start & End Times with AM/PM toggle switch.
                 </span>
               </div>
-              <span className="text-xs font-lato text-[var(--text-muted)]">
-                Total duration automatically syncs from Start & End Times with AM/PM toggle switch.
-              </span>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Status Filter Bar */}
-              <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] p-1 flex-wrap gap-1">
-                <button
-                  onClick={() => setQuizStatusFilter('all')}
-                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizStatusFilter === 'all' ? 'bg-[var(--color-primary-600)] text-white shadow-sm' : 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  All ({quizzesList.length})
-                </button>
-                <button
-                  onClick={() => setQuizStatusFilter('active')}
-                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizStatusFilter === 'active' ? 'bg-emerald-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  ⚡ Active ({activeQuizzesList.length})
-                </button>
-                <button
-                  onClick={() => setQuizStatusFilter('live')}
-                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizStatusFilter === 'live' ? 'bg-rose-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  🔴 Live Now ({liveRunningQuizzes.length})
-                </button>
-                <button
-                  onClick={() => setQuizStatusFilter('upcoming')}
-                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizStatusFilter === 'upcoming' ? 'bg-indigo-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  ⏳ Upcoming ({upcomingQuizzesList.length})
-                </button>
-                <button
-                  onClick={() => setQuizStatusFilter('past')}
-                  className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizStatusFilter === 'past' ? 'bg-slate-600 text-white shadow-sm' : 'text-[var(--text-secondary)]'
-                  }`}
-                >
-                  📁 Past ({pastQuizzesList.length})
-                </button>
-              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Status Filter Bar */}
+                <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] p-1 flex-wrap gap-1">
+                  <button
+                    onClick={() => setQuizStatusFilter('all')}
+                    className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizStatusFilter === 'all' ? 'bg-[var(--color-primary-600)] text-white shadow-sm' : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    All ({quizzesList.length})
+                  </button>
+                  <button
+                    onClick={() => setQuizStatusFilter('active')}
+                    className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizStatusFilter === 'active' ? 'bg-emerald-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    ⚡ Active ({activeQuizzesList.length})
+                  </button>
+                  <button
+                    onClick={() => setQuizStatusFilter('live')}
+                    className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizStatusFilter === 'live' ? 'bg-rose-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    🔴 Live Now ({liveRunningQuizzes.length})
+                  </button>
+                  <button
+                    onClick={() => setQuizStatusFilter('upcoming')}
+                    className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizStatusFilter === 'upcoming' ? 'bg-indigo-600 text-white shadow-sm font-bold' : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    ⏳ Upcoming ({upcomingQuizzesList.length})
+                  </button>
+                  <button
+                    onClick={() => setQuizStatusFilter('past')}
+                    className={`px-3 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizStatusFilter === 'past' ? 'bg-slate-600 text-white shadow-sm' : 'text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    📁 Past ({pastQuizzesList.length})
+                  </button>
+                </div>
 
-              {/* Type Filter Bar */}
-              <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] p-1">
+                {/* Type Filter Bar */}
+                <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] p-1">
+                  <button
+                    onClick={() => setQuizFilterType('all')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizFilterType === 'all' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
+                    }`}
+                  >
+                    All Types
+                  </button>
+                  <button
+                    onClick={() => setQuizFilterType('multiple_choice')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizFilterType === 'multiple_choice' ? 'bg-[var(--bg-card)] text-[var(--color-primary-600)] font-bold shadow-sm' : 'text-[var(--text-muted)]'
+                    }`}
+                  >
+                    🔘 MCQ ({quizzesList.filter(q => q.quizType === 'multiple_choice' || !q.quizType).length})
+                  </button>
+                  <button
+                    onClick={() => setQuizFilterType('code')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
+                      quizFilterType === 'code' ? 'bg-[var(--bg-card)] text-indigo-500 font-bold shadow-sm' : 'text-[var(--text-muted)]'
+                    }`}
+                  >
+                    💻 Code ({quizzesList.filter(q => q.quizType === 'code').length})
+                  </button>
+                </div>
+
+                {/* Excel Template & Bulk Upload Quick Actions */}
                 <button
-                  onClick={() => setQuizFilterType('all')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizFilterType === 'all' ? 'bg-[var(--bg-card)] text-[var(--text-main)] shadow-sm' : 'text-[var(--text-muted)]'
-                  }`}
+                  type="button"
+                  onClick={downloadQuizQuestionsTemplate}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-poppins font-bold text-xs shadow-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+                  title="Download structured Excel template for Quiz Questions"
                 >
-                  All Types
+                  <span>📥</span>
+                  <span>Download Excel Template</span>
                 </button>
-                <button
-                  onClick={() => setQuizFilterType('multiple_choice')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizFilterType === 'multiple_choice' ? 'bg-[var(--bg-card)] text-[var(--color-primary-600)] font-bold shadow-sm' : 'text-[var(--text-muted)]'
-                  }`}
+
+                <label
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-sm cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+                  title="Upload an Excel file to create a Quiz with all questions automatically parsed"
                 >
-                  🔘 MCQ ({quizzesList.filter(q => q.quizType === 'multiple_choice' || !q.quizType).length})
-                </button>
-                <button
-                  onClick={() => setQuizFilterType('code')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-semibold cursor-pointer transition-all ${
-                    quizFilterType === 'code' ? 'bg-[var(--bg-card)] text-indigo-500 font-bold shadow-sm' : 'text-[var(--text-muted)]'
-                  }`}
-                >
-                  💻 Code ({quizzesList.filter(q => q.quizType === 'code').length})
-                </button>
-              </div>
+                  <span>📤</span>
+                  <span>Upload Quiz via Excel</span>
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls, .csv"
+                    onChange={handleUploadQuizExcelFromToolbar}
+                    className="hidden"
+                  />
+                </label>
 
-              {/* Excel Template & Bulk Upload Quick Actions */}
-              <button
-                type="button"
-                onClick={downloadQuizQuestionsTemplate}
-                className="px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 font-poppins font-bold text-xs shadow-xs cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
-                title="Download structured Excel template for Quiz Questions"
-              >
-                <span>📥</span>
-                <span>Download Excel Template</span>
-              </button>
-
-              <label
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-sm cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
-                title="Upload an Excel file to create a Quiz with all questions automatically parsed"
-              >
-                <span>📤</span>
-                <span>Upload Quiz via Excel</span>
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .csv"
-                  onChange={handleUploadQuizExcelFromToolbar}
-                  className="hidden"
-                />
-              </label>
-
-              <button
-                onClick={handleOpenCreateQuizModal}
-                className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
-              >
-                <span>➕ Create Quiz / Code Challenge</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredQuizzes.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-[var(--text-muted)] font-lato bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-6">
-                <span className="text-4xl block mb-2">📝</span>
-                <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No quizzes found.</p>
                 <button
                   onClick={handleOpenCreateQuizModal}
-                  className="mt-4 px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-xs font-poppins font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
                 >
-                  Create Quiz
+                  <span>➕ Create Quiz / Code Challenge</span>
                 </button>
               </div>
-            ) : (
-              filteredQuizzes.map((quiz) => {
-                const isCode = quiz.quizType === 'code';
-                const isQuick = quiz.mcqSubtype === 'quick';
-                const timerLabel = quiz.timerType === 'per_question_custom'
-                  ? '🎯 Custom Time/Q'
-                  : quiz.timerType === 'total_quiz'
-                  ? `⏳ ${quiz.durationMinutes || 60}m Total`
-                  : `⏱️ ${quiz.generalQuestionTimerSeconds || 15}s / Q`;
+            </div>
 
-                return (
-                  <div
-                    key={quiz._id || quiz.id || quiz.title}
-                    className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-5 rounded-2xl space-y-3 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredQuizzes.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-[var(--text-muted)] font-lato bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-6">
+                  <span className="text-4xl block mb-2">📝</span>
+                  <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No quizzes found.</p>
+                  <button
+                    onClick={handleOpenCreateQuizModal}
+                    className="mt-4 px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-xs font-poppins font-bold cursor-pointer"
                   >
-                    <div>
-                      <div className="flex justify-between items-center mb-2 flex-wrap gap-1">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                          {quiz.category || 'Web Dev'}
-                        </span>
-                        
-                        <div className="flex items-center space-x-1.5">
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-poppins font-semibold bg-slate-200 dark:bg-slate-800 text-[var(--text-secondary)]">
-                            {timerLabel}
-                          </span>
+                    Create Quiz
+                  </button>
+                </div>
+              ) : (
+                filteredQuizzes.map((quiz) => {
+                  const isCode = quiz.quizType === 'code';
+                  const isQuick = quiz.mcqSubtype === 'quick';
+                  const timerLabel = quiz.timerType === 'per_question_custom'
+                    ? '🎯 Custom Time/Q'
+                    : quiz.timerType === 'total_quiz'
+                    ? `⏳ ${quiz.durationMinutes || 60}m Total`
+                    : `⏱️ ${quiz.generalQuestionTimerSeconds || 15}s / Q`;
 
-                          {isCode ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-poppins font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-300">
-                              💻 Code
+                  return (
+                    <div
+                      key={quiz._id || quiz.id || quiz.title}
+                      className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-5 rounded-2xl space-y-3 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+                    >
+                      <div>
+                        <div className="flex justify-between items-center mb-2 flex-wrap gap-1">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            {quiz.category || 'Web Dev'}
+                          </span>
+                          
+                          <div className="flex items-center space-x-1.5">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-poppins font-semibold bg-slate-200 dark:bg-slate-800 text-[var(--text-secondary)]">
+                              {timerLabel}
                             </span>
-                          ) : (
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-poppins font-bold ${
-                              isQuick
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-                            }`}>
-                              {isQuick ? '⚡ Quick' : '📝 Standard'}
-                            </span>
-                          )}
+
+                            {isCode ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-poppins font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-300">
+                                💻 Code
+                              </span>
+                            ) : (
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-poppins font-bold ${
+                                isQuick
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                              }`}>
+                                {isQuick ? '⚡ Quick' : '📝 Standard'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors">
+                          {quiz.title}
+                        </h4>
+                        <p className="font-lato text-xs text-[var(--text-muted)] line-clamp-2 mt-1">
+                          {quiz.quickDetails || quiz.description}
+                        </p>
+
+                        <div className="mt-3 pt-2 border-t border-[var(--border-theme)] flex items-center justify-between">
+                          <QuizCountdownBadge quiz={quiz} />
+                          <span className="text-[11px] font-lato text-[var(--text-muted)] font-bold">
+                            ⏱️ {quiz.durationMinutes || 60}m
+                          </span>
                         </div>
                       </div>
 
-                      <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors">
-                        {quiz.title}
-                      </h4>
-                      <p className="font-lato text-xs text-[var(--text-muted)] line-clamp-2 mt-1">
-                        {quiz.quickDetails || quiz.description}
-                      </p>
-
-                      <div className="mt-3 pt-2 border-t border-[var(--border-theme)] flex items-center justify-between">
-                        <QuizCountdownBadge quiz={quiz} />
-                        <span className="text-[11px] font-lato text-[var(--text-muted)] font-bold">
-                          ⏱️ {quiz.durationMinutes || 60}m
+                      <div className="pt-3 border-t border-[var(--border-theme)] flex justify-between items-center text-xs">
+                        <span className="text-[10px] text-[var(--text-muted)] font-lato">
+                          {quiz.startDate} {quiz.startTime}
                         </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleOpenEditQuizModal(quiz)}
+                            className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white transition-colors cursor-pointer font-bold"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteQuiz(quiz._id || quiz.id, quiz.title)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer font-bold"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="pt-3 border-t border-[var(--border-theme)] flex justify-between items-center text-xs">
-                      <span className="text-[10px] text-[var(--text-muted)] font-lato">
-                        {quiz.startDate} {quiz.startTime}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleOpenEditQuizModal(quiz)}
-                          className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white transition-colors cursor-pointer font-bold"
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteQuiz(quiz._id || quiz.id, quiz.title)}
-                          className="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors cursor-pointer font-bold"
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: PREVIOUS WORKS */}
-      {activeTab === 'previous-works' && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
-                  Previous Works Showcase
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-                  {previousWorksList.length} Items
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <input
-                type="text"
-                placeholder="Search works..."
-                value={workSearchQuery}
-                onChange={(e) => setWorkSearchQuery(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-              />
-              <select
-                value={workCategoryFilter}
-                onChange={(e) => setWorkCategoryFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none font-bold"
-              >
-                <option value="all">All Categories</option>
-                <option value="Web Dev">Web Dev</option>
-                <option value="DSA">DSA</option>
-                <option value="Full Stack">Full Stack</option>
-                <option value="System Design">System Design</option>
-              </select>
-              <button
-                onClick={handleOpenCreateWorkModal}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
-              >
-                <span>➕ Add Previous Work</span>
-              </button>
+                  );
+                })
+              )}
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredPreviousWorks.map((work) => (
-              <div
-                key={work._id || work.id}
-                className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
-              >
-                <div>
-                  <div className={`h-28 rounded-xl bg-gradient-to-r ${work.gradient || 'from-blue-500 to-indigo-600'} p-3 text-white flex flex-col justify-between mb-3 shadow-sm relative overflow-hidden`}>
-                    <div className="flex justify-between items-start z-10">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-poppins bg-black/25 backdrop-blur-md">
-                        {work.badge || 'Completed'}
-                      </span>
-                      <span className="text-[10px] font-medium font-lato bg-white/25 px-2 py-0.5 rounded-md backdrop-blur-md">
-                        🏆 {work.topWinner || 'Top Winner'}
-                      </span>
-                    </div>
-                    <div className="z-10">
-                      <div className="text-[10px] font-lato opacity-80">{work.category || 'Challenge'}</div>
-                      <div className="font-poppins font-bold text-sm line-clamp-1">{work.title}</div>
-                    </div>
-                  </div>
-
-                  <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] mb-1 line-clamp-1">
-                    {work.title}
-                  </h4>
-                  <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-2 mb-3">
-                    {work.description}
-                  </p>
-                </div>
-
-                <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-[var(--text-muted)] font-semibold">
-                    👥 {work.participantsCount || '1.2k Scholars'}
-                  </span>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => handleOpenEditWorkModal(work)}
-                      className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer"
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteWork(work._id || work.id, work.title)}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
-      )}
 
-      {/* TAB: ABOUT US & CONTACT INFO EDITOR */}
-      {activeTab === 'site-info' && (
-        <form onSubmit={handleSaveSiteSettings} className="space-y-8 animate-fadeIn">
-          {/* 1. ABOUT US SECTION */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-theme)] pb-4">
+        {/* SLIDE 3: PREVIOUS WORKS */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 3 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 3 ? 'auto' : 0, overflow: activeTabIndex === 3 ? 'visible' : 'hidden' }}
+        >
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
               <div>
-                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
-                  <span>🏛️</span>
-                  <span>About Us Page Content Configuration</span>
-                </h3>
-                <p className="text-xs font-lato text-[var(--text-muted)]">
-                  Edit hero banners, brand headlines, impact statistics, and core values displayed on the public About page
-                </p>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                    Previous Works Showcase
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                    {previousWorksList.length} Items
+                  </span>
+                </div>
               </div>
-              <button
-                type="submit"
-                disabled={isSavingSettings}
-                className="px-5 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                {isSavingSettings ? '⏳ Saving...' : '💾 Save Changes'}
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-poppins">
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Hero Badge Label</label>
+              <div className="flex flex-wrap items-center gap-3">
                 <input
                   type="text"
-                  value={siteSettings.about?.heroBadge || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    about: { ...prev.about, heroBadge: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  placeholder="Search works..."
+                  value={workSearchQuery}
+                  onChange={(e) => setWorkSearchQuery(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
                 />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Hero Title Heading</label>
-                <input
-                  type="text"
-                  value={siteSettings.about?.heroTitle || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    about: { ...prev.about, heroTitle: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="col-span-full space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Hero Subtitle / Mission Statement</label>
-                <textarea
-                  rows="2"
-                  value={siteSettings.about?.heroSubtitle || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    about: { ...prev.about, heroSubtitle: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none resize-none"
-                />
-              </div>
-            </div>
-
-            {/* Impact Stats Editor */}
-            <div className="space-y-3 pt-2 border-t border-[var(--border-theme)]">
-              <div className="flex items-center justify-between">
-                <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
-                  📊 Impact Stats Counters ({siteSettings.about?.impactStats?.length || 0})
-                </h4>
-                <button
-                  type="button"
-                  onClick={handleAddImpactStat}
-                  className="px-3 py-1 rounded-lg bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold text-xs cursor-pointer"
+                <select
+                  value={workCategoryFilter}
+                  onChange={(e) => setWorkCategoryFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none font-bold"
                 >
-                  + Add Stat
+                  <option value="all">All Categories</option>
+                  <option value="Web Dev">Web Dev</option>
+                  <option value="DSA">DSA</option>
+                  <option value="Full Stack">Full Stack</option>
+                  <option value="System Design">System Design</option>
+                </select>
+                <button
+                  onClick={handleOpenCreateWorkModal}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs cursor-pointer shadow-sm flex items-center space-x-1.5"
+                >
+                  <span>➕ Add Previous Work</span>
                 </button>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {(siteSettings.about?.impactStats || []).map((stat, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 relative">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImpactStat(idx)}
-                      className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                    <div>
-                      <label className="text-[10px] text-[var(--text-muted)] block">Stat Number</label>
-                      <input
-                        type="text"
-                        value={stat.number}
-                        onChange={(e) => {
-                          const newStats = [...siteSettings.about.impactStats];
-                          newStats[idx].number = e.target.value;
-                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, impactStats: newStats } }));
-                        }}
-                        className="w-full p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-bold text-[var(--color-primary-600)] focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-[var(--text-muted)] block">Label</label>
-                      <input
-                        type="text"
-                        value={stat.label}
-                        onChange={(e) => {
-                          const newStats = [...siteSettings.about.impactStats];
-                          newStats[idx].label = e.target.value;
-                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, impactStats: newStats } }));
-                        }}
-                        className="w-full p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* Core Values Editor */}
-            <div className="space-y-3 pt-2 border-t border-[var(--border-theme)]">
-              <div className="flex items-center justify-between">
-                <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
-                  💎 Core Values & Platform Pillars ({siteSettings.about?.coreValues?.length || 0})
-                </h4>
-                <button
-                  type="button"
-                  onClick={handleAddCoreValue}
-                  className="px-3 py-1 rounded-lg bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold text-xs cursor-pointer"
-                >
-                  + Add Value
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {(siteSettings.about?.coreValues || []).map((val, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 relative">
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCoreValue(idx)}
-                      className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={val.icon}
-                        onChange={(e) => {
-                          const newVals = [...siteSettings.about.coreValues];
-                          newVals[idx].icon = e.target.value;
-                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
-                        }}
-                        className="w-10 p-1.5 text-center rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-sm focus:outline-none"
-                      />
-                      <input
-                        type="text"
-                        value={val.title}
-                        onChange={(e) => {
-                          const newVals = [...siteSettings.about.coreValues];
-                          newVals[idx].title = e.target.value;
-                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
-                        }}
-                        placeholder="Value Title"
-                        className="flex-1 p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-bold text-[var(--text-main)] focus:outline-none"
-                      />
-                    </div>
-                    <textarea
-                      rows="2"
-                      value={val.description}
-                      onChange={(e) => {
-                        const newVals = [...siteSettings.about.coreValues];
-                        newVals[idx].description = e.target.value;
-                        setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
-                      }}
-                      placeholder="Description"
-                      className="w-full p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-secondary)] resize-none focus:outline-none"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 2. CONTACT US SECTION */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
-            <div className="border-b border-[var(--border-theme)] pb-4">
-              <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
-                <span>📞</span>
-                <span>Contact Us Page & Support Channels</span>
-              </h3>
-              <p className="text-xs font-lato text-[var(--text-muted)]">
-                Configure primary email, phone line, office location, support hours, and social media channels
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-poppins">
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Official Support Email *</label>
-                <input
-                  type="email"
-                  value={siteSettings.contact?.supportEmail || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, supportEmail: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Contact Phone Number</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.phone || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, phone: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Support Working Hours</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.supportHours || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, supportHours: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Headquarters / Office Address</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.headquarters || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, headquarters: e.target.value }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Twitter / X URL</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.socialLinks?.twitter || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, twitter: e.target.value } }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">GitHub URL</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.socialLinks?.github || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, github: e.target.value } }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">LinkedIn URL</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.socialLinks?.linkedin || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, linkedin: e.target.value } }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-[var(--text-main)] block">Discord Server URL</label>
-                <input
-                  type="text"
-                  value={siteSettings.contact?.socialLinks?.discord || ''}
-                  onChange={(e) => setSiteSettings(prev => ({
-                    ...prev,
-                    contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, discord: e.target.value } }
-                  }))}
-                  className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4 border-t border-[var(--border-theme)]">
-              <button
-                type="submit"
-                disabled={isSavingSettings}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-poppins font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                {isSavingSettings ? '⏳ Saving Site Info...' : '💾 Save All Site Info & Contact Settings'}
-              </button>
-            </div>
-          </div>
-        </form>
-      )}
-
-      {/* TAB: LEGAL PARTNERS & INSTITUTIONAL SPONSORS */}
-      {activeTab === 'partners' && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
-                  ⚖️ Legal Partners & Sponsors Manager
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                  {partnersList.length} Partners
-                </span>
-              </div>
-              <p className="text-xs font-lato text-[var(--text-muted)]">
-                Manage legal verification councils, academic institutions, and sponsor partners shown across the platform
-              </p>
-            </div>
-
-            <button
-              onClick={handleOpenCreatePartnerModal}
-              className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
-            >
-              <span>➕ Add Legal Partner / Sponsor</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {partnersList.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-[var(--text-muted)] font-lato bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-6">
-                <span className="text-4xl block mb-2">⚖️</span>
-                <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No partners configured yet.</p>
-                <button
-                  onClick={handleOpenCreatePartnerModal}
-                  className="mt-4 px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-xs font-poppins font-bold cursor-pointer"
-                >
-                  Add First Partner
-                </button>
-              </div>
-            ) : (
-              partnersList.map((partner) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredPreviousWorks.map((work) => (
                 <div
-                  key={partner._id || partner.id}
-                  className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
+                  key={work._id || work.id}
+                  className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm">
-                          {partner.logoUrl || '⚖️'}
-                        </div>
-                        <div>
-                          <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1">
-                            {partner.name}
-                          </h4>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold inline-block mt-0.5">
-                            {partner.type}
-                          </span>
-                        </div>
+                  <div>
+                    <div className={`h-28 rounded-xl bg-gradient-to-r ${work.gradient || 'from-blue-500 to-indigo-600'} p-3 text-white flex flex-col justify-between mb-3 shadow-sm relative overflow-hidden`}>
+                      <div className="flex justify-between items-start z-10">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold font-poppins bg-black/25 backdrop-blur-md">
+                          {work.badge || 'Completed'}
+                        </span>
+                        <span className="text-[10px] font-medium font-lato bg-white/25 px-2 py-0.5 rounded-md backdrop-blur-md">
+                          🏆 {work.topWinner || 'Top Winner'}
+                        </span>
+                      </div>
+                      <div className="z-10">
+                        <div className="text-[10px] font-lato opacity-80">{work.category || 'Challenge'}</div>
+                        <div className="font-poppins font-bold text-sm line-clamp-1">{work.title}</div>
                       </div>
                     </div>
 
-                    <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-3">
-                      {partner.description || 'No description provided.'}
+                    <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] mb-1 line-clamp-1">
+                      {work.title}
+                    </h4>
+                    <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-2 mb-3">
+                      {work.description}
                     </p>
-
-                    {partner.websiteUrl && (
-                      <a
-                        href={partner.websiteUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-mono text-[var(--color-primary-600)] hover:underline inline-block truncate max-w-full"
-                      >
-                        🔗 {partner.websiteUrl}
-                      </a>
-                    )}
                   </div>
 
                   <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
-                    <span className={`text-[10px] font-poppins font-bold px-2 py-0.5 rounded-full ${
-                      partner.status === 'active'
-                        ? 'bg-emerald-500/10 text-emerald-600'
-                        : 'bg-slate-500/10 text-slate-500'
-                    }`}>
-                      {partner.status === 'active' ? '● Active' : '○ Inactive'}
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] font-semibold">
+                      👥 {work.participantsCount || '1.2k Scholars'}
                     </span>
-
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => handleOpenEditPartnerModal(partner)}
-                        className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                        onClick={() => handleOpenEditWorkModal(work)}
+                        className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-600 text-indigo-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer"
                       >
                         ✏️ Edit
                       </button>
                       <button
-                        onClick={() => handleDeletePartner(partner._id || partner.id, partner.name)}
-                        className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                        onClick={() => handleDeleteWork(work._id || work.id, work.title)}
+                        className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-poppins font-semibold cursor-pointer"
                       >
-                        🗑️ Remove
+                        🗑️ Delete
                       </button>
                     </div>
                   </div>
                 </div>
-              ))
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* SLIDE 4: SITE INFO */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 4 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 4 ? 'auto' : 0, overflow: activeTabIndex === 4 ? 'visible' : 'hidden' }}
+        >
+          <form onSubmit={handleSaveSiteSettings} className="space-y-8 animate-fadeIn">
+            {/* 1. ABOUT US SECTION */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--border-theme)] pb-4">
+                <div>
+                  <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                    <span>🏛️</span>
+                    <span>About Us Page Content Configuration</span>
+                  </h3>
+                  <p className="text-xs font-lato text-[var(--text-muted)]">
+                    Edit hero banners, brand headlines, impact statistics, and core values displayed on the public About page
+                  </p>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="px-5 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingSettings ? '⏳ Saving...' : '💾 Save Changes'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-poppins">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Hero Badge Label</label>
+                  <input
+                    type="text"
+                    value={siteSettings.about?.heroBadge || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      about: { ...prev.about, heroBadge: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Hero Title Heading</label>
+                  <input
+                    type="text"
+                    value={siteSettings.about?.heroTitle || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      about: { ...prev.about, heroTitle: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="col-span-full space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Hero Subtitle / Mission Statement</label>
+                  <textarea
+                    rows="2"
+                    value={siteSettings.about?.heroSubtitle || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      about: { ...prev.about, heroSubtitle: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none resize-none"
+                  />
+                </div>
+              </div>
+
+              {/* Impact Stats Editor */}
+              <div className="space-y-3 pt-2 border-t border-[var(--border-theme)]">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                    📊 Impact Stats Counters ({siteSettings.about?.impactStats?.length || 0})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleAddImpactStat}
+                    className="px-3 py-1 rounded-lg bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold text-xs cursor-pointer"
+                  >
+                    + Add Stat
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                  {(siteSettings.about?.impactStats || []).map((stat, idx) => (
+                    <div key={idx} className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 relative">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImpactStat(idx)}
+                        className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                      <div>
+                        <label className="text-[10px] text-[var(--text-muted)] block">Stat Number</label>
+                        <input
+                          type="text"
+                          value={stat.number}
+                          onChange={(e) => {
+                            const newStats = [...siteSettings.about.impactStats];
+                            newStats[idx].number = e.target.value;
+                            setSiteSettings(prev => ({ ...prev, about: { ...prev.about, impactStats: newStats } }));
+                          }}
+                          className="w-full p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-bold text-[var(--color-primary-600)] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-[var(--text-muted)] block">Label</label>
+                        <input
+                          type="text"
+                          value={stat.label}
+                          onChange={(e) => {
+                            const newStats = [...siteSettings.about.impactStats];
+                            newStats[idx].label = e.target.value;
+                            setSiteSettings(prev => ({ ...prev, about: { ...prev.about, impactStats: newStats } }));
+                          }}
+                          className="w-full p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Core Values Editor */}
+              <div className="space-y-3 pt-2 border-t border-[var(--border-theme)]">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                    💎 Core Values & Platform Pillars ({siteSettings.about?.coreValues?.length || 0})
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={handleAddCoreValue}
+                    className="px-3 py-1 rounded-lg bg-[var(--color-primary-50)] dark:bg-slate-800 text-[var(--color-primary-600)] font-bold text-xs cursor-pointer"
+                  >
+                    + Add Value
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {(siteSettings.about?.coreValues || []).map((val, idx) => (
+                    <div key={idx} className="p-4 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 relative">
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCoreValue(idx)}
+                        className="absolute top-2 right-2 text-rose-500 hover:text-rose-700 text-xs font-bold cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={val.icon}
+                          onChange={(e) => {
+                            const newVals = [...siteSettings.about.coreValues];
+                            newVals[idx].icon = e.target.value;
+                            setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
+                          }}
+                          className="w-10 p-1.5 text-center rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-sm focus:outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={val.title}
+                          onChange={(e) => {
+                            const newVals = [...siteSettings.about.coreValues];
+                            newVals[idx].title = e.target.value;
+                            setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
+                          }}
+                          placeholder="Value Title"
+                          className="flex-1 p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs font-bold text-[var(--text-main)] focus:outline-none"
+                        />
+                      </div>
+                      <textarea
+                        rows="2"
+                        value={val.description}
+                        onChange={(e) => {
+                          const newVals = [...siteSettings.about.coreValues];
+                          newVals[idx].description = e.target.value;
+                          setSiteSettings(prev => ({ ...prev, about: { ...prev.about, coreValues: newVals } }));
+                        }}
+                        placeholder="Description"
+                        className="w-full p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-secondary)] resize-none focus:outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. CONTACT US SECTION */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+              <div className="border-b border-[var(--border-theme)] pb-4">
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                  <span>📞</span>
+                  <span>Contact Us Page & Support Channels</span>
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Configure primary email, phone line, office location, support hours, and social media channels
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-poppins">
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Official Support Email *</label>
+                  <input
+                    type="email"
+                    value={siteSettings.contact?.supportEmail || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, supportEmail: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Contact Phone Number</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.phone || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, phone: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Support Working Hours</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.supportHours || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, supportHours: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Headquarters / Office Address</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.headquarters || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, headquarters: e.target.value }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Twitter / X URL</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.socialLinks?.twitter || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, twitter: e.target.value } }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">GitHub URL</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.socialLinks?.github || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, github: e.target.value } }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">LinkedIn URL</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.socialLinks?.linkedin || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, linkedin: e.target.value } }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block">Discord Server URL</label>
+                  <input
+                    type="text"
+                    value={siteSettings.contact?.socialLinks?.discord || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, discord: e.target.value } }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-4 border-t border-[var(--border-theme)]">
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-poppins font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingSettings ? '⏳ Saving Site Info...' : '💾 Save All Site Info & Contact Settings'}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* SLIDE 5: PARTNERS */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 5 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 5 ? 'auto' : 0, overflow: activeTabIndex === 5 ? 'visible' : 'hidden' }}
+        >
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-4">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">
+                    ⚖️ Legal Partners & Sponsors Manager
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                    {partnersList.length} Partners
+                  </span>
+                </div>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Manage legal verification councils, academic institutions, and sponsor partners shown across the platform
+                </p>
+              </div>
+
+              <button
+                onClick={handleOpenCreatePartnerModal}
+                className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+              >
+                <span>➕ Add Legal Partner / Sponsor</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {partnersList.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-[var(--text-muted)] font-lato bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-6">
+                  <span className="text-4xl block mb-2">⚖️</span>
+                  <p className="font-poppins font-bold text-sm text-[var(--text-main)]">No partners configured yet.</p>
+                  <button
+                    onClick={handleOpenCreatePartnerModal}
+                    className="mt-4 px-4 py-2 rounded-xl bg-[var(--color-primary-600)] text-white text-xs font-poppins font-bold cursor-pointer"
+                  >
+                    Add First Partner
+                  </button>
+                </div>
+              ) : (
+                partnersList.map((partner) => (
+                  <div
+                    key={partner._id || partner.id}
+                    className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm">
+                            {partner.logoUrl || '⚖️'}
+                          </div>
+                          <div>
+                            <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1">
+                              {partner.name}
+                            </h4>
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold inline-block mt-0.5">
+                              {partner.type}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-3">
+                        {partner.description || 'No description provided.'}
+                      </p>
+
+                      {partner.websiteUrl && (
+                        <a
+                          href={partner.websiteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] font-mono text-[var(--color-primary-600)] hover:underline inline-block truncate max-w-full"
+                        >
+                          🔗 {partner.websiteUrl}
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
+                      <span className={`text-[10px] font-poppins font-bold px-2 py-0.5 rounded-full ${
+                        partner.status === 'active'
+                          ? 'bg-emerald-500/10 text-emerald-600'
+                          : 'bg-slate-500/10 text-slate-500'
+                      }`}>
+                        {partner.status === 'active' ? '● Active' : '○ Inactive'}
+                      </span>
+
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => handleOpenEditPartnerModal(partner)}
+                          className="px-2.5 py-1 rounded-lg bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePartner(partner._id || partner.id, partner.name)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white text-xs font-bold cursor-pointer transition-colors"
+                        >
+                          🗑️ Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* SLIDE 6: MESSAGES */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 6 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 6 ? 'auto' : 0, overflow: activeTabIndex === 6 ? 'visible' : 'hidden' }}
+        >
+          <div className="space-y-6 animate-fadeIn">
+            {/* TOP KPI COUNTERS */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">📬</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
+                  {messageStats.totalAll || messagesList.length}
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Total Inquiries</div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-rose-500/30 p-4 rounded-2xl text-center shadow-sm bg-rose-500/5">
+                <span className="text-2xl block mb-1">🔴</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-rose-600 dark:text-rose-400">
+                  {messageStats.unreadCount}
+                </div>
+                <div className="text-[10px] font-lato text-rose-600 dark:text-rose-400 uppercase font-semibold">Unread Inquiries</div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-amber-500/30 p-4 rounded-2xl text-center shadow-sm bg-amber-500/5">
+                <span className="text-2xl block mb-1">🚨</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-600 dark:text-amber-400">
+                  {messageStats.urgentCount}
+                </div>
+                <div className="text-[10px] font-lato text-amber-600 dark:text-amber-400 uppercase font-semibold">High / Urgent</div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+                <span className="text-2xl block mb-1">⏳</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-secondary-600)]">
+                  {messageStats.lastWeekCount}
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Received This Week</div>
+              </div>
+            </div>
+
+            {/* FILTER TOOLBAR: DATE RANGE (last_week default / last_month / all) + READ/UNREAD + PRIORITY + SEARCH */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm space-y-4">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                
+                {/* DATE RANGE FILTER BUTTONS (DEFAULT: LAST WEEK) */}
+                <div className="flex items-center space-x-1.5 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
+                  <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] px-2 uppercase">Date:</span>
+                  {[
+                    { id: 'last_week', label: '📅 Last Week (Default)' },
+                    { id: 'last_month', label: '📅 Last Month' },
+                    { id: 'all', label: '📅 All Time' }
+                  ].map((dTab) => (
+                    <button
+                      key={dTab.id}
+                      onClick={() => setMsgDateFilter(dTab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        msgDateFilter === dTab.id
+                          ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                      }`}
+                    >
+                      {dTab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* READ / UNREAD STATUS TABS */}
+                <div className="flex items-center space-x-1.5 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] self-start sm:self-auto">
+                  <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] px-2 uppercase">Status:</span>
+                  {[
+                    { id: 'all', label: 'All' },
+                    { id: 'unread', label: '🔴 Unread' },
+                    { id: 'read', label: '🟢 Read' }
+                  ].map((rTab) => (
+                    <button
+                      key={rTab.id}
+                      onClick={() => setMsgReadFilter(rTab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold transition-all cursor-pointer ${
+                        msgReadFilter === rTab.id
+                          ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                      }`}
+                    >
+                      {rTab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* PRIORITY FILTER DROPDOWN */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-xs font-poppins font-bold text-[var(--text-muted)] whitespace-nowrap">
+                    Priority:
+                  </label>
+                  <select
+                    value={msgPriorityFilter}
+                    onChange={(e) => setMsgPriorityFilter(e.target.value)}
+                    className="px-3.5 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)]"
+                  >
+                    <option value="all">⚡ All Priorities</option>
+                    <option value="urgent">🚨 Urgent Priority</option>
+                    <option value="high">🔥 High Priority</option>
+                    <option value="medium">⚡ Medium Priority</option>
+                    <option value="low">🌱 Low Priority</option>
+                  </select>
+                </div>
+
+                {/* SEARCH INPUT */}
+                <div className="relative flex-1 lg:max-w-xs">
+                  <input
+                    type="text"
+                    placeholder="Search sender, email, subject..."
+                    value={msgSearchQuery}
+                    onChange={(e) => setMsgSearchQuery(e.target.value)}
+                    className="w-full px-3.5 py-2 pl-9 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                  />
+                  <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)]">🔍</span>
+                  {msgSearchQuery && (
+                    <button
+                      onClick={() => setMsgSearchQuery('')}
+                      className="absolute right-2.5 top-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+              </div>
+            </div>
+
+            {/* MESSAGES LIST / CARDS */}
+            {isLoadingMessages ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] animate-pulse h-28"></div>
+                ))}
+              </div>
+            ) : messagesList.length === 0 ? (
+              <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] p-8">
+                <span className="text-4xl block mb-2">📭</span>
+                <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">No Inquiries Found</h3>
+                <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
+                  Try switching date filter to "All Time" or reset read/priority filters.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messagesList.map((msg) => {
+                  const isUrgent = msg.priority === 'urgent';
+                  const isHigh = msg.priority === 'high';
+                  const isMedium = msg.priority === 'medium';
+                  const isUnread = !msg.isRead;
+
+                  return (
+                    <div
+                      key={msg._id || msg.id}
+                      className={`p-5 rounded-2xl border transition-all relative ${
+                        isUnread
+                          ? 'bg-[var(--bg-card)] border-blue-500/40 shadow-md shadow-blue-500/5'
+                          : 'bg-[var(--bg-card)] border-[var(--border-theme)] opacity-90'
+                      }`}
+                    >
+                      {/* Top Row: Sender Info, Category, Priority, Date, Quick Actions */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary-600)] to-indigo-600 text-white font-poppins font-bold text-sm flex items-center justify-center shadow-sm shrink-0">
+                            {msg.name ? msg.name.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-1.5">
+                                <span>{msg.name}</span>
+                                {isUnread && (
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                                )}
+                              </h4>
+                              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] font-semibold">
+                                {msg.category || 'Support'}
+                              </span>
+                            </div>
+                            <a
+                              href={`mailto:${msg.email}`}
+                              className="text-xs font-mono text-[var(--color-primary-600)] hover:underline block"
+                            >
+                              {msg.email}
+                            </a>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Priority Badge */}
+                          <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase border ${
+                            isUrgent
+                              ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 animate-pulse'
+                              : isHigh
+                              ? 'bg-orange-500/10 text-orange-600 border-orange-500/30'
+                              : isMedium
+                              ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
+                              : 'bg-slate-500/10 text-slate-600 border-slate-500/30'
+                          }`}>
+                            {msg.priority === 'urgent' && '🚨 Urgent'}
+                            {msg.priority === 'high' && '🔥 High'}
+                            {msg.priority === 'medium' && '⚡ Medium'}
+                            {msg.priority === 'low' && '🌱 Low'}
+                          </span>
+
+                          {/* Date Tag */}
+                          <span className="text-[11px] font-mono text-[var(--text-muted)]">
+                            {new Date(msg.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Middle: Subject & Message Body */}
+                      <div className="bg-[var(--bg-main)] p-3.5 rounded-xl border border-[var(--border-theme)] mb-3">
+                        <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] mb-1">
+                          📌 {msg.subject}
+                        </div>
+                        <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
+                          {msg.message}
+                        </p>
+                      </div>
+
+                      {/* Bottom Action Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleOpenMessageModal(msg)}
+                            className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer flex items-center space-x-1"
+                          >
+                            <span>👁️ View Details</span>
+                          </button>
+
+                          <a
+                            href={`mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}`}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer flex items-center space-x-1"
+                          >
+                            <span>✉️ Reply</span>
+                          </a>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleToggleMessageRead(msg._id || msg.id, msg.isRead)}
+                            className={`px-2.5 py-1.5 rounded-xl text-xs font-poppins font-bold border transition-colors cursor-pointer ${
+                              msg.isRead
+                                ? 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                                : 'bg-blue-500/10 border-blue-500/30 text-[var(--color-primary-600)] hover:bg-blue-500/20'
+                            }`}
+                          >
+                            {msg.isRead ? 'Mark as Unread' : '✓ Mark Read'}
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteMessage(msg._id || msg.id, msg.name)}
+                            className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 text-xs font-bold transition-colors cursor-pointer"
+                            title="Delete message"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
-      )}
 
-      {/* TAB 6: CONTACT INQUIRIES & MESSAGES HUB */}
-      {activeTab === 'messages' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* TOP KPI COUNTERS */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">📬</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
-                {messageStats.totalAll || messagesList.length}
+        {/* SLIDE 7: ⭐ STUDENT REVIEWS & TESTIMONIAL MODERATION */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 7 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 7 ? 'auto' : 0, overflow: activeTabIndex === 7 ? 'visible' : 'hidden' }}
+        >
+          <div className="space-y-6 animate-fadeIn">
+            {/* STATS OVERVIEW HEADER */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+                <span className="text-xl block mb-1">⭐</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
+                  {reviewStats.avgRating || 5.0} / 5
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Average Rating</div>
               </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Total Inquiries</div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+                <span className="text-xl block mb-1">💬</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
+                  {reviewStats.total || reviewsList.length}
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Total Reviews</div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+                <span className="text-xl block mb-1">✅</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
+                  {reviewStats.approved || 0}
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Approved</div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
+                <span className="text-xl block mb-1">⏳</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
+                  {reviewStats.pending || 0}
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Pending</div>
+              </div>
+
+              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm col-span-2 sm:col-span-1">
+                <span className="text-xl block mb-1">🏆</span>
+                <div className="font-poppins font-bold text-xl sm:text-2xl text-purple-500">
+                  {reviewStats.featured || 0}
+                </div>
+                <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Featured</div>
+              </div>
             </div>
 
-            <div className="bg-[var(--bg-card)] border border-rose-500/30 p-4 rounded-2xl text-center shadow-sm bg-rose-500/5">
-              <span className="text-2xl block mb-1">🔴</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-rose-600 dark:text-rose-400">
-                {messageStats.unreadCount}
-              </div>
-              <div className="text-[10px] font-lato text-rose-600 dark:text-rose-400 uppercase font-semibold">Unread Inquiries</div>
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-amber-500/30 p-4 rounded-2xl text-center shadow-sm bg-amber-500/5">
-              <span className="text-2xl block mb-1">🚨</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-600 dark:text-amber-400">
-                {messageStats.urgentCount}
-              </div>
-              <div className="text-[10px] font-lato text-amber-600 dark:text-amber-400 uppercase font-semibold">High / Urgent</div>
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
-              <span className="text-2xl block mb-1">⏳</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-secondary-600)]">
-                {messageStats.lastWeekCount}
-              </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Received This Week</div>
-            </div>
-          </div>
-
-          {/* FILTER TOOLBAR: DATE RANGE (last_week default / last_month / all) + READ/UNREAD + PRIORITY + SEARCH */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm space-y-4">
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-              
-              {/* DATE RANGE FILTER BUTTONS (DEFAULT: LAST WEEK) */}
-              <div className="flex items-center space-x-1.5 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
-                <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] px-2 uppercase">Date:</span>
-                {[
-                  { id: 'last_week', label: '📅 Last Week (Default)' },
-                  { id: 'last_month', label: '📅 Last Month' },
-                  { id: 'all', label: '📅 All Time' }
-                ].map((dTab) => (
+            {/* FILTER & SEARCH BAR */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+                <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mr-1 shrink-0">
+                  Filter:
+                </span>
+                {['all', 'approved', 'pending', 'rejected'].map((statusKey) => (
                   <button
-                    key={dTab.id}
-                    onClick={() => setMsgDateFilter(dTab.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold transition-all cursor-pointer whitespace-nowrap ${
-                      msgDateFilter === dTab.id
+                    key={statusKey}
+                    onClick={() => setReviewStatusFilter(statusKey)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold capitalize transition-all cursor-pointer shrink-0 ${
+                      reviewStatusFilter === statusKey
                         ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
+                        : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
                     }`}
                   >
-                    {dTab.label}
+                    {statusKey}
                   </button>
                 ))}
               </div>
 
-              {/* READ / UNREAD STATUS TABS */}
-              <div className="flex items-center space-x-1.5 p-1 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-theme)] self-start sm:self-auto">
-                <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] px-2 uppercase">Status:</span>
-                {[
-                  { id: 'all', label: 'All' },
-                  { id: 'unread', label: '🔴 Unread' },
-                  { id: 'read', label: '🟢 Read' }
-                ].map((rTab) => (
-                  <button
-                    key={rTab.id}
-                    onClick={() => setMsgReadFilter(rTab.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold transition-all cursor-pointer ${
-                      msgReadFilter === rTab.id
-                        ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                    }`}
-                  >
-                    {rTab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* PRIORITY FILTER DROPDOWN */}
-              <div className="flex items-center space-x-2">
-                <label className="text-xs font-poppins font-bold text-[var(--text-muted)] whitespace-nowrap">
-                  Priority:
-                </label>
-                <select
-                  value={msgPriorityFilter}
-                  onChange={(e) => setMsgPriorityFilter(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)]"
-                >
-                  <option value="all">⚡ All Priorities</option>
-                  <option value="urgent">🚨 Urgent Priority</option>
-                  <option value="high">🔥 High Priority</option>
-                  <option value="medium">⚡ Medium Priority</option>
-                  <option value="low">🌱 Low Priority</option>
-                </select>
-              </div>
-
-              {/* SEARCH INPUT */}
-              <div className="relative flex-1 lg:max-w-xs">
+              <div className="flex items-center space-x-2 w-full sm:w-auto">
                 <input
                   type="text"
-                  placeholder="Search sender, email, subject..."
-                  value={msgSearchQuery}
-                  onChange={(e) => setMsgSearchQuery(e.target.value)}
-                  className="w-full px-3.5 py-2 pl-9 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-poppins text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                  placeholder="Search reviews by name or text..."
+                  value={reviewSearchQuery}
+                  onChange={(e) => setReviewSearchQuery(e.target.value)}
+                  className="w-full sm:w-64 px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs text-[var(--text-main)] focus:outline-none"
                 />
-                <span className="absolute left-3 top-2.5 text-xs text-[var(--text-muted)]">🔍</span>
-                {msgSearchQuery && (
-                  <button
-                    onClick={() => setMsgSearchQuery('')}
-                    className="absolute right-2.5 top-2 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
-                  >
-                    ✕
-                  </button>
-                )}
+                <button
+                  onClick={handleOpenCreateReviewModalAdmin}
+                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-poppins font-bold cursor-pointer shrink-0 shadow-sm transition-all"
+                >
+                  + Add Review
+                </button>
               </div>
+            </div>
 
+            {/* REVIEWS TABLE / LIST */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 sm:p-6 space-y-4 shadow-sm">
+              {reviewsList.length === 0 ? (
+                <div className="text-center py-12 text-xs font-lato text-[var(--text-muted)]">
+                  No reviews found matching filter.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left font-lato text-xs sm:text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
+                        <th className="py-2.5 px-3">Reviewer</th>
+                        <th className="py-2.5 px-3 text-center">Rating</th>
+                        <th className="py-2.5 px-3">Review Content</th>
+                        <th className="py-2.5 px-3 text-center">Status</th>
+                        <th className="py-2.5 px-3 text-center">Featured</th>
+                        <th className="py-2.5 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-theme)]">
+                      {reviewsList.map((rev) => {
+                        const id = rev._id || rev.id;
+                        const name = rev.userName || rev.author || 'Anonymous';
+                        return (
+                          <tr key={id} className="hover:bg-[var(--bg-main)] transition-colors">
+                            <td className="py-3 px-3">
+                              <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                                {name}
+                              </div>
+                              <div className="text-[10px] text-[var(--text-muted)]">
+                                {rev.role || 'Student Candidate'}
+                              </div>
+                              {rev.userEmail && (
+                                <div className="text-[10px] font-mono text-[var(--color-primary-600)]">
+                                  {rev.userEmail}
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="py-3 px-3 text-center">
+                              <div className="flex items-center justify-center text-amber-400 text-xs">
+                                {Array.from({ length: rev.rating || 5 }).map((_, i) => (
+                                  <span key={i}>★</span>
+                                ))}
+                              </div>
+                              <span className="text-[10px] font-bold text-amber-600">
+                                {rev.rating || 5}/5
+                              </span>
+                            </td>
+
+                            <td className="py-3 px-3 max-w-xs sm:max-w-md">
+                              <p className="text-xs text-[var(--text-main)] italic line-clamp-2 leading-relaxed">
+                                "{rev.quote}"
+                              </p>
+                              {rev.quizTitle && (
+                                <span className="inline-block mt-1 text-[9px] font-poppins font-bold bg-blue-500/10 text-[var(--color-primary-600)] px-2 py-0.5 rounded-full">
+                                  🎯 Quiz: {rev.quizTitle}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="py-3 px-3 text-center">
+                              <select
+                                value={rev.status || 'approved'}
+                                onChange={(e) => handleUpdateReviewStatusAdmin(id, e.target.value)}
+                                className={`px-2 py-1 rounded-lg text-[11px] font-poppins font-bold cursor-pointer focus:outline-none border ${
+                                  rev.status === 'approved'
+                                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
+                                    : rev.status === 'pending'
+                                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                                    : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                                }`}
+                              >
+                                <option value="approved">Approved</option>
+                                <option value="pending">Pending</option>
+                                <option value="rejected">Rejected</option>
+                              </select>
+                            </td>
+
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                onClick={() => handleToggleReviewFeaturedAdmin(id, rev.isFeatured)}
+                                className={`px-2.5 py-1 rounded-xl text-xs font-poppins font-bold cursor-pointer transition-all ${
+                                  rev.isFeatured
+                                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                                    : 'bg-[var(--bg-main)] text-[var(--text-muted)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
+                                }`}
+                                title={rev.isFeatured ? 'Featured on homepage carousel' : 'Click to feature on homepage'}
+                              >
+                                {rev.isFeatured ? '⭐ Featured' : '☆ Standard'}
+                              </button>
+                            </td>
+
+                            <td className="py-3 px-3 text-right">
+                              <div className="flex items-center justify-end space-x-1.5">
+                                <button
+                                  onClick={() => handleOpenEditReviewModalAdmin(rev)}
+                                  className="p-1.5 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 text-xs cursor-pointer"
+                                  title="Edit Review Details"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteReviewAdmin(id, name)}
+                                  className="p-1.5 rounded-lg border border-transparent text-rose-500 hover:bg-rose-500/10 text-xs cursor-pointer"
+                                  title="Delete Review"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
+        </div>
 
-          {/* MESSAGES LIST / CARDS */}
-          {isLoadingMessages ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] animate-pulse h-28"></div>
-              ))}
-            </div>
-          ) : messagesList.length === 0 ? (
-            <div className="text-center py-16 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] p-8">
-              <span className="text-4xl block mb-2">📭</span>
-              <h3 className="text-lg font-bold font-poppins text-[var(--text-main)]">No Inquiries Found</h3>
-              <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
-                Try switching date filter to "All Time" or reset read/priority filters.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {messagesList.map((msg) => {
-                const isUrgent = msg.priority === 'urgent';
-                const isHigh = msg.priority === 'high';
-                const isMedium = msg.priority === 'medium';
-                const isUnread = !msg.isRead;
+        {/* SLIDE 8: GLOBAL REWARDS & TIERS MANAGEMENT */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 8 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 8 ? 'auto' : 0, overflow: activeTabIndex === 8 ? 'visible' : 'hidden' }}
+        >
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* TOP HEADER CARD WITH + ADD REWARD TIER BUTTON */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                  <span>🏆</span>
+                  <span>Global Platform Reward Tiers & Leaderboard Badges</span>
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
+                  Configure platform-wide reward tiers, cash prizes, medals, and trophy badges for quiz rankers.
+                </p>
+              </div>
 
+              <button
+                type="button"
+                onClick={handleOpenCreateRewardTierModal}
+                className="px-5 py-2.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-2 shrink-0"
+              >
+                <span>+</span>
+                <span>Add Reward Tier</span>
+              </button>
+            </div>
+
+            {/* REWARD TIERS GRID */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {globalRewards.map((reward, rIdx) => {
+                const id = reward.id || reward._id || rIdx;
                 return (
                   <div
-                    key={msg._id || msg.id}
-                    className={`p-5 rounded-2xl border transition-all relative ${
-                      isUnread
-                        ? 'bg-[var(--bg-card)] border-blue-500/40 shadow-md shadow-blue-500/5'
-                        : 'bg-[var(--bg-card)] border-[var(--border-theme)] opacity-90'
-                    }`}
+                    key={id}
+                    className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] hover:border-[var(--color-primary-400)] rounded-3xl p-5 shadow-sm transition-all space-y-4 flex flex-col justify-between"
                   >
-                    {/* Top Row: Sender Info, Category, Priority, Date, Quick Actions */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-primary-600)] to-indigo-600 text-white font-poppins font-bold text-sm flex items-center justify-center shadow-sm shrink-0">
-                          {msg.name ? msg.name.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] flex items-center space-x-1.5">
-                              <span>{msg.name}</span>
-                              {isUnread && (
-                                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                              )}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3">
+                        <div className="flex items-center space-x-2.5">
+                          <span className="w-10 h-10 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-xl shrink-0 shadow-xs">
+                            {reward.badge?.split(' ')?.[0] || '🏆'}
+                          </span>
+                          <div>
+                            <h4 className="font-poppins font-extrabold text-sm text-[var(--text-main)]">
+                              {reward.badge || 'Reward Badge'}
                             </h4>
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] text-[var(--text-muted)] font-semibold">
-                              {msg.category || 'Support'}
+                            <span className="text-[10px] font-poppins font-bold text-[var(--color-primary-600)] bg-blue-500/10 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                              Rank: {reward.place}
                             </span>
                           </div>
-                          <a
-                            href={`mailto:${msg.email}`}
-                            className="text-xs font-mono text-[var(--color-primary-600)] hover:underline block"
-                          >
-                            {msg.email}
-                          </a>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        {/* Priority Badge */}
-                        <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase border ${
-                          isUrgent
-                            ? 'bg-rose-500/10 text-rose-600 border-rose-500/30 animate-pulse'
-                            : isHigh
-                            ? 'bg-orange-500/10 text-orange-600 border-orange-500/30'
-                            : isMedium
-                            ? 'bg-blue-500/10 text-blue-600 border-blue-500/30'
-                            : 'bg-slate-500/10 text-slate-600 border-slate-500/30'
-                        }`}>
-                          {msg.priority === 'urgent' && '🚨 Urgent'}
-                          {msg.priority === 'high' && '🔥 High'}
-                          {msg.priority === 'medium' && '⚡ Medium'}
-                          {msg.priority === 'low' && '🌱 Low'}
-                        </span>
-
-                        {/* Date Tag */}
-                        <span className="text-[11px] font-mono text-[var(--text-muted)]">
-                          {new Date(msg.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </span>
+                      <div className="space-y-1.5 font-lato text-xs">
+                        <div className="font-poppins font-bold text-xs text-amber-600 dark:text-amber-400 flex items-center space-x-1">
+                          <span>🎁</span>
+                          <span>{reward.prize}</span>
+                        </div>
+                        <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
+                          {reward.description || 'No description specified.'}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Middle: Subject & Message Body */}
-                    <div className="bg-[var(--bg-main)] p-3.5 rounded-xl border border-[var(--border-theme)] mb-3">
-                      <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] mb-1">
-                        📌 {msg.subject}
-                      </div>
-                      <p className="font-lato text-xs text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-                        {msg.message}
-                      </p>
-                    </div>
+                    <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-end space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditRewardTierModal(reward)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-600 text-blue-600 hover:text-white font-poppins font-bold text-xs cursor-pointer transition-colors"
+                      >
+                        ✏️ Edit
+                      </button>
 
-                    {/* Bottom Action Bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleOpenMessageModal(msg)}
-                          className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer flex items-center space-x-1"
-                        >
-                          <span>👁️ View Details</span>
-                        </button>
-
-                        <a
-                          href={`mailto:${msg.email}?subject=Re: ${encodeURIComponent(msg.subject)}`}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer flex items-center space-x-1"
-                        >
-                          <span>✉️ Reply</span>
-                        </a>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleToggleMessageRead(msg._id || msg.id, msg.isRead)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-poppins font-bold border transition-colors cursor-pointer ${
-                            msg.isRead
-                              ? 'bg-[var(--bg-main)] border-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                              : 'bg-blue-500/10 border-blue-500/30 text-[var(--color-primary-600)] hover:bg-blue-500/20'
-                          }`}
-                        >
-                          {msg.isRead ? 'Mark as Unread' : '✓ Mark Read'}
-                        </button>
-
-                        <button
-                          onClick={() => handleDeleteMessage(msg._id || msg.id, msg.name)}
-                          className="p-1.5 rounded-xl text-rose-500 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 text-xs font-bold transition-colors cursor-pointer"
-                          title="Delete message"
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRewardTier(id, reward.badge)}
+                        className="px-3 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-600 text-rose-600 hover:text-white font-poppins font-bold text-xs cursor-pointer transition-colors"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* TAB 7: REWARDS */}
-      {activeTab === 'rewards' && (
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm space-y-6 animate-fadeIn">
-          <h3 className="text-lg font-bold font-poppins text-[var(--text-main)] border-b border-[var(--border-theme)] pb-3">
-            🏆 Platform Default Reward Tiers & Leaderboards
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
-              <span className="text-3xl block">🥇</span>
-              <div className="font-poppins font-bold text-sm">1st Place Tier</div>
-              <div className="text-xs text-[var(--text-muted)]">$500 Cash + Gold Trophy</div>
-            </div>
-            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
-              <span className="text-3xl block">🥈</span>
-              <div className="font-poppins font-bold text-sm">2nd Place Tier</div>
-              <div className="text-xs text-[var(--text-muted)]">$250 Cash + Silver Medal</div>
-            </div>
-            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
-              <span className="text-3xl block">🥉</span>
-              <div className="font-poppins font-bold text-sm">3rd Place Tier</div>
-              <div className="text-xs text-[var(--text-muted)]">$100 Cash + Bronze Medal</div>
-            </div>
-            <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-center space-y-1">
-              <span className="text-3xl block">🏅</span>
-              <div className="font-poppins font-bold text-sm">Ranks 4-10th (Group)</div>
-              <div className="text-xs text-[var(--text-muted)]">Pro Membership & Swag Box</div>
-            </div>
           </div>
         </div>
-      )}
 
-      {/* TAB 8: ⭐ STUDENT REVIEWS & TESTIMONIAL MODERATION */}
-      {activeTab === 'reviews' && (
-        <div className="space-y-6 animate-fadeIn">
-          {/* STATS OVERVIEW HEADER */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
-              <span className="text-xl block mb-1">⭐</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
-                {reviewStats.avgRating || 5.0} / 5
-              </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Average Rating</div>
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
-              <span className="text-xl block mb-1">💬</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-[var(--color-primary-600)]">
-                {reviewStats.total || reviewsList.length}
-              </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Total Reviews</div>
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
-              <span className="text-xl block mb-1">✅</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-emerald-500">
-                {reviewStats.approved || 0}
-              </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Approved</div>
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm">
-              <span className="text-xl block mb-1">⏳</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-amber-500">
-                {reviewStats.pending || 0}
-              </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Pending</div>
-            </div>
-
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-4 rounded-2xl text-center shadow-sm col-span-2 sm:col-span-1">
-              <span className="text-xl block mb-1">🏆</span>
-              <div className="font-poppins font-bold text-xl sm:text-2xl text-purple-500">
-                {reviewStats.featured || 0}
-              </div>
-              <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase font-semibold">Featured</div>
-            </div>
-          </div>
-
-          {/* FILTER & SEARCH BAR */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-              <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mr-1 shrink-0">
-                Filter:
-              </span>
-              {['all', 'approved', 'pending', 'rejected'].map((statusKey) => (
-                <button
-                  key={statusKey}
-                  onClick={() => setReviewStatusFilter(statusKey)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-bold capitalize transition-all cursor-pointer shrink-0 ${
-                    reviewStatusFilter === statusKey
-                      ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                      : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
-                  }`}
-                >
-                  {statusKey}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex items-center space-x-2 w-full sm:w-auto">
-              <input
-                type="text"
-                placeholder="Search reviews by name or text..."
-                value={reviewSearchQuery}
-                onChange={(e) => setReviewSearchQuery(e.target.value)}
-                className="w-full sm:w-64 px-3.5 py-1.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-xs text-[var(--text-main)] focus:outline-none"
-              />
-              <button
-                onClick={handleOpenCreateReviewModalAdmin}
-                className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-poppins font-bold cursor-pointer shrink-0 shadow-sm transition-all"
-              >
-                + Add Review
-              </button>
-            </div>
-          </div>
-
-          {/* REVIEWS TABLE / LIST */}
-          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 sm:p-6 space-y-4 shadow-sm">
-            {reviewsList.length === 0 ? (
-              <div className="text-center py-12 text-xs font-lato text-[var(--text-muted)]">
-                No reviews found matching filter.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left font-lato text-xs sm:text-sm">
-                  <thead>
-                    <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
-                      <th className="py-2.5 px-3">Reviewer</th>
-                      <th className="py-2.5 px-3 text-center">Rating</th>
-                      <th className="py-2.5 px-3">Review Content</th>
-                      <th className="py-2.5 px-3 text-center">Status</th>
-                      <th className="py-2.5 px-3 text-center">Featured</th>
-                      <th className="py-2.5 px-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border-theme)]">
-                    {reviewsList.map((rev) => {
-                      const id = rev._id || rev.id;
-                      const name = rev.userName || rev.author || 'Anonymous';
-                      return (
-                        <tr key={id} className="hover:bg-[var(--bg-main)] transition-colors">
-                          <td className="py-3 px-3">
-                            <div className="font-poppins font-bold text-xs text-[var(--text-main)]">
-                              {name}
-                            </div>
-                            <div className="text-[10px] text-[var(--text-muted)]">
-                              {rev.role || 'Student Candidate'}
-                            </div>
-                            {rev.userEmail && (
-                              <div className="text-[10px] font-mono text-[var(--color-primary-600)]">
-                                {rev.userEmail}
-                              </div>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-3 text-center">
-                            <div className="flex items-center justify-center text-amber-400 text-xs">
-                              {Array.from({ length: rev.rating || 5 }).map((_, i) => (
-                                <span key={i}>★</span>
-                              ))}
-                            </div>
-                            <span className="text-[10px] font-bold text-amber-600">
-                              {rev.rating || 5}/5
-                            </span>
-                          </td>
-
-                          <td className="py-3 px-3 max-w-xs sm:max-w-md">
-                            <p className="text-xs text-[var(--text-main)] italic line-clamp-2 leading-relaxed">
-                              "{rev.quote}"
-                            </p>
-                            {rev.quizTitle && (
-                              <span className="inline-block mt-1 text-[9px] font-poppins font-bold bg-blue-500/10 text-[var(--color-primary-600)] px-2 py-0.5 rounded-full">
-                                🎯 Quiz: {rev.quizTitle}
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-3 px-3 text-center">
-                            <select
-                              value={rev.status || 'approved'}
-                              onChange={(e) => handleUpdateReviewStatusAdmin(id, e.target.value)}
-                              className={`px-2 py-1 rounded-lg text-[11px] font-poppins font-bold cursor-pointer focus:outline-none border ${
-                                rev.status === 'approved'
-                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30'
-                                  : rev.status === 'pending'
-                                  ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                                  : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
-                              }`}
-                            >
-                              <option value="approved">Approved</option>
-                              <option value="pending">Pending</option>
-                              <option value="rejected">Rejected</option>
-                            </select>
-                          </td>
-
-                          <td className="py-3 px-3 text-center">
-                            <button
-                              onClick={() => handleToggleReviewFeaturedAdmin(id, rev.isFeatured)}
-                              className={`px-2.5 py-1 rounded-xl text-xs font-poppins font-bold cursor-pointer transition-all ${
-                                rev.isFeatured
-                                  ? 'bg-amber-400 text-slate-950 shadow-xs'
-                                  : 'bg-[var(--bg-main)] text-[var(--text-muted)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
-                              }`}
-                              title={rev.isFeatured ? 'Featured on homepage carousel' : 'Click to feature on homepage'}
-                            >
-                              {rev.isFeatured ? '⭐ Featured' : '☆ Standard'}
-                            </button>
-                          </td>
-
-                          <td className="py-3 px-3 text-right">
-                            <div className="flex items-center justify-end space-x-1.5">
-                              <button
-                                onClick={() => handleOpenEditReviewModalAdmin(rev)}
-                                className="p-1.5 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] hover:bg-[var(--color-primary-50)] dark:hover:bg-slate-800 text-xs cursor-pointer"
-                                title="Edit Review Details"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                onClick={() => handleDeleteReviewAdmin(id, name)}
-                                className="p-1.5 rounded-lg border border-transparent text-rose-500 hover:bg-rose-500/10 text-xs cursor-pointer"
-                                title="Delete Review"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-        </main>
       </div>
+    </div>
 
       {/* ========================================================================= */}
       {/* 🚀 QUIZ CREATOR / BUILDER MODAL WITH REWARDS & RANK GROUPS BUILDER */}
@@ -5044,6 +5111,99 @@ You are building a high-frequency financial settlement engine. Given an array of
                   className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-poppins font-bold text-xs shadow-md cursor-pointer"
                 >
                   {editingReviewId ? 'Save Changes' : 'Publish Testimonial'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🏆 GLOBAL REWARD TIER CREATOR & EDITOR MODAL */}
+      {/* ========================================================================= */}
+      {isRewardTierModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative">
+            <button
+              onClick={() => setIsRewardTierModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center space-x-3 mb-6">
+              <span className="text-3xl">🏆</span>
+              <div>
+                <h3 className="text-xl font-bold font-poppins text-[var(--text-main)]">
+                  {editingRewardTierId ? 'Edit Reward Tier' : 'Add New Reward Tier'}
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Configure leaderboard rank criteria, title badge emoji, and prizes.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveRewardTierSubmit} className="space-y-4 font-lato text-xs sm:text-sm">
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Rank / Place *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 1st, 2nd, 3rd, 4-10th, Top 50"
+                  value={rewardTierFormData.place}
+                  onChange={(e) => setRewardTierFormData({ ...rewardTierFormData, place: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Badge Title & Emoji *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 🥇 Gold Champion"
+                  value={rewardTierFormData.badge}
+                  onChange={(e) => setRewardTierFormData({ ...rewardTierFormData, badge: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Prize Details *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. $500 Cash + Gold Trophy"
+                  value={rewardTierFormData.prize}
+                  onChange={(e) => setRewardTierFormData({ ...rewardTierFormData, prize: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Description / Benefit</label>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. Top Rank Award + Exclusive Swag Kit & Pro Access"
+                  value={rewardTierFormData.description}
+                  onChange={(e) => setRewardTierFormData({ ...rewardTierFormData, description: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="pt-4 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRewardTierModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95"
+                >
+                  {editingRewardTierId ? 'Save Changes' : 'Create Tier'}
                 </button>
               </div>
             </form>

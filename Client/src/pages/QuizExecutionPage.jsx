@@ -33,7 +33,7 @@ export const shuffleQuestionOptions = (q) => {
   };
 };
 
-export const QuizExecutionPage = ({ quiz, onFinish, onBack, onSelectQuiz, onViewAllQuizzes, isPractice = false }) => {
+export const QuizExecutionPage = ({ quiz, _onFinish, onBack, onSelectQuiz, onViewAllQuizzes, isPractice = false }) => {
   const { user, isAdmin, isAuthenticated } = useAuth();
   const { addToast } = useToast();
   const isUserAdmin = Boolean(user && (user.role === 'admin' || isAdmin));
@@ -140,12 +140,71 @@ You are building a high-frequency financial settlement engine. Given an array of
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const LEADERBOARD_PAGE_SIZE = 5;
   const [reviewSlideIndex, setReviewSlideIndex] = useState(0);
-  const [reviewViewMode, setReviewViewMode] = useState('slide'); // 'slide' | 'all'
-  const [showAnswerExplanation, setShowAnswerExplanation] = useState(true);
-  const [touchStartX, setTouchStartX] = useState(null);
-  const [touchEndX, setTouchEndX] = useState(null);
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+
+  const handleFinishClick = () => {
+    setIsFinishModalOpen(true);
+  };
+
+  const questionNavRefs = useRef({});
+  const reviewNavRefs = useRef({});
+
+  const RESULTS_TAB_KEYS = useMemo(() => ['review', 'leaderboard'], []);
+  const activeResultsTabIndex = useMemo(() => {
+    const idx = RESULTS_TAB_KEYS.indexOf(activeResultsTab);
+    return idx >= 0 ? idx : 0;
+  }, [activeResultsTab, RESULTS_TAB_KEYS]);
+
+  const resultsTouchStartX = useRef(0);
+  const resultsTouchEndX = useRef(0);
+
+  const handleResultsTouchStart = (e) => {
+    resultsTouchStartX.current = e.targetTouches[0].clientX;
+    resultsTouchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleResultsTouchMove = (e) => {
+    resultsTouchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleResultsTouchEnd = () => {
+    if (!resultsTouchStartX.current || !resultsTouchEndX.current) return;
+    const distance = resultsTouchStartX.current - resultsTouchEndX.current;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe && activeResultsTabIndex === 0) {
+      setActiveResultsTab('leaderboard');
+      fetchLeaderboard();
+    } else if (isRightSwipe && activeResultsTabIndex === 1) {
+      setActiveResultsTab('review');
+    }
+
+    resultsTouchStartX.current = 0;
+    resultsTouchEndX.current = 0;
+  };
+
+  useEffect(() => {
+    if (questionNavRefs.current[currentQuestionIndex]) {
+      questionNavRefs.current[currentQuestionIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    if (reviewNavRefs.current[reviewSlideIndex]) {
+      reviewNavRefs.current[reviewSlideIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [reviewSlideIndex]);
 
   // Payment Access Verification State
   const [isVerifyingAccess, setIsVerifyingAccess] = useState(true);
@@ -825,594 +884,277 @@ You are building a high-frequency financial settlement engine. Given an array of
     const totalEarnedXP = isCodeChallenge ? 100 : baseXP + completionBonus + accuracyBonus;
 
     return (
-      <div className="max-w-4xl mx-auto py-8 px-4 animate-fadeIn space-y-6">
+      <div className="max-w-4xl mx-auto py-6 px-3 sm:px-4 space-y-6 animate-fadeIn">
         
-        {/* SUMMARY HEADER CARD */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-[32px] p-6 sm:p-8 shadow-xl text-center space-y-6">
-          <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-500 flex items-center justify-center font-bold text-3xl mx-auto shadow-md">
-            🏆
+        {/* ========================================================================= */}
+        {/* 1. QUIZ RESULT SUMMARY CARD (MATCHING AFTERQUIZSUBMIYT.PNG TOP CONTAINER) */}
+        {/* ========================================================================= */}
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-xl space-y-6">
+          
+          {/* HEADER: QUIZ LOGO + QuizName + Subtitle */}
+          <div className="flex items-center space-x-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--color-primary-600)] flex flex-col items-center justify-center text-center font-bold font-poppins shrink-0 shadow-sm p-1">
+              <span className="text-xl sm:text-2xl leading-none">🏆</span>
+              <span className="text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-tighter mt-0.5">QUIZ LOGO</span>
+            </div>
+
+            <div className="space-y-0.5 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] truncate">
+                {quiz?.title || 'QuizName'}
+              </h1>
+              <p className="text-xs font-poppins font-medium text-[var(--text-muted)]">
+                Assessment Completed
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <span className="text-xs font-poppins font-bold text-emerald-500 uppercase tracking-wider">
-              Assessment Completed
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold font-poppins text-[var(--text-main)]">
-              {quiz?.title || 'JavaScript ES6+ Assessment'}
-            </h1>
-            <p className="text-xs font-lato text-[var(--text-muted)]">
-              {submissionResult?.isFirstAttempt
-                ? '⭐ Live Quiz 1st Attempt (Recorded for Live Leaderboard)'
-                : '🔁 Replay / Practice Attempt (First Attempt Preserved on Live Leaderboard)'}
-            </p>
-
-            {/* PROMINENT GLOWING XP EARNED BANNER */}
-            <div className="pt-2">
-              <div className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border-2 border-amber-400 text-amber-600 dark:text-amber-300 font-poppins font-extrabold text-sm sm:text-base shadow-md">
-                <span className="text-2xl animate-pulse">⚡</span>
-                <span className="text-base sm:text-lg">+{totalEarnedXP} XP Earned!</span>
-                <span className="text-[11px] font-normal text-[var(--text-secondary)] hidden sm:inline ml-1 font-lato">
-                  ({baseXP} Base + {completionBonus} Completion + {accuracyBonus} Accuracy)
-                </span>
+          {/* ROW 1: 3-CARD STATS GRID (Correct x, Incorrect y, Skipped z) */}
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {/* Correct x */}
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 space-y-1">
+              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+                Correct
               </div>
-            </div>
-          </div>
-
-          {/* 5-COLUMN COMPREHENSIVE PERFORMANCE BREAKDOWN */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-[var(--bg-main)] p-4 rounded-2xl border border-[var(--border-theme)] text-center">
-            {/* 1. Accuracy (Attempted Only) */}
-            <div className="col-span-2 sm:col-span-1 bg-[var(--bg-card)] p-3 rounded-xl border border-[var(--border-theme)]">
-              <span className="text-2xl sm:text-3xl font-bold font-poppins text-[var(--color-primary-600)]">
-                {accuracyPercentage}%
-              </span>
-              <div className="text-[10px] font-poppins font-bold text-[var(--text-main)] uppercase mt-0.5">Accuracy</div>
-              <div className="text-[9px] font-lato text-[var(--text-muted)]">({correctCount}/{attemptedCount} Attempted)</div>
-            </div>
-
-            {/* 2. Correct Answers */}
-            <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-emerald-500/20">
-              <span className="text-2xl sm:text-3xl font-bold font-poppins text-emerald-500">
+              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-emerald-500">
                 {correctCount}
-              </span>
-              <div className="text-[10px] font-poppins font-bold text-emerald-600 dark:text-emerald-400 uppercase mt-0.5">Correct</div>
-              <div className="text-[9px] font-lato text-[var(--text-muted)]">Right answers</div>
+              </div>
             </div>
 
-            {/* 3. Incorrect Answers */}
-            <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-rose-500/20">
-              <span className="text-2xl sm:text-3xl font-bold font-poppins text-rose-500">
+            {/* Incorrect y */}
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 space-y-1">
+              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+                Incorrect
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-rose-500">
                 {incorrectCount}
-              </span>
-              <div className="text-[10px] font-poppins font-bold text-rose-600 dark:text-rose-400 uppercase mt-0.5">Incorrect</div>
-              <div className="text-[9px] font-lato text-[var(--text-muted)]">Wrong answers</div>
+              </div>
             </div>
 
-            {/* 4. Not Attempted / Skipped */}
-            <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-slate-300 dark:border-slate-700">
-              <span className="text-2xl sm:text-3xl font-bold font-poppins text-slate-500 dark:text-slate-400">
+            {/* Skipped z */}
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 space-y-1">
+              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+                Skipped
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-slate-500 dark:text-slate-400">
                 {unattemptedCount}
-              </span>
-              <div className="text-[10px] font-poppins font-bold text-slate-600 dark:text-slate-400 uppercase mt-0.5">Skipped</div>
-              <div className="text-[9px] font-lato text-[var(--text-muted)]">Not attempted</div>
-            </div>
-
-            {/* 5. Overall Score & Total XP */}
-            <div className="bg-[var(--bg-card)] p-3 rounded-xl border border-amber-500/20">
-              <span className="text-2xl sm:text-3xl font-bold font-poppins text-amber-500">
-                {overallExamScore}%
-              </span>
-              <div className="text-[10px] font-poppins font-bold text-amber-600 dark:text-amber-400 uppercase mt-0.5">Total Score</div>
-              <div className="text-[9px] font-lato text-[var(--text-muted)]">+{totalEarnedXP} XP Gained</div>
+              </div>
             </div>
           </div>
 
-          {/* REPLAY, CERTIFICATE & ACTION BUTTONS */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            {/* Certificate is ONLY generated for official Quiz (not practice mode, not replay), and also for Admin */}
-            {(isUserAdmin || (!isPractice && (submissionResult?.isFirstAttempt !== false || submissionResult?.certificateId))) ? (
-              <button
-                onClick={() => setIsCertificateOpen(true)}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-slate-950 font-poppins font-extrabold text-xs shadow-lg shadow-amber-500/20 cursor-pointer transition-all active:scale-95 flex items-center space-x-2 border border-amber-300 hover:scale-105"
-              >
-                <span className="text-base">🎓</span>
-                <span>View & Download Certificate</span>
-                <span className="px-1.5 py-0.2 rounded bg-slate-950 text-amber-300 text-[10px] font-mono font-bold">
-                  {isUserAdmin ? 'ADMIN 4K' : 'OFFICIAL 4K'}
-                </span>
-              </button>
-            ) : (
-              <div className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-lato text-[var(--text-muted)]">
-                <span>🔒</span>
-                <span>
-                  {isPractice
-                    ? 'Certificate not generated for Practice Mode'
-                    : 'Certificate was issued on your 1st official attempt'}
-                </span>
+          {/* ROW 2: 2-CARD STATS GRID (Accuracy h, Total Score f) */}
+          <div className="grid grid-cols-2 gap-3 text-center">
+            {/* Accuracy h */}
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-4 space-y-1">
+              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+                Accuracy
               </div>
-            )}
+              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--color-primary-600)]">
+                {accuracyPercentage}%
+              </div>
+            </div>
+
+            {/* Total Score f */}
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-4 space-y-1">
+              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+                Total Score
+              </div>
+              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-amber-500">
+                {overallExamScore}%
+              </div>
+            </div>
+          </div>
+
+          {/* ROW 3: ACTION BUTTONS (Certificate, Practice Again) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <button
+              onClick={() => setIsCertificateOpen(true)}
+              className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+            >
+              <span>🎓</span>
+              <span>Certificate</span>
+            </button>
 
             <button
               onClick={handleRestartAsPractice}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-1.5"
+              className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
             >
-              <span>🔁 Replay / Practice Again</span>
+              <span>🔁</span>
+              <span>Practice Again</span>
+            </button>
+          </div>
+
+          {/* ROW 4: TAB SWITCHER (Review Answer / leaderboard) */}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <button
+              onClick={() => setActiveResultsTab('review')}
+              className={`py-3 rounded-2xl font-poppins font-extrabold text-xs sm:text-sm transition-all cursor-pointer text-center border-2 ${
+                activeResultsTab === 'review'
+                  ? 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--text-main)] shadow-md'
+                  : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
+              }`}
+            >
+              Review Answer
             </button>
 
             <button
               onClick={() => {
-                if (onFinish) onFinish();
-                if (onBack) onBack();
+                setActiveResultsTab('leaderboard');
+                fetchLeaderboard();
               }}
-              className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-semibold text-xs cursor-pointer"
+              className={`py-3 rounded-2xl font-poppins font-medium text-xs sm:text-sm transition-all cursor-pointer text-center border-2 ${
+                activeResultsTab === 'leaderboard'
+                  ? 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--text-main)] shadow-md font-extrabold'
+                  : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
+              }`}
             >
-              ← Return to Quizzes
+              leaderboard
             </button>
           </div>
-        </div>
 
-        {/* TABS: REVIEW ANSWERS vs OFFICIAL LEADERBOARD */}
-        <div className="flex items-center space-x-2 border-b border-[var(--border-theme)] pb-3">
-          <button
-            onClick={() => setActiveResultsTab('review')}
-            className={`px-4 py-2 rounded-xl font-poppins font-bold text-xs sm:text-sm cursor-pointer transition-all ${
-              activeResultsTab === 'review'
-                ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-theme)]'
-            }`}
-          >
-            📋 Review Answers & Solutions
-          </button>
-
-          <button
-            onClick={() => {
-              setActiveResultsTab('leaderboard');
-              fetchLeaderboard();
-            }}
-            className={`px-4 py-2 rounded-xl font-poppins font-bold text-xs sm:text-sm cursor-pointer transition-all flex items-center space-x-1.5 ${
-              activeResultsTab === 'leaderboard'
-                ? 'bg-[var(--color-primary-600)] text-white shadow-md'
-                : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border-theme)]'
-            }`}
-          >
-            <span>🏆 Official Leaderboard</span>
-            {!isQuizConcluded && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-mono font-bold">
-                🔒 In Progress
-              </span>
-            )}
-          </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 1: 📋 REVIEW ALL QUESTIONS & DETAILED CORRECT ANSWERS */}
+        {/* SLIDE LEFT / RIGHT CAROUSEL TRACK (REVIEW ANSWER & LEADERBOARD TABS) */}
         {/* ========================================================================= */}
-        {activeResultsTab === 'review' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            {/* CODE CHALLENGE REVIEW */}
-            {isCodeChallenge && (
-              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-6 space-y-4 shadow-sm">
-                <h3 className="font-poppins font-bold text-base text-[var(--text-main)]">
-                  💻 Code Challenge Solution Review
-                </h3>
-                <div className="p-4 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto">
-                  <div className="text-[10px] text-slate-400 mb-2 font-poppins uppercase font-bold">Your Submitted Solution:</div>
-                  <pre>{userCode}</pre>
-                </div>
-                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-lato">
-                  ✅ <strong>Validation:</strong> All test cases passed successfully (+100 XP).
-                </div>
-              </div>
-            )}
+        <div
+          className="relative overflow-hidden w-full min-h-[300px] touch-pan-y"
+          onTouchStart={handleResultsTouchStart}
+          onTouchMove={handleResultsTouchMove}
+          onTouchEnd={handleResultsTouchEnd}
+        >
+          <div
+            className="flex w-full transition-transform duration-300 ease-out items-start"
+            style={{ transform: `translateX(-${activeResultsTabIndex * 100}%)` }}
+          >
 
-            {/* MCQ QUESTIONS STEP-BY-STEP REVIEW SLIDES */}
-            {!isCodeChallenge && questions.length > 0 && (
-              <div className="space-y-4">
+            {/* SLIDE 0: REVIEW ANSWER */}
+            <div
+              className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+                activeResultsTabIndex === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              style={{
+                height: activeResultsTabIndex === 0 ? 'auto' : 0,
+                overflow: activeResultsTabIndex === 0 ? 'visible' : 'hidden'
+              }}
+            >
+              <div className="space-y-5 animate-fadeIn">
                 
-                {/* TOP TOOLBAR: STEP PILLS, TOGGLE ANSWER BUTTON & VIEW MODE */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-                  
-                  {/* Step Pills in Single Row with Hidden Scrollbar */}
-                  <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar whitespace-nowrap scroll-smooth w-full sm:w-auto py-0.5">
-                    <span className="text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mr-1 shrink-0">
-                      Steps:
-                    </span>
-                    {questions.map((q, qIdx) => {
-                      const ansIdx = userAnswers[qIdx];
-                      const isUnatt = ansIdx === undefined || ansIdx === null;
-                      const isCorr = !isUnatt && Number(ansIdx) === q.correctAnswerIndex;
-                      const isAct = reviewSlideIndex === qIdx;
-
-                      return (
-                        <button
-                          key={qIdx}
-                          type="button"
-                          onClick={() => {
-                            setReviewSlideIndex(qIdx);
-                            setReviewViewMode('slide');
-                          }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-bold transition-all cursor-pointer flex items-center space-x-1 shrink-0 ${
-                            isAct
-                              ? 'ring-2 ring-[var(--color-primary-600)] scale-105 shadow-sm font-extrabold '
-                              : 'opacity-80 hover:opacity-100 '
-                          } ${
-                            isCorr
-                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
-                              : isUnatt
-                              ? 'bg-[var(--bg-main)] text-[var(--text-muted)] border border-[var(--border-theme)]'
-                              : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'
-                          }`}
-                        >
-                          <span>Q{qIdx + 1}</span>
-                          <span>{isCorr ? '✓' : isUnatt ? '⚪' : '✗'}</span>
-                        </button>
-                      );
-                    })}
+                {/* CODE CHALLENGE REVIEW */}
+                {isCodeChallenge && (
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-6 space-y-4 shadow-sm">
+                    <h3 className="font-poppins font-bold text-base text-[var(--text-main)]">
+                      💻 Code Challenge Solution Review
+                    </h3>
+                    <div className="p-4 rounded-xl bg-slate-950 text-emerald-400 font-mono text-xs overflow-x-auto">
+                      <div className="text-[10px] text-slate-400 mb-2 font-poppins uppercase font-bold">Your Submitted Solution:</div>
+                      <pre>{userCode}</pre>
+                    </div>
+                    <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-lato">
+                      ✅ <strong>Validation:</strong> All test cases passed successfully (+100 XP).
+                    </div>
                   </div>
+                )}
 
-                  {/* Right Actions: Show Answer Toggle + View Mode Toggle */}
-                  <div className="flex items-center space-x-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[var(--border-theme)] pt-2 sm:pt-0">
+                {/* MCQ QUESTIONS REVIEW */}
+                {!isCodeChallenge && questions.length > 0 && (
+                  <div className="space-y-5">
                     
-                    {/* Toggle Button to Show / Hide Solution */}
-                    <button
-                      type="button"
-                      onClick={() => setShowAnswerExplanation((prev) => !prev)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-semibold border transition-all cursor-pointer flex items-center space-x-1.5 ${
-                        showAnswerExplanation
-                          ? 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
-                          : 'bg-[var(--color-primary-600)] text-white border-transparent shadow-sm'
-                      }`}
-                    >
-                      <span>{showAnswerExplanation ? '🙈 Hide Solution' : '👁️ Show Solution'}</span>
-                    </button>
+                    {/* HORIZONTAL JUMP TRACK (Q1, Q2, Q3, Q4...) */}
+                    <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] py-2.5 px-4 rounded-2xl sm:rounded-3xl shadow-sm flex items-center gap-3">
+                      <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar scroll-smooth flex-1 py-0.5">
+                        {questions.map((q, qIdx) => {
+                          const ansIdx = userAnswers[qIdx];
+                          const isUnatt = ansIdx === undefined || ansIdx === null;
+                          const isCorr = !isUnatt && Number(ansIdx) === q.correctAnswerIndex;
+                          const isAct = reviewSlideIndex === qIdx;
 
-                    {/* View Mode Switcher */}
-                    <div className="flex items-center space-x-1 bg-[var(--bg-main)] p-1 rounded-xl border border-[var(--border-theme)] text-xs font-poppins">
-                      <button
-                        type="button"
-                        onClick={() => setReviewViewMode('slide')}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                          reviewViewMode === 'slide'
-                            ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                            : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                        }`}
-                      >
-                        🎯 Slide
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setReviewViewMode('all')}
-                        className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                          reviewViewMode === 'all'
-                            ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                            : 'text-[var(--text-secondary)] hover:text-[var(--text-main)]'
-                        }`}
-                      >
-                        📋 All
-                      </button>
+                          return (
+                            <button
+                              key={qIdx}
+                              type="button"
+                              ref={(el) => (reviewNavRefs.current[qIdx] = el)}
+                              onClick={() => setReviewSlideIndex(qIdx)}
+                              className={`min-w-[42px] h-9 px-3 rounded-xl font-poppins font-bold text-xs shrink-0 cursor-pointer transition-all duration-150 flex items-center justify-center space-x-1 ${
+                                isAct
+                                  ? 'bg-[var(--color-primary-600)] text-white shadow-md scale-105 border-2 border-[var(--color-primary-600)]'
+                                  : isCorr
+                                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500/40 hover:bg-emerald-500/25'
+                                  : isUnatt
+                                  ? 'bg-[var(--bg-main)] text-[var(--text-muted)] border-2 border-[var(--border-theme)]'
+                                  : 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-2 border-rose-500/40 hover:bg-rose-500/25'
+                              }`}
+                            >
+                              <span>Q{qIdx + 1}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                  </div>
-
-                </div>
-
-                {/* CASE A: SLIDE-IN STEP VIEW (ROW WITH TOUCH SWIPE & CLEAN MINIMAL PALETTE) */}
-                {reviewViewMode === 'slide' && (() => {
-                  const qIdx = reviewSlideIndex;
-                  const q = questions[qIdx] || questions[0];
-                  const userAnswerIdx = userAnswers[qIdx];
-                  const isUnattempted = userAnswerIdx === undefined || userAnswerIdx === null;
-                  const isCorrect = !isUnattempted && Number(userAnswerIdx) === q.correctAnswerIndex;
-                  const isIncorrect = !isUnattempted && Number(userAnswerIdx) !== q.correctAnswerIndex;
-
-                  return (
-                    <div
-                      className="space-y-4 animate-fadeIn select-none"
-                      key={qIdx}
-                      onTouchStart={(e) => {
-                        setTouchEndX(null);
-                        setTouchStartX(e.targetTouches[0].clientX);
-                      }}
-                      onTouchMove={(e) => {
-                        setTouchEndX(e.targetTouches[0].clientX);
-                      }}
-                      onTouchEnd={() => {
-                        if (!touchStartX || !touchEndX) return;
-                        const distance = touchStartX - touchEndX;
-                        if (distance > 50 && reviewSlideIndex < questions.length - 1) {
-                          setReviewSlideIndex((prev) => prev + 1);
-                        } else if (distance < -50 && reviewSlideIndex > 0) {
-                          setReviewSlideIndex((prev) => prev - 1);
-                        }
-                      }}
-                    >
-                      {/* Step Header */}
-                      <div className="flex items-center justify-between text-xs font-poppins text-[var(--text-muted)]">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-[var(--text-main)]">
-                            Question {qIdx + 1} of {questions.length}
-                          </span>
-                          <span>•</span>
-                          <span className="hidden sm:inline text-[11px] text-[var(--text-muted)]">
-                            (Swipe left/right or use buttons to navigate)
-                          </span>
-                        </div>
-
-                        <div>
-                          {isCorrect && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
-                              ✅ Correct (+10 XP)
-                            </span>
-                          )}
-                          {isIncorrect && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-poppins font-bold bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300">
-                              ❌ Incorrect
-                            </span>
-                          )}
-                          {isUnattempted && (
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-poppins font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                              ⚪ Skipped
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* SIDE-BY-SIDE ROW: QUESTION CHOICES (LEFT) & SOLUTION PANEL (RIGHT) */}
-                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                        
-                        {/* LEFT COLUMN (COL-7): QUESTION STATEMENT & 4 OPTIONS */}
-                        <div className="lg:col-span-7 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm flex flex-col justify-between">
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2.5 text-xs">
-                              <span className="font-poppins font-semibold text-[var(--text-muted)] uppercase text-[10px]">
-                                Problem Statement
-                              </span>
-                              <span className="font-mono text-[var(--text-muted)] text-[11px]">
-                                {isUnattempted ? '⚪ Not Answered' : `Selected: Option ${String.fromCharCode(65 + userAnswerIdx)}`}
-                              </span>
-                            </div>
-
-                            <h4 className="font-poppins font-semibold text-sm sm:text-base text-[var(--text-main)] leading-relaxed">
-                              {q.questionText}
-                            </h4>
-
-                            {/* CODE PATTERN BOX (When questionType === 'pattern' or codeSnippet is provided) */}
-                            {(q.questionType === 'pattern' || q.codeSnippet) && (
-                              <div className="rounded-xl border border-indigo-500/30 bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs">
-                                <div className="bg-slate-900 px-3.5 py-1.5 border-b border-slate-800 flex items-center justify-between text-[11px] font-poppins">
-                                  <span className="flex items-center space-x-1.5 text-indigo-400 font-bold">
-                                    <span>🧩</span>
-                                    <span>Code Pattern to Fix</span>
-                                  </span>
-                                  <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase">
-                                    {q.language || 'javascript'}
-                                  </span>
-                                </div>
-                                <div className="p-3.5 overflow-x-auto custom-scrollbar leading-relaxed">
-                                  <pre className="text-emerald-400 font-mono whitespace-pre">{q.codeSnippet}</pre>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Options Breakdown */}
-                            <div className="space-y-2 pt-1">
-                              {q.options.map((opt, optIdx) => {
-                                const isUserChoice = Number(userAnswerIdx) === optIdx;
-                                const isTheCorrectAnswer = optIdx === q.correctAnswerIndex;
-
-                                return (
-                                  <div
-                                    key={optIdx}
-                                    className={`p-3 rounded-xl border text-xs sm:text-sm font-lato flex items-center justify-between transition-colors ${
-                                      showAnswerExplanation && isTheCorrectAnswer
-                                        ? 'border-emerald-500/80 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 font-bold'
-                                        : showAnswerExplanation && isUserChoice && isIncorrect
-                                        ? 'border-rose-500/80 bg-rose-500/10 text-rose-900 dark:text-rose-200 font-semibold'
-                                        : isUserChoice
-                                        ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-50)] dark:bg-blue-950/30 text-[var(--text-main)] font-semibold'
-                                        : 'border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] opacity-80'
-                                    }`}
-                                  >
-                                    <div className="flex items-center space-x-3">
-                                      <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                                        showAnswerExplanation && isTheCorrectAnswer
-                                          ? 'bg-emerald-600 text-white'
-                                          : showAnswerExplanation && isUserChoice && isIncorrect
-                                          ? 'bg-rose-600 text-white'
-                                          : isUserChoice
-                                          ? 'bg-[var(--color-primary-600)] text-white'
-                                          : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                                      }`}>
-                                        {String.fromCharCode(65 + optIdx)}
-                                      </span>
-                                      <span className="leading-snug">{opt}</span>
-                                    </div>
-
-                                    {showAnswerExplanation && (
-                                      <div className="flex items-center space-x-1.5 shrink-0 ml-2">
-                                        {isTheCorrectAnswer && (
-                                          <span className="text-[10px] font-poppins font-bold px-2 py-0.5 rounded bg-emerald-600 text-white">
-                                            ✓ Correct
-                                          </span>
-                                        )}
-                                        {isUserChoice && isIncorrect && (
-                                          <span className="text-[10px] font-poppins font-bold px-2 py-0.5 rounded bg-rose-600 text-white">
-                                            ✗ Your Choice
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* RIGHT COLUMN (COL-5): DETAILED SOLUTION & EXPLANATION (MINIMAL CLEAN DESIGN) */}
-                        <div className="lg:col-span-5 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm flex flex-col justify-between">
-                          {showAnswerExplanation ? (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2.5">
-                                <h5 className="font-poppins font-bold text-xs uppercase tracking-wider text-[var(--text-muted)] flex items-center space-x-1.5">
-                                  <span>💡</span>
-                                  <span>Solution Key</span>
-                                </h5>
-                                <span className="text-xs font-poppins font-bold text-emerald-600 dark:text-emerald-400">
-                                  Option {String.fromCharCode(65 + q.correctAnswerIndex)}
-                                </span>
-                              </div>
-
-                              {/* Correct Answer Text */}
-                              <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-lato space-y-1">
-                                <span className="text-[10px] font-poppins font-bold text-emerald-600 dark:text-emerald-400 uppercase">
-                                  Correct Answer:
-                                </span>
-                                <p className="font-semibold text-[var(--text-main)] leading-snug">
-                                  {q.options[q.correctAnswerIndex]}
-                                </p>
-                              </div>
-
-                              {/* Detailed Explanation */}
-                              <div className="p-3.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-lato space-y-1.5">
-                                <span className="font-poppins font-bold text-[10px] text-[var(--text-muted)] uppercase">
-                                  Explanation & Rationale:
-                                </span>
-                                <p className="text-[var(--text-secondary)] leading-relaxed">
-                                  {q.explanation || 'The selected option satisfies the problem requirements and execution logic.'}
-                                </p>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center text-center py-10 space-y-3">
-                              <span className="text-2xl">🔒</span>
-                              <h5 className="font-poppins font-bold text-xs text-[var(--text-main)]">
-                                Solution Hidden
-                              </h5>
-                              <p className="text-xs font-lato text-[var(--text-muted)] max-w-xs">
-                                Try reviewing this problem statement before revealing the answer.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={() => setShowAnswerExplanation(true)}
-                                className="px-3.5 py-1.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold cursor-pointer transition-all active:scale-95 shadow-sm"
-                              >
-                                👁️ Reveal Solution
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Stats Footer */}
-                          <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between text-xs font-poppins text-[var(--text-muted)]">
-                            <span>Status: <strong className={isCorrect ? 'text-emerald-500' : isIncorrect ? 'text-rose-500' : 'text-slate-400'}>{isCorrect ? '+10 XP' : isIncorrect ? '0 XP' : 'Skipped'}</strong></span>
-                            <span>Time: <strong className="text-[var(--text-main)]">{q.timerSeconds ? `${q.timerSeconds}s` : 'Standard'}</strong></span>
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* SLIDE NAVIGATION BUTTONS (LEFT & RIGHT) */}
-                      <div className="flex items-center justify-between gap-3 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 shadow-sm">
-                        <button
-                          type="button"
-                          onClick={() => setReviewSlideIndex((prev) => Math.max(0, prev - 1))}
-                          disabled={qIdx === 0}
-                          className="px-4 py-2 rounded-xl border border-[var(--border-theme)] text-xs font-poppins font-semibold text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] transition-all cursor-pointer active:scale-95 flex items-center space-x-1.5"
-                        >
-                          <span>← Prev</span>
-                        </button>
-
-                        {/* Step indicator pill */}
-                        <div className="text-xs font-poppins font-bold text-[var(--text-muted)]">
-                          Slide <strong className="text-[var(--text-main)]">{qIdx + 1}</strong> of <strong className="text-[var(--text-main)]">{questions.length}</strong>
-                        </div>
-
-                        {qIdx < questions.length - 1 ? (
-                          <button
-                            type="button"
-                            onClick={() => setReviewSlideIndex((prev) => Math.min(questions.length - 1, prev + 1))}
-                            className="px-4 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold transition-all cursor-pointer active:scale-95 flex items-center space-x-1.5 shadow-sm"
-                          >
-                            <span>Next →</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setActiveResultsTab('leaderboard')}
-                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs transition-all cursor-pointer active:scale-95 flex items-center space-x-1.5 shadow-sm"
-                          >
-                            <span>🏆 Leaderboard →</span>
-                          </button>
-                        )}
-                      </div>
-
-                    </div>
-                  );
-                })()}
-
-                {/* CASE B: VIEW ALL QUESTIONS AT ONCE */}
-                {reviewViewMode === 'all' && (
-                  <div className="space-y-3 animate-fadeIn">
-                    {questions.map((q, qIdx) => {
+                    {/* ACTIVE QUESTION REVIEW CARD */}
+                    {(() => {
+                      const qIdx = reviewSlideIndex;
+                      const q = questions[qIdx] || questions[0];
                       const userAnswerIdx = userAnswers[qIdx];
                       const isUnattempted = userAnswerIdx === undefined || userAnswerIdx === null;
                       const isCorrect = !isUnattempted && Number(userAnswerIdx) === q.correctAnswerIndex;
                       const isIncorrect = !isUnattempted && Number(userAnswerIdx) !== q.correctAnswerIndex;
 
                       return (
-                        <div
-                          key={qIdx}
-                          className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm"
-                        >
-                          <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2 text-xs">
+                        <div key={qIdx} className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-md space-y-5 animate-fadeIn">
+                          
+                          {/* Question Header: Question no.1 (Incorrect) & Earned (+a XP) */}
+                          <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3 text-xs font-poppins">
                             <div className="flex items-center space-x-2">
-                              <span className="font-poppins font-bold text-[var(--color-primary-600)]">
-                                Q#{qIdx + 1}
-                              </span>
+                              <h3 className="font-extrabold text-sm sm:text-base text-[var(--text-main)]">
+                                Question no.{qIdx + 1}
+                              </h3>
                               {isCorrect && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                  ✅ Correct
+                                <span className="font-bold text-emerald-500 text-sm">
+                                  (Correct)
                                 </span>
                               )}
                               {isIncorrect && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                                  ❌ Incorrect
+                                <span className="font-bold text-rose-500 text-sm">
+                                  (Incorrect)
                                 </span>
                               )}
                               {isUnattempted && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                  ⚪ Skipped
+                                <span className="font-bold text-slate-400 text-sm">
+                                  (Skipped)
                                 </span>
                               )}
                             </div>
-                            <span className="text-[11px] font-lato text-[var(--text-muted)]">
-                              {isUnattempted ? '⚪ Unattempted' : `Selected: Option ${String.fromCharCode(65 + userAnswerIdx)}`}
+
+                            <span className="text-[11px] font-semibold text-[var(--text-muted)]">
+                              Earned ({isCorrect ? '+10 XP' : '+0 XP'})
                             </span>
                           </div>
 
-                          <h4 className="font-poppins font-semibold text-xs sm:text-sm text-[var(--text-main)]">
+                          {/* Question Statement */}
+                          <h4 className="font-poppins font-semibold text-base sm:text-lg text-[var(--text-main)] leading-relaxed">
                             {q.questionText}
                           </h4>
 
-                          {/* CODE PATTERN BOX (When questionType === 'pattern' or codeSnippet is provided) */}
+                          {/* Code Snippet Box (when present) */}
                           {(q.questionType === 'pattern' || q.codeSnippet) && (
-                            <div className="rounded-xl border border-indigo-500/30 bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs">
-                              <div className="bg-slate-900 px-3 py-1 border-b border-slate-800 flex items-center justify-between text-[10px] font-poppins">
-                                <span className="flex items-center space-x-1 text-indigo-400 font-bold">
-                                  <span>🧩</span>
-                                  <span>Code Pattern to Fix</span>
+                            <div className="rounded-2xl border border-[var(--border-theme)] bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs relative">
+                              <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-[11px] font-poppins">
+                                <span className="px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold">
+                                  Code Snippet
                                 </span>
-                                <span className="px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono text-[9px] uppercase">
-                                  {q.language || 'javascript'}
+                                <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase font-bold">
+                                  {q.language || 'language'}
                                 </span>
                               </div>
-                              <div className="p-3 overflow-x-auto custom-scrollbar leading-relaxed">
-                                <pre className="text-emerald-400 font-mono whitespace-pre text-[11px]">{q.codeSnippet}</pre>
+                              <div className="p-4 overflow-x-auto custom-scrollbar leading-relaxed">
+                                <pre className="text-emerald-400 font-mono whitespace-pre text-xs">{q.codeSnippet}</pre>
                               </div>
                             </div>
                           )}
 
-                          <div className="space-y-1.5">
+                          {/* Options (A, B, C, D) with Correct & Incorrect highlights & nested Solution Box */}
+                          <div className="space-y-3 pt-1">
                             {q.options.map((opt, optIdx) => {
                               const isUserChoice = Number(userAnswerIdx) === optIdx;
                               const isTheCorrectAnswer = optIdx === q.correctAnswerIndex;
@@ -1420,300 +1162,359 @@ You are building a high-frequency financial settlement engine. Given an array of
                               return (
                                 <div
                                   key={optIdx}
-                                  className={`p-2.5 rounded-xl border text-xs font-lato flex items-center justify-between ${
+                                  className={`rounded-2xl border-2 transition-all p-3.5 sm:p-4 space-y-3 ${
                                     isTheCorrectAnswer
-                                      ? 'border-emerald-500/80 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200 font-bold'
+                                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
                                       : isUserChoice && isIncorrect
-                                      ? 'border-rose-500/80 bg-rose-500/10 text-rose-900 dark:text-rose-200 font-semibold'
-                                      : 'border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] opacity-75'
+                                      ? 'border-rose-500 bg-rose-500/10 text-rose-900 dark:text-rose-200'
+                                      : 'border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)]'
                                   }`}
                                 >
-                                  <div className="flex items-center space-x-2">
-                                    <span className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold ${
-                                      isTheCorrectAnswer
-                                        ? 'bg-emerald-600 text-white'
-                                        : isUserChoice
-                                        ? 'bg-rose-600 text-white'
-                                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                                    }`}>
-                                      {String.fromCharCode(65 + optIdx)}
-                                    </span>
-                                    <span>{opt}</span>
+                                  <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center space-x-3.5">
+                                      <div
+                                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-poppins font-bold text-xs sm:text-sm shrink-0 ${
+                                          isTheCorrectAnswer
+                                            ? 'border-emerald-600 bg-emerald-600 text-white'
+                                            : isUserChoice && isIncorrect
+                                            ? 'border-rose-600 bg-rose-600 text-white'
+                                            : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-muted)]'
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + optIdx)}
+                                      </div>
+
+                                      <span className={`font-lato text-xs sm:text-sm leading-snug ${
+                                        isUserChoice && isIncorrect ? 'line-through text-rose-600 dark:text-rose-300 font-semibold' : ''
+                                      }`}>
+                                        {opt}
+                                      </span>
+                                    </div>
+
+                                    {isUserChoice && isIncorrect && (
+                                      <span className="text-xs font-poppins font-bold text-rose-600 dark:text-rose-400 shrink-0">
+                                        Incorrect Answer
+                                      </span>
+                                    )}
                                   </div>
 
-                                  <div className="flex items-center space-x-1.5 shrink-0">
-                                    {isTheCorrectAnswer && (
-                                      <span className="text-[10px] font-poppins font-bold px-1.5 py-0.5 rounded bg-emerald-600 text-white">
-                                        ✓ Correct
-                                      </span>
-                                    )}
-                                    {isUserChoice && isIncorrect && (
-                                      <span className="text-[10px] font-poppins font-bold px-1.5 py-0.5 rounded bg-rose-600 text-white">
-                                        ✗ Your Choice
-                                      </span>
-                                    )}
-                                  </div>
+                                  {/* SOLUTION BOX NESTED INSIDE CORRECT ANSWER CARD (MATCHING WIREFRAME) */}
+                                  {isTheCorrectAnswer && (
+                                    <div className="p-3.5 rounded-xl bg-[var(--bg-card)] border border-emerald-500/40 space-y-1 text-xs font-lato mt-2 shadow-xs">
+                                      <div className="font-poppins font-bold text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                                        Solution
+                                      </div>
+                                      <p className="text-[var(--text-main)] leading-relaxed">
+                                        {q.explanation || 'The selected option satisfies the problem requirements and execution logic.'}
+                                      </p>
+                                    </div>
+                                  )}
+
                                 </div>
                               );
                             })}
                           </div>
 
-                          {q.explanation && (
-                            <div className="p-3 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs font-lato space-y-1">
-                              <span className="font-poppins font-bold text-[10px] text-[var(--text-muted)] uppercase">
-                                💡 Explanation:
-                              </span>
-                              <p className="text-[var(--text-secondary)] leading-relaxed">{q.explanation}</p>
-                            </div>
-                          )}
+                          {/* SLIDE NAVIGATION BUTTONS */}
+                          <div className="pt-4 border-t border-[var(--border-theme)] flex items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setReviewSlideIndex((prev) => Math.max(0, prev - 1))}
+                              disabled={qIdx === 0}
+                              className="px-5 py-2.5 rounded-2xl border-2 border-[var(--border-theme)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] transition-all cursor-pointer shadow-xs active:scale-95"
+                            >
+                              Previous Question
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setReviewSlideIndex((prev) => Math.min(questions.length - 1, prev + 1))}
+                              disabled={qIdx === questions.length - 1}
+                              className="px-6 py-2.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs sm:text-sm font-poppins font-bold shadow-md transition-all cursor-pointer active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              Next Question
+                            </button>
+                          </div>
+
+                          {/* BOTTOM ACTION BUTTONS: More Quizzes | Add Reviews */}
+                          <div className="grid grid-cols-2 gap-3 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const recElem = document.getElementById('more-quizzes-section');
+                                if (recElem) recElem.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                              className="py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer active:scale-95 text-center"
+                            >
+                              More Quizzes
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const revElem = document.getElementById('add-review-section');
+                                if (revElem) revElem.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                              className="py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer active:scale-95 text-center"
+                            >
+                              Add Reviews
+                            </button>
+                          </div>
+
                         </div>
                       );
-                    })}
+                    })()}
+
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* SLIDE 1: LEADERBOARD */}
+            <div
+              className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+                activeResultsTabIndex === 1 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              style={{
+                height: activeResultsTabIndex === 1 ? 'auto' : 0,
+                overflow: activeResultsTabIndex === 1 ? 'visible' : 'hidden'
+              }}
+            >
+              <div className="space-y-6 animate-fadeIn">
+                
+                {/* CASE A: QUIZ STILL RUNNING -> SHOW LIVE COUNTDOWN & INFORMATIVE NOTE TO USER */}
+                {!isQuizConcluded && (
+                  <div className="bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-main)] border-2 border-amber-400/40 rounded-3xl p-6 sm:p-8 shadow-lg space-y-6">
+                    
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-5">
+                      <div className="flex items-center space-x-3 text-center sm:text-left">
+                        <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-3xl font-bold shrink-0">
+                          ⏳
+                        </div>
+                        <div>
+                          <h3 className="font-poppins font-extrabold text-base sm:text-lg text-[var(--text-main)]">
+                            Official Leaderboard Finalization In Progress
+                          </h3>
+                          <p className="text-xs font-lato text-[var(--text-muted)]">
+                            Rankings are locked and will be revealed immediately when the competition concludes.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Live Countdown to Quiz End */}
+                      <div className="shrink-0">
+                        <QuizCountdownBadge quiz={quiz} size="lg" />
+                      </div>
+                    </div>
+
+                    {/* NOTE TO USER BOX */}
+                    <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
+                      <div className="font-poppins font-bold text-xs text-amber-700 dark:text-amber-300 flex items-center space-x-1.5">
+                        <span>📢</span>
+                        <span>Note to Candidate:</span>
+                      </div>
+                      <p className="text-xs font-lato text-[var(--text-main)] leading-relaxed">
+                        Your assessment submission has been recorded securely for your <strong>official first attempt</strong>. To maintain fair competition and prevent score leaking while other participants are still taking the exam, the full global leaderboard and winner badges will be published once the quiz officially ends at{' '}
+                        <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                          {quiz?.endDate || quiz?.startDate} ({quiz?.endTime || 'End Schedule'})
+                        </span>.
+                      </p>
+                    </div>
+
+                    {/* Candidate Verified Submission Summary */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                      <div>
+                        <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Candidate</div>
+                        <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] truncate">
+                          {user?.name || 'Candidate'}
+                        </div>
+                        {user?.email && (
+                          <span className="inline-block text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.2 rounded mt-0.5 border border-indigo-200 dark:border-indigo-800">
+                            @{user.email.split('@')[0]}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Accuracy</div>
+                        <div className="font-poppins font-bold text-xs sm:text-sm text-emerald-500">
+                          {accuracyPercentage}%
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">XP Earned</div>
+                        <div className="font-poppins font-bold text-xs sm:text-sm text-amber-500">
+                          +{totalEarnedXP} XP ⚡
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Time Elapsed</div>
+                        <div className="font-mono font-bold text-xs sm:text-sm text-[var(--text-secondary)]">
+                          {submissionResult?.timeTakenSeconds || 45}s
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Leaderboard Status</div>
+                        <div className="font-poppins font-bold text-[11px] text-amber-500">
+                          🔒 Queued & Verified
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 )}
 
-              </div>
-            )}
+                {/* CASE B: QUIZ ENDED -> UNLOCKED OFFICIAL FINAL LEADERBOARD TABLE */}
+                {isQuizConcluded && (
+                  <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-6 space-y-4 shadow-sm animate-fadeIn">
+                    <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3">
+                      <div>
+                        <h3 className="font-poppins font-bold text-base text-[var(--text-main)] flex items-center space-x-2">
+                          <span>🏁</span>
+                          <span>Official Final Leaderboard (Competition Concluded)</span>
+                        </h3>
+                        <p className="text-xs font-lato text-[var(--text-muted)]">
+                          Official verified rank list (1 entry per user ID from their first attempt).
+                        </p>
+                      </div>
 
-          </div>
-        )}
-
-        {/* ========================================================================= */}
-        {/* TAB 2: 🏆 OFFICIAL LEADERBOARD (REVEALED WHEN QUIZ ENDED + TIMER & NOTE) */}
-        {/* ========================================================================= */}
-        {activeResultsTab === 'leaderboard' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            {/* CASE A: QUIZ STILL RUNNING -> SHOW LIVE COUNTDOWN & INFORMATIVE NOTE TO USER */}
-            {!isQuizConcluded && (
-              <div className="bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-main)] border-2 border-amber-400/40 rounded-3xl p-6 sm:p-8 shadow-lg space-y-6">
-                
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[var(--border-theme)] pb-5">
-                  <div className="flex items-center space-x-3 text-center sm:text-left">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-3xl font-bold shrink-0">
-                      ⏳
-                    </div>
-                    <div>
-                      <h3 className="font-poppins font-extrabold text-base sm:text-lg text-[var(--text-main)]">
-                        Official Leaderboard Finalization In Progress
-                      </h3>
-                      <p className="text-xs font-lato text-[var(--text-muted)]">
-                        Rankings are locked and will be revealed immediately when the competition concludes.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Live Countdown to Quiz End */}
-                  <div className="shrink-0">
-                    <QuizCountdownBadge quiz={quiz} size="lg" />
-                  </div>
-                </div>
-
-                {/* NOTE TO USER BOX */}
-                <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-2.5">
-                  <div className="font-poppins font-bold text-xs text-amber-700 dark:text-amber-300 flex items-center space-x-1.5">
-                    <span>📢</span>
-                    <span>Note to Candidate:</span>
-                  </div>
-                  <p className="text-xs font-lato text-[var(--text-main)] leading-relaxed">
-                    Your assessment submission has been recorded securely for your <strong>official first attempt</strong>. To maintain fair competition and prevent score leaking while other participants are still taking the exam, the full global leaderboard and winner badges will be published once the quiz officially ends at{' '}
-                    <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                      {quiz?.endDate || quiz?.startDate} ({quiz?.endTime || 'End Schedule'})
-                    </span>.
-                  </p>
-                </div>
-
-                {/* Candidate Verified Submission Summary */}
-                <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                  <div>
-                    <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Candidate</div>
-                    <div className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] truncate">
-                      {user?.name || 'Candidate'}
-                    </div>
-                    {user?.email && (
-                      <span className="inline-block text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.2 rounded mt-0.5 border border-indigo-200 dark:border-indigo-800">
-                        @{user.email.split('@')[0]}
+                      <span className="px-2.5 py-1 rounded-full text-xs font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        🏆 Final Results
                       </span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Accuracy</div>
-                    <div className="font-poppins font-bold text-xs sm:text-sm text-emerald-500">
-                      {accuracyPercentage}%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">XP Earned</div>
-                    <div className="font-poppins font-bold text-xs sm:text-sm text-amber-500">
-                      +{totalEarnedXP} XP ⚡
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Time Elapsed</div>
-                    <div className="font-mono font-bold text-xs sm:text-sm text-[var(--text-secondary)]">
-                      {submissionResult?.timeTakenSeconds || 45}s
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-lato text-[var(--text-muted)] uppercase">Leaderboard Status</div>
-                    <div className="font-poppins font-bold text-[11px] text-amber-500">
-                      🔒 Queued & Verified
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            )}
-
-            {/* CASE B: QUIZ ENDED -> UNLOCKED OFFICIAL FINAL LEADERBOARD TABLE */}
-            {isQuizConcluded && (
-              <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-6 space-y-4 shadow-sm animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3">
-                  <div>
-                    <h3 className="font-poppins font-bold text-base text-[var(--text-main)] flex items-center space-x-2">
-                      <span>🏁</span>
-                      <span>Official Final Leaderboard (Competition Concluded)</span>
-                    </h3>
-                    <p className="text-xs font-lato text-[var(--text-muted)]">
-                      Official verified rank list (1 entry per user ID from their first attempt).
-                    </p>
-                  </div>
-
-                  <span className="px-2.5 py-1 rounded-full text-xs font-poppins font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                    🏆 Final Results
-                  </span>
-                </div>
-
-                {isLoadingLeaderboard ? (
-                  <div className="text-center py-8 text-xs font-lato text-[var(--text-muted)]">
-                    Loading official leaderboard...
-                  </div>
-                ) : leaderboardList.length === 0 ? (
-                  <div className="text-center py-8 text-xs font-lato text-[var(--text-muted)]">
-                    No official leaderboard submissions recorded yet.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left font-lato text-xs sm:text-sm">
-                        <thead>
-                          <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
-                            <th className="py-2.5 px-3">Rank</th>
-                            <th className="py-2.5 px-3">Candidate</th>
-                            <th className="py-2.5 px-3 text-center">Score</th>
-                            <th className="py-2.5 px-3 text-center">Time Taken</th>
-                            <th className="py-2.5 px-3 text-right">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-theme)]">
-                          {leaderboardList
-                            .slice((leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE, leaderboardPage * LEADERBOARD_PAGE_SIZE)
-                            .map((entry, idx) => {
-                              const globalRank = (leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE + idx + 1;
-                              const isCurrentUser = user && (
-                                (entry.userEmail && user.email && entry.userEmail.toLowerCase() === user.email.toLowerCase()) ||
-                                (entry.userName && user.name && entry.userName.toLowerCase() === user.name.toLowerCase())
-                              );
-                              const emailUsername = entry.userEmail ? entry.userEmail.split('@')[0] : (entry.username || '');
-                              const displayName = (entry.userName && entry.userName !== 'Candidate')
-                                ? entry.userName
-                                : (emailUsername ? (emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1)) : 'Candidate');
-
-                              return (
-                                <tr
-                                  key={entry._id || idx}
-                                  className={`hover:bg-[var(--bg-main)] transition-colors ${
-                                    isCurrentUser ? 'bg-[var(--color-primary-50)]/50 dark:bg-blue-950/40 font-bold' : ''
-                                  }`}
-                                >
-                                  <td className="py-3 px-3 font-poppins font-bold">
-                                    {globalRank === 1 ? '🥇 1st' : globalRank === 2 ? '🥈 2nd' : globalRank === 3 ? '🥉 3rd' : `#${globalRank}`}
-                                  </td>
-                                  <td className="py-3 px-3">
-                                    <div className="font-poppins font-semibold text-[var(--text-main)] flex flex-wrap items-center gap-1.5">
-                                      <span>{displayName}</span>
-                                      {emailUsername && (
-                                        <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
-                                          @{emailUsername}
-                                        </span>
-                                      )}
-                                      {isCurrentUser && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-primary-600)] text-white font-bold">
-                                          You
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="text-[10px] text-[var(--text-muted)] font-mono">{entry.userEmail || (emailUsername ? `${emailUsername}@example.com` : '')}</div>
-                                  </td>
-                                  <td className="py-3 px-3 text-center font-poppins font-bold text-emerald-500">
-                                    {entry.score}%
-                                  </td>
-                                  <td className="py-3 px-3 text-center font-mono text-xs text-[var(--text-secondary)]">
-                                    {entry.timeTakenSeconds}s
-                                  </td>
-                                  <td className="py-3 px-3 text-right text-[11px] text-[var(--text-muted)]">
-                                    {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : 'Today'}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                        </tbody>
-                      </table>
                     </div>
 
-                    {/* PAGINATION CONTROLS */}
-                    {Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE) > 1 && (
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-[var(--border-theme)] text-xs font-poppins">
-                        <span className="text-[var(--text-muted)] text-[11px] font-lato">
-                          Showing <strong className="text-[var(--text-main)]">{Math.min((leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE + 1, leaderboardList.length)}</strong> to <strong className="text-[var(--text-main)]">{Math.min(leaderboardPage * LEADERBOARD_PAGE_SIZE, leaderboardList.length)}</strong> of <strong className="text-[var(--text-main)]">{leaderboardList.length}</strong> candidates
-                        </span>
+                    {isLoadingLeaderboard ? (
+                      <div className="text-center py-8 text-xs font-lato text-[var(--text-muted)]">
+                        Loading official leaderboard...
+                      </div>
+                    ) : leaderboardList.length === 0 ? (
+                      <div className="text-center py-8 text-xs font-lato text-[var(--text-muted)]">
+                        No official leaderboard submissions recorded yet.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left font-lato text-xs sm:text-sm">
+                            <thead>
+                              <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] uppercase text-[10px] font-poppins font-bold">
+                                <th className="py-2.5 px-3">Rank</th>
+                                <th className="py-2.5 px-3">Candidate</th>
+                                <th className="py-2.5 px-3 text-center">Score</th>
+                                <th className="py-2.5 px-3 text-center">Time Taken</th>
+                                <th className="py-2.5 px-3 text-right">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border-theme)]">
+                              {leaderboardList
+                                .slice((leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE, leaderboardPage * LEADERBOARD_PAGE_SIZE)
+                                .map((entry, idx) => {
+                                  const globalRank = (leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE + idx + 1;
+                                  const isCurrentUser = user && (
+                                    (entry.userEmail && user.email && entry.userEmail.toLowerCase() === user.email.toLowerCase()) ||
+                                    (entry.userName && user.name && entry.userName.toLowerCase() === user.name.toLowerCase())
+                                  );
+                                  const emailUsername = entry.userEmail ? entry.userEmail.split('@')[0] : (entry.username || '');
+                                  const displayName = (entry.userName && entry.userName !== 'Candidate')
+                                    ? entry.userName
+                                    : (emailUsername ? (emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1)) : 'Candidate');
 
-                        <div className="flex items-center space-x-1.5">
-                          <button
-                            onClick={() => setLeaderboardPage((p) => Math.max(1, p - 1))}
-                            disabled={leaderboardPage === 1}
-                            className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] font-semibold transition-colors cursor-pointer"
-                          >
-                            ← Prev
-                          </button>
-
-                          {Array.from({ length: Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE) }).map((_, pIdx) => {
-                            const pageNum = pIdx + 1;
-                            return (
-                              <button
-                                key={pageNum}
-                                onClick={() => setLeaderboardPage(pageNum)}
-                                className={`w-7 h-7 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-                                  leaderboardPage === pageNum
-                                    ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-                                    : 'border border-[var(--border-theme)] text-[var(--text-secondary)] hover:bg-[var(--bg-main)]'
-                                }`}
-                              >
-                                {pageNum}
-                              </button>
-                            );
-                          })}
-
-                          <button
-                            onClick={() => setLeaderboardPage((p) => Math.min(Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE), p + 1))}
-                            disabled={leaderboardPage === Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE)}
-                            className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] font-semibold transition-colors cursor-pointer"
-                          >
-                            Next →
-                          </button>
+                                  return (
+                                    <tr
+                                      key={entry._id || idx}
+                                      className={`hover:bg-[var(--bg-main)] transition-colors ${
+                                        isCurrentUser ? 'bg-[var(--color-primary-50)]/50 dark:bg-blue-950/40 font-bold' : ''
+                                      }`}
+                                    >
+                                      <td className="py-3 px-3 font-poppins font-bold">
+                                        {globalRank === 1 ? '🥇 1st' : globalRank === 2 ? '🥈 2nd' : globalRank === 3 ? '🥉 3rd' : `#${globalRank}`}
+                                      </td>
+                                      <td className="py-3 px-3">
+                                        <div className="font-poppins font-semibold text-[var(--text-main)] flex flex-wrap items-center gap-1.5">
+                                          <span>{displayName}</span>
+                                          {emailUsername && (
+                                            <span className="text-[11px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                                              @{emailUsername}
+                                            </span>
+                                          )}
+                                          {isCurrentUser && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-primary-600)] text-white font-bold">
+                                              You
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="text-[10px] text-[var(--text-muted)] font-mono">{entry.userEmail || (emailUsername ? `${emailUsername}@example.com` : '')}</div>
+                                      </td>
+                                      <td className="py-3 px-3 text-center font-poppins font-bold text-emerald-500">
+                                        {entry.score}%
+                                      </td>
+                                      <td className="py-3 px-3 text-center font-mono text-xs text-[var(--text-secondary)]">
+                                        {entry.timeTakenSeconds}s
+                                      </td>
+                                      <td className="py-3 px-3 text-right text-[11px] text-[var(--text-muted)]">
+                                        {entry.createdAt ? new Date(entry.createdAt).toLocaleDateString() : 'Today'}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                            </tbody>
+                          </table>
                         </div>
+
+                        {/* PAGINATION CONTROLS */}
+                        {Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE) > 1 && (
+                          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-[var(--border-theme)] text-xs font-poppins">
+                            <span className="text-[var(--text-muted)] text-[11px] font-lato">
+                              Showing <strong className="text-[var(--text-main)]">{Math.min((leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE + 1, leaderboardList.length)}</strong> to <strong className="text-[var(--text-main)]">{Math.min(leaderboardPage * LEADERBOARD_PAGE_SIZE, leaderboardList.length)}</strong> of <strong className="text-[var(--text-main)]">{leaderboardList.length}</strong> candidates
+                            </span>
+
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                onClick={() => setLeaderboardPage((p) => Math.max(1, p - 1))}
+                                disabled={leaderboardPage === 1}
+                                className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] font-semibold transition-colors cursor-pointer"
+                              >
+                                ← Prev
+                              </button>
+
+                              {Array.from({ length: Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE) }).map((_, pIdx) => {
+                                const pageNum = pIdx + 1;
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => setLeaderboardPage(pageNum)}
+                                    className={`w-7 h-7 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                                      leaderboardPage === pageNum
+                                        ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
+                                        : 'border border-[var(--border-theme)] text-[var(--text-secondary)] hover:bg-[var(--bg-main)]'
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              })}
+
+                              <button
+                                onClick={() => setLeaderboardPage((p) => Math.min(Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE), p + 1))}
+                                disabled={leaderboardPage === Math.ceil(leaderboardList.length / LEADERBOARD_PAGE_SIZE)}
+                                className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] font-semibold transition-colors cursor-pointer"
+                              >
+                                Next →
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
+
               </div>
-            )}
+            </div>
 
           </div>
-        )}
+        </div>
 
         {/* POST-QUIZ STUDENT REVIEW CARD */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm mt-6">
+        <div id="add-review-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm mt-6">
           {postQuizReviewSubmitted ? (
             <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2 animate-fadeIn">
               <span className="text-3xl">🎉</span>
@@ -1819,7 +1620,7 @@ You are building a high-frequency financial settlement engine. Given an array of
         </div>
 
         {/* MORE QUIZ RECOMMENDATIONS SECTION (SEQUENCED: UPCOMING -> LIVE NOW -> PRACTICE) */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+        <div id="more-quizzes-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-4">
             <div>
               <h3 className="text-lg sm:text-xl font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
@@ -2093,7 +1894,7 @@ You are building a high-frequency financial settlement engine. Given an array of
             </div>
 
             <button
-              onClick={finishQuiz}
+              onClick={handleFinishClick}
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-md cursor-pointer active:scale-95"
             >
               Submit Solution 🚀
@@ -2310,132 +2111,87 @@ You are building a high-frequency financial settlement engine. Given an array of
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4 space-y-6 animate-fadeIn">
+    <div className="max-w-4xl mx-auto py-3 px-3 sm:px-4 space-y-4 animate-fadeIn">
       
-      {/* HEADER CONTROLS */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={handleExitClick}
-            className="px-3 py-1.5 rounded-lg border border-[var(--border-theme)] text-xs font-poppins font-bold cursor-pointer hover:bg-[var(--bg-main)]"
-          >
-            ← Exit
-          </button>
-          <div>
-            <span className={`px-2.5 py-0.5 rounded text-[10px] font-poppins font-bold ${
-              timerType === 'per_question_custom'
-                ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'
-                : timerType === 'per_question_general'
-                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-            }`}>
-              {timerType === 'per_question_custom'
-                ? '🎯 Custom Time/Q'
-                : timerType === 'per_question_general'
-                ? '⚡ General Time/Q'
-                : '⏳ Total Exam Time'}
-            </span>
-            <span className="ml-2 text-xs font-poppins font-bold text-[var(--text-main)] hidden sm:inline">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </span>
-          </div>
-        </div>
+      {/* ========================================================================= */}
+      {/* 1. STICKY TOP SUB-HEADER BAR (MATCHING QUIZLAYOUT.PNG TOP ROW) */}
+      {/* ========================================================================= */}
+      <div className="sticky top-14 sm:top-16 z-30 bg-[var(--bg-main)]/95 backdrop-blur-md py-1 transition-all">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-md gap-3">
+          
+          {/* LEFT: BACK ARROW + EXAM TITLE (ExamName) */}
+          <div className="flex items-center space-x-3 min-w-0">
+            <button
+              onClick={handleExitClick}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-main)] font-bold text-base flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-xs"
+              title="Exit Assessment"
+            >
+              <span>←</span>
+            </button>
 
-        {/* Dynamic Timer Display */}
-        <div className="flex items-center space-x-3">
-          {isPerQuestionTiming ? (
-            <div className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl font-mono font-bold text-xs shadow-sm ${
-              timerType === 'per_question_custom' ? 'bg-indigo-600 text-white' : 'bg-amber-500 text-white'
-            } animate-pulse`}>
-              <span>⚡ Q Timer:</span>
-              <span className="text-sm font-extrabold">{questionTimer}s</span>
-            </div>
-          ) : (
-            <div className="px-3 py-1.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] font-mono font-bold text-xs text-[var(--color-primary-600)]">
-              ⏱️ {formatTime(totalTimerSeconds)}
-            </div>
-          )}
-
-          <button
-            onClick={finishQuiz}
-            className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs cursor-pointer shadow-sm"
-          >
-            Finish Exam
-          </button>
-        </div>
-      </div>
-
-      {/* QUESTION NAVIGATOR (Single row with hidden scrollbar) */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] p-3 rounded-2xl flex items-center shadow-sm">
-        <span className="text-xs font-poppins font-bold text-[var(--text-muted)] mr-3 shrink-0 flex items-center space-x-1">
-          <span>🎯</span>
-          <span>Jump To:</span>
-        </span>
-        <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar whitespace-nowrap scroll-smooth w-full py-0.5">
-          {questions.map((_, i) => {
-            const isAnswered = userAnswers[i] !== undefined && userAnswers[i] !== null;
-            const isActive = currentQuestionIndex === i;
-
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  if (isPerQuestionTiming) {
-                    setQuestionTimer(getQuestionInitialTime(i));
-                  }
-                  setCurrentQuestionIndex(i);
-                }}
-                className={`min-w-[40px] h-8 px-2.5 rounded-xl font-poppins font-bold text-xs shrink-0 cursor-pointer transition-all duration-150 flex items-center justify-center space-x-1 ${
-                  isActive
-                    ? 'bg-[var(--color-primary-600)] text-white shadow-md scale-105 ring-2 ring-[var(--color-primary-400)]/40'
-                    : isAnswered
-                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/25'
-                    : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
-                }`}
-                title={`Jump to Question ${i + 1}${isAnswered ? ' (Answered)' : ''}`}
-              >
-                <span>Q{i + 1}</span>
-                {isAnswered && <span className="text-[10px]">✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ACTIVE QUESTION CARD */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-md space-y-6">
-        <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-4">
-          <div className="flex items-center space-x-2">
-            <span className="font-poppins font-bold text-xs text-[var(--color-primary-600)] uppercase">
-              Question #{currentQuestionIndex + 1}
-            </span>
-            {timerType === 'per_question_custom' && (
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 font-semibold">
-                Allocation: {currentQ?.timerSeconds || 15}s
+            <div className="min-w-0">
+              <h2 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] truncate leading-tight">
+                {quiz?.title || 'ExamName'}
+              </h2>
+              <span className="text-[10px] font-poppins text-[var(--text-muted)] hidden sm:inline">
+                Active Assessment
               </span>
-            )}
+            </div>
           </div>
 
-          <span className="text-xs text-[var(--text-muted)] font-lato">
-            Single Choice (+10 XP)
+          {/* RIGHT: CIRCULAR TIMER + FINISH BUTTON */}
+          <div className="flex items-center space-x-2.5 shrink-0">
+            {isPerQuestionTiming ? (
+              <div className="w-10 h-10 rounded-full bg-amber-500 text-white font-mono font-extrabold text-xs flex items-center justify-center shadow-md animate-pulse shrink-0 border-2 border-amber-300">
+                {questionTimer}s
+              </div>
+            ) : (
+              <div className="px-3 py-1.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] font-mono font-bold text-xs text-[var(--color-primary-600)] shrink-0 flex items-center space-x-1 shadow-xs">
+                <span>⏱️</span>
+                <span>{formatTime(totalTimerSeconds)}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleFinishClick}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs sm:text-sm cursor-pointer shadow-md transition-all active:scale-95 shrink-0"
+            >
+              Finish
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2. QUESTION CARD BODY (MATCHING QUIZLAYOUT.PNG MIDDLE CARD) */}
+      {/* ========================================================================= */}
+      <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-md space-y-5">
+        
+        {/* CARD TOP HEADER: Question no.1 & XP Badge */}
+        <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3 text-xs font-poppins">
+          <h3 className="font-extrabold text-sm sm:text-base text-[var(--text-main)]">
+            Question no.{currentQuestionIndex + 1}
+          </h3>
+          <span className="text-[11px] font-semibold text-[var(--text-muted)] bg-[var(--bg-main)] px-2.5 py-1 rounded-full border border-[var(--border-theme)]">
+            Single choice (+10 XP)
           </span>
         </div>
 
-        <h3 className="font-poppins font-bold text-base sm:text-lg text-[var(--text-main)] leading-relaxed">
+        {/* QUESTION TEXT */}
+        <h4 className="font-poppins font-semibold text-base sm:text-lg text-[var(--text-main)] leading-relaxed">
           {currentQ?.questionText}
-        </h3>
+        </h4>
 
-        {/* CODE PATTERN BOX (When questionType === 'pattern' or codeSnippet is provided) */}
+        {/* CODE SNIPPET BOX (WHEN PRESENT) */}
         {(currentQ?.questionType === 'pattern' || currentQ?.codeSnippet) && (
-          <div className="rounded-2xl border border-indigo-500/30 bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs animate-fadeIn">
+          <div className="rounded-2xl border border-[var(--border-theme)] bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs animate-fadeIn relative">
             <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-[11px] font-poppins">
-              <span className="flex items-center space-x-1.5 text-indigo-400 font-bold">
-                <span>🧩</span>
-                <span>Code Pattern / Bug to Fix:</span>
+              <span className="px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold">
+                Code Snippet
               </span>
               <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase font-bold">
-                {currentQ?.language || 'JavaScript'}
+                {currentQ?.language || 'language'}
               </span>
             </div>
             <div className="p-4 overflow-x-auto custom-scrollbar leading-relaxed">
@@ -2444,61 +2200,120 @@ You are building a high-frequency financial settlement engine. Given an array of
           </div>
         )}
 
-        {/* 4 OPTIONS */}
-        <div className="space-y-3">
+        {/* 4 ANSWER OPTIONS (A, B, C, D) */}
+        <div className="space-y-3 pt-1">
           {currentQ?.options?.map((option, optIdx) => {
             const isSelected = userAnswers[currentQuestionIndex] === optIdx;
 
             return (
               <div
                 key={optIdx}
-                onClick={() => setUserAnswers((prev) => ({ ...prev, [currentQuestionIndex]: optIdx }))}
-                className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                onClick={() => {
+                  setUserAnswers((prev) => {
+                    if (prev[currentQuestionIndex] === optIdx) {
+                      const updated = { ...prev };
+                      delete updated[currentQuestionIndex];
+                      return updated;
+                    }
+                    return { ...prev, [currentQuestionIndex]: optIdx };
+                  });
+                }}
+                className={`p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between select-none ${
                   isSelected
-                    ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 dark:bg-blue-950/30 text-[var(--text-main)] font-bold'
-                    : 'border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-blue-300 text-[var(--text-secondary)]'
+                    ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 dark:bg-blue-950/30 text-[var(--text-main)] font-bold shadow-xs'
+                    : 'border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-300)] text-[var(--text-secondary)]'
                 }`}
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-3.5">
                   <div
-                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs ${
-                      isSelected ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-600)] text-white' : 'border-slate-400'
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-poppins font-bold text-xs sm:text-sm shrink-0 transition-all ${
+                      isSelected
+                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-600)] text-white shadow-xs'
+                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-muted)]'
                     }`}
                   >
                     {String.fromCharCode(65 + optIdx)}
                   </div>
-                  <span className="font-lato text-xs sm:text-sm">{option}</span>
+                  <span className="font-lato text-xs sm:text-sm leading-snug">{option}</span>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* FOOTER NAVIGATION */}
-        <div className="pt-4 border-t border-[var(--border-theme)] flex items-center justify-between">
+        {/* NAVIGATION ACTION BUTTONS DIRECTLY INSIDE CARD */}
+        <div className="pt-4 border-t border-[var(--border-theme)] flex items-center justify-between gap-3">
           <button
             onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
             disabled={currentQuestionIndex === 0 || isPerQuestionTiming}
-            className="px-4 py-2 rounded-xl border border-[var(--border-theme)] text-xs font-poppins font-bold disabled:opacity-30 cursor-pointer"
+            className="px-5 py-2.5 rounded-2xl border-2 border-[var(--border-theme)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] transition-all cursor-pointer shadow-xs active:scale-95"
           >
-            ← Previous
+            Previous Question
           </button>
 
           {isLastQuestion ? (
             <button
-              onClick={finishQuiz}
-              className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold cursor-pointer shadow-md"
+              onClick={handleFinishClick}
+              className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-poppins font-bold shadow-md transition-all cursor-pointer active:scale-95"
             >
-              Submit Exam 🚀
+              Submit Exam
             </button>
           ) : (
             <button
               onClick={handleNextQuestion}
-              className="px-6 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold cursor-pointer shadow-md"
+              className="px-6 py-2.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs sm:text-sm font-poppins font-bold shadow-md transition-all cursor-pointer active:scale-95"
             >
-              Next Question →
+              Next Question
             </button>
           )}
+        </div>
+
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 3. STICKY BOTTOM GO TO : NAV BAR (MATCHING QUIZLAYOUT.PNG BOTTOM ROW) */}
+      {/* ========================================================================= */}
+      <div className="sticky bottom-3 z-30 transition-all mt-4">
+        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] py-2.5 px-4 rounded-2xl sm:rounded-3xl shadow-xl flex items-center gap-3 backdrop-blur-md">
+          
+          {/* GO TO : LABEL */}
+          <span className="font-poppins font-black text-xs sm:text-sm text-[var(--text-main)] uppercase tracking-wider shrink-0 select-none">
+            GO TO :
+          </span>
+
+          {/* HORIZONTAL JUMP BUTTONS (Q1, Q2, Q3...) WITH AUTO-SCROLL INTO VIEW */}
+          <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar scroll-smooth flex-1 py-0.5">
+            {questions.map((_, i) => {
+              const isAnswered = userAnswers[i] !== undefined && userAnswers[i] !== null;
+              const isActive = currentQuestionIndex === i;
+
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  ref={(el) => (questionNavRefs.current[i] = el)}
+                  onClick={() => {
+                    if (isPerQuestionTiming) {
+                      setQuestionTimer(getQuestionInitialTime(i));
+                    }
+                    setCurrentQuestionIndex(i);
+                  }}
+                  className={`min-w-[42px] h-9 px-3 rounded-xl font-poppins font-bold text-xs shrink-0 cursor-pointer transition-all duration-150 flex items-center justify-center space-x-1 ${
+                    isActive
+                      ? 'bg-[var(--color-primary-600)] text-white shadow-md scale-105 border-2 border-[var(--color-primary-600)]'
+                      : isAnswered
+                      ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500/40 hover:bg-emerald-500/25'
+                      : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border-2 border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
+                  }`}
+                  title={`Jump to Question ${i + 1}${isAnswered ? ' (Answered)' : ''}`}
+                >
+                  <span>Q{i + 1}</span>
+                  {isAnswered && <span className="text-[10px]">✓</span>}
+                </button>
+              );
+            })}
+          </div>
+
         </div>
       </div>
 
@@ -2539,6 +2354,77 @@ You are building a high-frequency financial settlement engine. Given an array of
                 Leave & Exit 🚪
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EXAM FINISH CONFIRMATION MODAL */}
+      {isFinishModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border-2 border-emerald-500/50 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 text-center">
+            
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-3xl font-bold mx-auto border border-emerald-500/20 shadow-md">
+              🏁
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-xl font-extrabold font-poppins text-[var(--text-main)]">
+                Finish & Submit Exam?
+              </h3>
+              <p className="text-xs sm:text-sm font-lato text-[var(--text-secondary)] leading-relaxed">
+                Are you sure you want to complete your test submission now?
+              </p>
+            </div>
+
+            {/* ATTEMPTED VS UNATTEMPTED STATS SUMMARY */}
+            {!isCodeChallenge && (() => {
+              const answeredCount = Object.values(userAnswers).filter((v) => v !== undefined && v !== null).length;
+              const unattemptedCount = questions.length - answeredCount;
+
+              return (
+                <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] grid grid-cols-2 gap-3 text-center">
+                  <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                    <div className="font-poppins font-extrabold text-lg text-emerald-500">
+                      {answeredCount} / {questions.length}
+                    </div>
+                    <div className="text-[10px] font-poppins font-bold text-emerald-600 dark:text-emerald-400 uppercase mt-0.5">
+                      Answered
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                    <div className="font-poppins font-extrabold text-lg text-amber-500">
+                      {unattemptedCount}
+                    </div>
+                    <div className="text-[10px] font-poppins font-bold text-amber-600 dark:text-amber-400 uppercase mt-0.5">
+                      Skipped
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex items-center justify-center space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsFinishModalOpen(false)}
+                className="w-1/2 py-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] font-poppins font-bold text-xs hover:bg-[var(--bg-card)] cursor-pointer transition-all active:scale-95"
+              >
+                Continue Test 🎯
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFinishModalOpen(false);
+                  finishQuiz();
+                }}
+                className="w-1/2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-lg shadow-emerald-500/20 cursor-pointer transition-all active:scale-95"
+              >
+                Yes, Submit 🚀
+              </button>
+            </div>
+
           </div>
         </div>
       )}

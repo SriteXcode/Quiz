@@ -9,6 +9,7 @@ const initialMockReviews = [
     quote: 'This quiz platform transformed how our engineering team prepares for certifications. Instant feedback and real-time leaderboards are unmatched!',
     bgColor: 'bg-emerald-500 dark:bg-emerald-700 text-white',
     avatarBg: 'bg-white text-emerald-700',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
     status: 'approved',
     isFeatured: true
   },
@@ -20,6 +21,7 @@ const initialMockReviews = [
     quote: 'Creating live quizzes and seeing real-time student engagement has made learning interactive, fast, and exciting for our computer science class.',
     bgColor: 'bg-[var(--color-secondary-600)] text-white',
     avatarBg: 'bg-white text-[var(--color-secondary-700)]',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
     status: 'approved',
     isFeatured: true
   },
@@ -31,6 +33,7 @@ const initialMockReviews = [
     quote: 'The UI is super clean, responsive on phone and tablet, and dark mode is sleek. Competing with peers daily keeps my skills sharp!',
     bgColor: 'bg-teal-600 dark:bg-teal-800 text-white',
     avatarBg: 'bg-white text-teal-800',
+    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80',
     status: 'approved',
     isFeatured: true
   }
@@ -42,6 +45,7 @@ const seedInitialReviewsIfEmpty = async () => {
     const count = await Review.countDocuments();
     if (count === 0) {
       await Review.insertMany(initialMockReviews);
+      console.log('✅ [Review Seeder]: Successfully seeded initial student reviews into MongoDB database.');
     }
   } catch (err) {
     console.warn('[Review Seed Warning]:', err.message);

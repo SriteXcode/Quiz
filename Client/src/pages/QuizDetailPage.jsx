@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import { apiGetQuizLeaderboard, apiCreatePaymentOrder, apiVerifyPayment, apiEnrollInQuiz } from '../services/api';
-import QuizCountdownBadge from '../components/QuizCountdownBadge';
 
 export const QuizDetailSkeleton = () => {
   return (
@@ -115,6 +114,23 @@ Rules & Guidelines:
     hasUserPurchased ||
     (isPaid ? (isEnrolledWithPaid || hasPurchasedInUserObj) : isEnrolledInQuiz)
   );
+
+  const getTechLogoInfo = () => {
+    const allTech = [...techStack, category, title].join(' ').toLowerCase();
+    if (allTech.includes('html')) return { symbol: '🌐', name: 'HTML5', bg: 'from-orange-500 to-amber-600' };
+    if (allTech.includes('css')) return { symbol: '🎨', name: 'CSS3', bg: 'from-blue-500 to-cyan-600' };
+    if (allTech.includes('react')) return { symbol: '⚛️', name: 'React', bg: 'from-cyan-500 to-blue-600' };
+    if (allTech.includes('node') || allTech.includes('express')) return { symbol: '🟢', name: 'Node.js', bg: 'from-emerald-600 to-green-700' };
+    if (allTech.includes('python')) return { symbol: '🐍', name: 'Python', bg: 'from-blue-600 to-yellow-500' };
+    if (allTech.includes('java') && !allTech.includes('javascript')) return { symbol: '☕', name: 'Java', bg: 'from-red-600 to-amber-700' };
+    if (allTech.includes('c++') || allTech.includes('cpp')) return { symbol: '⚙️', name: 'C++', bg: 'from-blue-700 to-indigo-800' };
+    if (allTech.includes('sql') || allTech.includes('mongo') || allTech.includes('database')) return { symbol: '🗄️', name: 'SQL/DB', bg: 'from-emerald-700 to-teal-900' };
+    if (allTech.includes('dsa') || allTech.includes('algorithm')) return { symbol: '🧩', name: 'DSA', bg: 'from-purple-600 to-indigo-700' };
+    if (isCode) return { symbol: '💻', name: 'Code IDE', bg: 'from-indigo-600 to-slate-900' };
+    return { symbol: '⚡', name: techStack[0] || 'Tech Quiz', bg: 'from-[var(--color-primary-600)] to-indigo-700' };
+  };
+
+  const techLogoInfo = getTechLogoInfo();
 
   const handleEnrollFreeQuiz = async () => {
     if (!isAuthenticated && !user) {
@@ -398,128 +414,160 @@ Rules & Guidelines:
   return (
     <div className="space-y-8 py-4 animate-fadeIn">
       
-      {/* Top Navigation Back Button */}
+      {/* 1. TOP SUBHEADER ROW: ← Back to Quizzes (Left) & {Quiz status} (Right) */}
       <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-4 flex-wrap gap-2">
         <button
           onClick={handleBack}
-          className="px-4 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] hover:text-[var(--color-primary-600)] hover:border-[var(--color-primary-400)] transition-all font-poppins font-semibold text-xs sm:text-sm cursor-pointer active:scale-95 flex items-center space-x-2"
+          className="px-4 py-2 rounded-xl border-2 border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-[var(--color-primary-400)] transition-all font-poppins font-bold text-xs sm:text-sm cursor-pointer active:scale-95 flex items-center space-x-2 shadow-xs"
         >
           <span>← Back to Quizzes</span>
         </button>
 
-        <div className="flex items-center space-x-2 flex-wrap gap-2">
-          {/* Timing Mode Badge */}
-          <span className="px-2.5 py-1 rounded-lg text-xs font-poppins font-bold bg-slate-200 dark:bg-slate-800 text-[var(--text-main)] border border-[var(--border-theme)]">
-            {timerType === 'per_question_custom'
-              ? '🎯 Custom Time/Q'
-              : timerType === 'per_question_general'
-              ? `⏱️ ${quiz?.generalQuestionTimerSeconds || 15}s / Q`
-              : `⏳ ${quiz?.durationMinutes || 30}m Total`}
-          </span>
+        {/* Exam Status Badge */}
+        <span className={`px-3 py-1 rounded-xl text-xs font-poppins font-bold uppercase tracking-wide border ${
+          autoStatus === 'running'
+            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 animate-pulse'
+            : autoStatus === 'upcoming'
+            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-400/40'
+        }`}>
+          {autoStatus === 'running' ? '⚡ LIVE NOW' : autoStatus === 'upcoming' ? '⏳ UPCOMING' : '🏁 CONCLUDED'}
+        </span>
+      </div>
 
-          <QuizCountdownBadge quiz={quiz} />
+      {/* 2. QUIZ OVERVIEW CARD (MATCHING WIREFRAME TOP CONTAINER) */}
+      <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-4 sm:p-7 shadow-md flex flex-row items-start gap-4 sm:gap-6">
+        
+        {/* Left: Quiz poster / logo */}
+        <div className="shrink-0 flex flex-col items-center space-y-1.5">
+          <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] flex flex-col items-center justify-center p-2 sm:p-4 text-center shadow-inner relative overflow-hidden shrink-0 group">
+            {quiz?.coverImage ? (
+              <img src={quiz.coverImage} alt={title} className="w-full h-full object-cover rounded-xl" />
+            ) : (
+              <div className={`w-full h-full rounded-xl bg-gradient-to-br ${techLogoInfo.bg} text-white flex flex-col items-center justify-center p-2 shadow-sm space-y-1`}>
+                <span className="text-2xl sm:text-4xl">{techLogoInfo.symbol}</span>
+                <span className="text-[9px] sm:text-xs font-poppins font-extrabold tracking-wider uppercase opacity-95">
+                  {techLogoInfo.name}
+                </span>
+              </div>
+            )}
 
-          {isCode ? (
-            <span className="px-2.5 py-1 rounded-lg text-xs font-poppins font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-400">
-              💻 Code Challenge (Proctored)
-            </span>
-          ) : (
-            <span className={`px-2.5 py-1 rounded-lg text-xs font-poppins font-bold ${
-              isQuick ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
-            }`}>
-              {isQuick ? '⚡ MCQ Quick' : '📝 MCQ Standard'}
-            </span>
+            {/* ADMIN UPLOAD OVERLAY BUTTON */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  addToast('🛡️ Admin: Please navigate to Admin Panel -> Manage Quizzes to upload or edit the poster for this quiz.', 'info');
+                }}
+                className="absolute inset-0 bg-slate-950/85 text-white opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 text-center text-[10px] sm:text-xs font-poppins font-bold space-y-1 cursor-pointer"
+                title="Click to Upload Poster (Admin)"
+              >
+                <span className="text-base sm:text-xl">📷</span>
+                <span>Upload Poster</span>
+              </button>
+            )}
+          </div>
+
+          {/* ADMIN PROMPT BELOW POSTER (IF NO POSTER UPLOADED YET) */}
+          {isAdmin && !quiz?.coverImage && (
+            <button
+              type="button"
+              onClick={() => {
+                addToast('🛡️ Admin: Go to Admin Dashboard -> Quiz Management to upload a poster image.', 'info');
+              }}
+              className="text-[9px] sm:text-[10px] font-poppins font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center space-x-1 cursor-pointer"
+            >
+              <span>📷</span>
+              <span>Upload Poster</span>
+            </button>
           )}
         </div>
-      </div>
 
-      {/* TOP HEADER HERO SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-stretch">
-        
-        {/* Left: Poster / Logo Box */}
-        <div className={`lg:col-span-4 rounded-3xl p-8 flex flex-col items-center justify-center text-center shadow-lg border border-white/20 relative overflow-hidden min-h-[260px] sm:min-h-[300px] text-white ${
-          isCode
-            ? 'bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900'
-            : 'bg-gradient-to-br from-[var(--color-secondary-400)] to-[var(--color-secondary-600)]'
-        }`}>
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white text-slate-900 flex items-center justify-center font-poppins font-bold text-4xl shadow-md mb-4">
-            {isCode ? '💻' : '⚡'}
+        {/* Right: Quiz Name, Badges (Free, Registered), Tech Stack */}
+        <div className="flex-1 min-w-0 space-y-2 sm:space-y-3">
+          <div>
+            <h1 className="text-base sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] leading-tight truncate">
+              {title}
+            </h1>
           </div>
-          <span className="px-3 py-1 rounded-full bg-black/20 text-xs font-poppins font-bold uppercase tracking-wider mb-2">
-            {category}
-          </span>
-          <h3 className="font-poppins font-bold text-xl sm:text-2xl leading-tight">
-            {isCode ? 'Real-World Code IDE' : 'Interactive Assessment'}
-          </h3>
+
+          {/* Badges Row 1: Free / Paid | {x} Registered */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {isDiscounted ? (
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 text-[11px] sm:text-xs font-poppins font-extrabold flex items-center space-x-1">
+                <span>🔥 90% OFF Practice: ₹{effectivePrice}</span>
+                <span className="line-through text-rose-500 text-[9px] ml-1">₹{originalPrice}</span>
+              </span>
+            ) : isPaid ? (
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/40 text-[11px] sm:text-xs font-poppins font-extrabold">
+                💳 ₹{price} Entry Fee
+              </span>
+            ) : (
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 text-[11px] sm:text-xs font-poppins font-extrabold">
+                Free
+              </span>
+            )}
+
+            <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl bg-blue-500/10 text-[var(--color-primary-600)] dark:text-blue-400 border border-blue-500/20 text-[11px] sm:text-xs font-poppins font-bold">
+              {enrolledCountState} Registered
+            </span>
+          </div>
+
+          {/* Tech Stack Row */}
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
+            <span className="font-poppins font-bold text-[11px] sm:text-xs text-[var(--text-main)] mr-0.5">
+              Tech:
+            </span>
+            {techStack.map((tech, idx) => (
+              <span
+                key={idx}
+                className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-poppins font-semibold text-[10px] sm:text-xs shadow-2xs"
+              >
+                {tech}
+              </span>
+            ))}
+          </div>
         </div>
 
-        {/* Right: Title, Tech Stack Pills & Details Box */}
-        <div className="lg:col-span-8 flex flex-col justify-between space-y-4">
+      </div>
+
+      {/* 3. DETAILS CARD WITH FLOATING TAG BADGE & STATS BADGES */}
+      <div className="relative pt-3">
+        <span className="absolute -top-1 left-5 px-3 py-0.5 rounded-lg bg-emerald-500 text-white dark:bg-emerald-600 font-poppins font-bold text-xs shadow-xs z-10">
+          Details
+        </span>
+
+        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-5 pt-7 sm:p-6 sm:pt-8 shadow-sm space-y-4">
           
-          <div>
-            <div className="flex flex-wrap items-center gap-3 mb-3">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-poppins text-[var(--text-main)] leading-tight">
-                {title}
-              </h1>
-
-              {isDiscounted ? (
-                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-poppins font-black flex items-center space-x-1 shrink-0">
-                  <span>🔥 90% OFF Practice: ₹{effectivePrice}</span>
-                  <span className="line-through text-rose-500 dark:text-rose-400 font-bold text-[10px] ml-1">₹{originalPrice}</span>
-                  {isRegisteredOrUnlocked && <span className="text-emerald-500 ml-1">✓ Unlocked</span>}
-                </span>
-              ) : isPaid ? (
-                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-poppins font-black flex items-center space-x-1 shrink-0">
-                  <span>💳 ₹{price} Entry Fee</span>
-                  {isRegisteredOrUnlocked && <span className="text-emerald-500 ml-1">✓ Registered</span>}
-                </span>
-              ) : (
-                <span className="px-3 py-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 text-xs sm:text-sm font-poppins font-black shrink-0 flex items-center space-x-1">
-                  <span>🟢 FREE</span>
-                  {isRegisteredOrUnlocked && <span className="text-emerald-500 ml-1 font-bold">✓ Registered</span>}
-                </span>
-              )}
-
-              {/* Enrolled Students Count Badge */}
-              <span className="px-3 py-1 rounded-xl bg-blue-500/10 text-[var(--color-primary-600)] border border-blue-500/20 text-xs sm:text-sm font-poppins font-bold flex items-center space-x-1 shrink-0">
-                <span>👥 {enrolledCountState} Registered</span>
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <span className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] mr-1">
-                Tech :
-              </span>
-              {techStack.map((tech, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-secondary)] font-poppins font-semibold text-xs shadow-sm hover:border-[var(--color-primary-400)] transition-colors"
-                >
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative pt-3">
-            <span className="absolute -top-1 left-4 px-3 py-0.5 rounded-lg bg-[var(--accent-yellow-banner)] text-slate-900 font-poppins font-bold text-xs shadow-sm border border-amber-300">
-              Details
+          {/* Top Badges Inside Details Card: Total Ques : {c} | 15s/Q | {Quiz Category} */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-[var(--border-theme)] pb-3">
+            <span className="px-3 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-poppins font-bold">
+              Total Ques : {quiz?.questions?.length || (isCode ? 3 : 10)}
             </span>
 
-            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 pt-6 shadow-sm">
-              <p className="font-lato text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                {quickDetails}
-              </p>
-            </div>
+            <span className="px-3 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-poppins font-bold">
+              {timerType === 'per_question_custom'
+                ? 'Custom/Q'
+                : timerType === 'per_question_general'
+                ? `${quiz?.generalQuestionTimerSeconds || 15}s/Q`
+                : `${quiz?.durationMinutes || 30}m Total`}
+            </span>
+
+            <span className="px-3 py-1 rounded-xl bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-poppins font-bold">
+              {category}
+            </span>
           </div>
 
+          {/* Quick Details Tagline / Summary text */}
+          <p className="font-lato text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+            {quickDetails}
+          </p>
         </div>
       </div>
 
-      {/* ACTION & SCHEDULE ROW WITH LIVE COUNTDOWN TIMER */}
-      <div className={`grid grid-cols-1 ${isEnded ? 'sm:grid-cols-4' : 'sm:grid-cols-3'} gap-4 items-center`}>
-        
-        {/* Practice or Start or Register Assessment */}
+      {/* 4. ACTION BUTTONS ROW: Register (Left) & Leaderboard (Right) */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {/* Register / Start / Practice Button */}
         <button
           onClick={
             isUpcoming && !isRegisteredOrUnlocked
@@ -527,95 +575,94 @@ Rules & Guidelines:
               : handleStart
           }
           disabled={isEnrolling || isPurchasing || (isUpcoming && isRegisteredOrUnlocked)}
-          className={`h-full py-4 px-5 rounded-2xl text-white font-poppins font-bold text-sm sm:text-base shadow-lg transition-all border flex items-center justify-center space-x-2 ${
+          className={`py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl text-white font-poppins font-bold text-xs sm:text-base shadow-md transition-all border-2 flex items-center justify-center space-x-1.5 ${
             isPurchasing || isEnrolling
-              ? 'bg-amber-600 opacity-90 cursor-wait'
+              ? 'bg-amber-600 opacity-90 cursor-wait border-amber-500'
               : isUpcoming && isRegisteredOrUnlocked
-              ? 'bg-emerald-700/80 border-emerald-600/60 text-emerald-100 opacity-95 cursor-default shadow-none'
+              ? 'bg-emerald-700/80 border-emerald-600 text-emerald-100 opacity-95 cursor-default shadow-none'
               : isUpcoming && !isRegisteredOrUnlocked
               ? isPaid
-                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 border-amber-400 cursor-pointer active:scale-95'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-blue-400 cursor-pointer active:scale-95'
+                ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 border-amber-400 cursor-pointer active:scale-98'
+                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 border-blue-400 cursor-pointer active:scale-98'
               : autoStatus === 'running'
               ? isRegisteredOrUnlocked
-                ? 'bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] border-emerald-400 shadow-emerald-500/20 active:scale-95 cursor-pointer'
+                ? 'bg-[var(--color-secondary-500)] hover:bg-[var(--color-secondary-600)] border-emerald-400 shadow-emerald-500/20 active:scale-98 cursor-pointer'
                 : 'bg-slate-700 text-slate-300 border-slate-600 cursor-not-allowed opacity-80'
               : isEnded
               ? isDiscounted && !isRegisteredOrUnlocked
-                ? 'bg-amber-600 hover:bg-amber-700 border-amber-400 shadow-amber-500/20 active:scale-95 cursor-pointer'
-                : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 shadow-indigo-500/20 active:scale-95 cursor-pointer'
+                ? 'bg-amber-600 hover:bg-amber-700 border-amber-400 active:scale-98 cursor-pointer'
+                : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 active:scale-98 cursor-pointer'
               : 'bg-indigo-600 hover:bg-indigo-700 border-indigo-400 cursor-pointer'
           }`}
         >
-          <span>
+          <span className="truncate">
             {isEnrolling || isPurchasing
-              ? '⌛ Processing Registration...'
+              ? '⌛ Processing...'
               : isUpcoming && isRegisteredOrUnlocked
-              ? `✅ Registered for Quiz (Starts at ${startTime})`
+              ? `✅ Registered`
               : isUpcoming && !isRegisteredOrUnlocked
               ? isPaid
-                ? `💳 Register for Quiz (₹${price})`
-                : `📝 Register for Free Quiz`
+                ? `Register (₹${price})`
+                : `Register`
               : autoStatus === 'running'
               ? isRegisteredOrUnlocked
-                ? (isCode ? 'Start Code Challenge 🚀' : 'Start Live Assessment 🚀')
-                : '🔒 Registration Closed (Not Registered)'
+                ? (isCode ? 'Start Code 🚀' : 'Start Assessment 🚀')
+                : '🔒 Closed'
               : isEnded
               ? (isRegisteredOrUnlocked || !isPaid)
-                ? '🎯 Start Practice Quiz'
+                ? '🎯 Start Practice'
                 : isDiscounted
-                ? `💳 Unlock Practice (₹${price} • 90% OFF)`
-                : '📝 Unlock Practice'
-              : (isCode ? 'Start Code Challenge 🚀' : 'Start Live Assessment 🚀')}
+                ? `💳 Practice (₹${price})`
+                : '📝 Practice'
+              : (isCode ? 'Start Code 🚀' : 'Start Assessment 🚀')}
           </span>
         </button>
 
-        {/* View Leaderboard Button (For completed / ended quiz) */}
-        {isEnded && (
-          <button
-            onClick={handleOpenLeaderboard}
-            className="h-full py-4 px-5 rounded-2xl text-amber-950 dark:text-amber-200 font-poppins font-extrabold text-sm sm:text-base shadow-lg transition-all active:scale-95 cursor-pointer border bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 dark:from-amber-900 dark:via-amber-800 dark:to-yellow-900 border-amber-400/60 shadow-amber-500/20 flex items-center justify-center space-x-2"
-          >
-            <span>🏆 Live Quiz Leaderboard</span>
-          </button>
-        )}
-
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 text-center shadow-sm">
-          <div className="text-xs font-poppins font-semibold text-[var(--text-muted)] uppercase mb-1">
-            Start Schedule
-          </div>
-          <div className="text-xs sm:text-sm font-lato text-[var(--text-main)] font-bold">
-            Start Date : {startDate}
-          </div>
-          <div className="text-xs font-lato text-[var(--color-primary-600)] font-bold">
-            Start Time : {startTime}
-          </div>
-        </div>
-
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-4 text-center shadow-sm">
-          <div className="text-xs font-poppins font-semibold text-[var(--text-muted)] uppercase mb-1">
-            End Schedule
-          </div>
-          <div className="text-xs sm:text-sm font-lato text-[var(--text-main)] font-bold">
-            End Date : {endDate}
-          </div>
-          <div className="text-xs font-lato text-rose-500 font-bold">
-            End Time : {endTime}
-          </div>
-        </div>
-
+        {/* Leaderboard Button */}
+        <button
+          onClick={handleOpenLeaderboard}
+          className="py-3 px-3 sm:py-3.5 sm:px-5 rounded-2xl text-[var(--text-main)] font-poppins font-extrabold text-xs sm:text-base shadow-md transition-all active:scale-98 cursor-pointer border-2 border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-[var(--color-primary-400)] flex items-center justify-center space-x-1.5"
+        >
+          <span className="truncate">Leaderboard</span>
+        </button>
       </div>
 
-      {/* PROMINENT LIVE COUNTDOWN BANNER CARD */}
-      <QuizCountdownBadge quiz={quiz} size="lg" className="w-full shadow-sm" />
+      {/* 5. START & END SCHEDULE BOXES ROW */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        {/* Start Box */}
+        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 text-center shadow-xs space-y-0.5 sm:space-y-1">
+          <div className="text-sm sm:text-lg font-poppins font-extrabold text-[var(--text-main)]">
+            Start
+          </div>
+          <div className="text-[11px] sm:text-sm font-lato text-[var(--text-main)] font-bold">
+            {startDate}
+          </div>
+          <div className="text-[10px] sm:text-xs font-lato text-[var(--color-primary-600)] dark:text-blue-400 font-bold">
+            {startTime}
+          </div>
+        </div>
 
-      {/* DESCRIPTION SECTION */}
+        {/* End Box */}
+        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 text-center shadow-xs space-y-0.5 sm:space-y-1">
+          <div className="text-sm sm:text-lg font-poppins font-extrabold text-[var(--text-main)]">
+            End
+          </div>
+          <div className="text-[11px] sm:text-sm font-lato text-[var(--text-main)] font-bold">
+            {endDate}
+          </div>
+          <div className="text-[10px] sm:text-xs font-lato text-rose-500 font-bold">
+            {endTime}
+          </div>
+        </div>
+      </div>
+
+      {/* 6. DESCRIPTION SECTION WITH FLOATING TAG BADGE */}
       <div className="relative pt-3">
-        <span className="absolute -top-1 left-4 px-4 py-1 rounded-xl bg-[var(--accent-yellow-banner)] text-slate-900 font-poppins font-bold text-xs sm:text-sm shadow-sm border border-amber-300">
+        <span className="absolute -top-1 left-5 px-3 py-0.5 rounded-lg bg-emerald-500 text-white dark:bg-emerald-600 font-poppins font-bold text-xs shadow-xs z-10">
           Description
         </span>
 
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 pt-7 sm:pt-9 shadow-sm">
+        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 pt-7 sm:pt-9 shadow-xs min-h-[160px]">
           <div className="font-lato text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
             {description}
           </div>

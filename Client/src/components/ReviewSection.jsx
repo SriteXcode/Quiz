@@ -19,41 +19,8 @@ export const ReviewSkeleton = () => {
   );
 };
 
-const defaultInitialReviews = [
-  {
-    _id: 'default-1',
-    quote: "This quiz platform transformed how our engineering team prepares for certifications. Instant feedback and real-time leaderboards are unmatched!",
-    userName: "Rahul Srivastav",
-    role: "Web Developer",
-    rating: 5,
-    avatarUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80",
-    bgColor: "bg-emerald-500 dark:bg-emerald-700 text-white",
-    avatarBg: "bg-white text-emerald-700"
-  },
-  {
-    _id: 'default-2',
-    quote: "Creating live quizzes and seeing real-time student engagement has made learning interactive, fast, and exciting for our computer science class.",
-    userName: "Harsh Pandey",
-    role: "BCA Student",
-    rating: 5,
-    avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80",
-    bgColor: "bg-[var(--color-secondary-600)] text-white",
-    avatarBg: "bg-white text-[var(--color-secondary-700)]"
-  },
-  {
-    _id: 'default-3',
-    quote: "The UI is super clean, responsive on phone and tablet, and dark mode is sleek. Competing with peers daily keeps my skills sharp!",
-    userName: "Aman Yadav",
-    role: "B.Tech CS",
-    rating: 5,
-    avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80",
-    bgColor: "bg-teal-600 dark:bg-teal-800 text-white",
-    avatarBg: "bg-white text-teal-800"
-  }
-];
-
 export const ReviewSection = ({ isLoading: propIsLoading }) => {
-  const [reviews, setReviews] = useState(defaultInitialReviews);
+  const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(propIsLoading || false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -63,11 +30,11 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
     try {
       setIsLoading(true);
       const res = await apiGetPublicReviews();
-      if (res && res.success !== false && Array.isArray(res.reviews) && res.reviews.length > 0) {
+      if (res && res.success !== false && Array.isArray(res.reviews)) {
         setReviews(res.reviews);
       }
-    } catch {
-      // Fallback stays as defaultInitialReviews
+    } catch (err) {
+      console.error('Failed to fetch reviews from DB:', err);
     } finally {
       setIsLoading(false);
     }

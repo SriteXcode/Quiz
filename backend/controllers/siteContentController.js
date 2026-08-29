@@ -319,11 +319,55 @@ exports.submitContactMessage = async (req, res) => {
   }
 };
 
+// Seed default contact messages into database if empty
+const initialDefaultContactMessages = [
+  {
+    name: 'Vikram Malhotra',
+    email: 'vikram.malhotra@techcorp.com',
+    category: 'Partnership',
+    subject: 'Sponsoring upcoming National Code Challenge 2026',
+    message: 'Hello team, we are interested in hosting a sponsored live quiz assessment for fullstack candidates. Please share partnership tiers.',
+    priority: 'high',
+    isRead: false
+  },
+  {
+    name: 'Ananya Sharma',
+    email: 'ananya.sharma@gmail.com',
+    category: 'Support',
+    subject: 'Inquiry regarding certificate verification link',
+    message: 'Hi support team, I recently completed the React Masterclass quiz challenge and received a certificate. Where can I verify the unique badge URL?',
+    priority: 'medium',
+    isRead: true
+  },
+  {
+    name: 'Karan Mehra',
+    email: 'karan.mehra@devstudio.in',
+    category: 'Bug Report',
+    subject: 'Urgent: Quiz timer latency on mobile browser',
+    message: 'Observed slight delay in option submission when running live proctored test on iOS Safari. Requesting technical check.',
+    priority: 'urgent',
+    isRead: false
+  }
+];
+
+const seedContactMessagesIfEmpty = async () => {
+  try {
+    const count = await ContactMessage.countDocuments();
+    if (count === 0) {
+      await ContactMessage.insertMany(initialDefaultContactMessages);
+      console.log('✅ [Contact Seeder]: Successfully seeded default contact messages & inquiries into MongoDB database.');
+    }
+  } catch (err) {
+    console.warn('[Contact Message Seed Warning]:', err.message);
+  }
+};
+
 // @desc    Get Admin Contact Messages with filters (date, readStatus, priority)
 // @route   GET /api/admin/messages
 // @access  Private (Admin Only)
 exports.getAdminMessages = async (req, res) => {
   try {
+    await seedContactMessagesIfEmpty();
     const { dateFilter = 'last_week', readFilter = 'all', priorityFilter = 'all', search } = req.query;
 
     const query = {};

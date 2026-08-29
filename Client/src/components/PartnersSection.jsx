@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Skeleton from './Skeleton';
 import { apiGetPublicPartners } from '../services/api';
 
@@ -177,6 +177,15 @@ export const PartnersSection = () => {
   const [partnersList, setPartnersList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const scrollRef = useRef(null);
+  const isInteractingRef = useRef(false);
+  const interactionTimeoutRef = useRef(null);
+  
+  // Drag gesture states
+  const isDraggingRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
   useEffect(() => {
     const fetchPartners = async () => {
       try {
@@ -197,16 +206,80 @@ export const PartnersSection = () => {
     fetchPartners();
   }, []);
 
+  // Auto-animating continuous scroll loop when user is NOT interacting
+  useEffect(() => {
+    let animationFrameId;
+    
+    const autoScroll = () => {
+      const scrollContainer = scrollRef.current;
+      if (scrollContainer && !isInteractingRef.current) {
+        scrollContainer.scrollLeft += 0.8;
+        // Infinite loop reset halfway
+        if (scrollContainer.scrollLeft >= (scrollContainer.scrollWidth - scrollContainer.clientWidth) / 2) {
+          scrollContainer.scrollLeft = 0;
+        }
+      }
+      animationFrameId = requestAnimationFrame(autoScroll);
+    };
+
+    animationFrameId = requestAnimationFrame(autoScroll);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isLoading]);
+
+  // User Gesture Interaction Handlers
+  const handleUserInteractionStart = (e) => {
+    isInteractingRef.current = true;
+    isDraggingRef.current = true;
+    if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
+
+    const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+    startXRef.current = pageX - (scrollRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = scrollRef.current?.scrollLeft || 0;
+  };
+
+  const handleUserInteractionMove = (e) => {
+    if (!isDraggingRef.current || !scrollRef.current) return;
+    const pageX = e.touches ? e.touches[0].pageX : e.pageX;
+    const x = pageX - (scrollRef.current.offsetLeft || 0);
+    const walk = (x - startXRef.current) * 1.5;
+    scrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleUserInteractionEnd = () => {
+    isDraggingRef.current = false;
+    // Resume auto-animation after 3.5 seconds of inactivity
+    if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
+    interactionTimeoutRef.current = setTimeout(() => {
+      isInteractingRef.current = false;
+    }, 3500);
+  };
+
+  const handleManualScroll = (direction) => {
+    if (!scrollRef.current) return;
+    isInteractingRef.current = true;
+    if (interactionTimeoutRef.current) clearTimeout(interactionTimeoutRef.current);
+
+    const scrollAmount = 320;
+    scrollRef.current.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth'
+    });
+
+    interactionTimeoutRef.current = setTimeout(() => {
+      isInteractingRef.current = false;
+    }, 4000);
+  };
+
   const handlePartnerClick = (partner) => {
+    if (isDraggingRef.current) return;
     setSelectedPartner(partner);
   };
 
   const rawList = partnersList.length > 0 ? partnersList : DEFAULT_PARTNERS;
 
-  // Duplicate items twice to ensure a seamless infinite seamless loop on the X-axis marquee
+  // Duplicate items for seamless infinite marquee loop
   const seamlessMarqueeList = useMemo(() => {
     if (!rawList || rawList.length === 0) return [];
-    // Ensure we have enough items for full-width coverage before loop repeats
     return [...rawList, ...rawList, ...rawList, ...rawList];
   }, [rawList]);
 
@@ -222,22 +295,60 @@ export const PartnersSection = () => {
             ⚖️ Legal Partners & Sponsors
           </h2>
         </div>
-        <span className="text-xs font-lato text-[var(--text-muted)] flex items-center space-x-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse"></span>
-          <span>Hover to pause marquee • Click for verification</span>
-        </span>
+
+        <div className="flex items-center space-x-3">
+          <span className="text-xs font-lato text-[var(--text-muted)] flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400 animate-pulse"></span>
+            <span className="hidden sm:inline">Auto-animating • Swipe or Drag to slide</span>
+          </span>
+
+          {/* Left / Right Slide Controls */}
+          <div className="flex items-center space-x-1.5">
+            <button
+              onClick={() => handleManualScroll('left')}
+              className="w-8 h-8 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-bold text-sm cursor-pointer flex items-center justify-center active:scale-95 shadow-xs transition-all"
+              aria-label="Slide Left"
+            >
+              ‹
+            </button>
+
+            <button
+              onClick={() => handleManualScroll('right')}
+              className="w-8 h-8 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-bold text-sm cursor-pointer flex items-center justify-center active:scale-95 shadow-xs transition-all"
+              aria-label="Slide Right"
+            >
+              ›
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Seamless Infinite Horizontal X-Axis Marquee Container */}
-      <div className="relative overflow-hidden w-full py-2 group">
+      {/* Interactive Drag & Auto-animating Carousel Container */}
+      <div
+        className="relative overflow-hidden w-full py-2 group cursor-grab active:cursor-grabbing select-none"
+        onMouseEnter={() => { isInteractingRef.current = true; }}
+        onMouseLeave={() => {
+          handleUserInteractionEnd();
+        }}
+        onTouchStart={handleUserInteractionStart}
+        onTouchMove={handleUserInteractionMove}
+        onTouchEnd={handleUserInteractionEnd}
+        onMouseDown={handleUserInteractionStart}
+        onMouseMove={handleUserInteractionMove}
+        onMouseUp={handleUserInteractionEnd}
+      >
         {/* Left Edge Gradient Fade Mask */}
         <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-12 sm:w-20 bg-gradient-to-r from-[var(--bg-main)] to-transparent z-10" />
 
         {/* Right Edge Gradient Fade Mask */}
         <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 sm:w-20 bg-gradient-to-l from-[var(--bg-main)] to-transparent z-10" />
 
-        {/* Animated Marquee Track */}
-        <div className="flex animate-marquee-x gap-4 py-1">
+        {/* Scrollable Track */}
+        <div
+          ref={scrollRef}
+          className="flex gap-4 py-1 overflow-x-auto no-scrollbar scroll-smooth"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {isLoading ? (
             Array.from({ length: 6 }).map((_, idx) => (
               <PartnerSkeletonCard key={idx} />
