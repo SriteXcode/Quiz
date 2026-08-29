@@ -36,15 +36,42 @@ import { syncPendingOfflineActions } from './utils/offlineSync';
 import { useAuth } from './context/AuthContext';
 import { useToast } from './context/ToastContext';
 
+// URL Route Parser & Path Resolver
+const resolveRouteFromPathname = () => {
+  if (typeof window === 'undefined') return { tab: 'home', policy: null };
+  const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+  
+  if (path === '/' || path === '/home') return { tab: 'home', policy: null };
+  if (path === '/quiz' || path === '/quizzes') return { tab: 'quiz', policy: null };
+  if (path === '/about') return { tab: 'about', policy: null };
+  if (path === '/profile') return { tab: 'profile', policy: null };
+  if (path === '/contact') return { tab: 'contact', policy: null };
+  if (path === '/admin') return { tab: 'admin', policy: null };
+  if (path === '/short-gyaan' || path === '/shorts' || path === '/shorts-gyaan') return { tab: 'short-gyaan', policy: null };
+  if (path === '/login') return { tab: 'login', policy: null };
+  if (path === '/signup') return { tab: 'signup', policy: null };
+  if (path === '/privacy') return { tab: 'home', policy: 'privacy' };
+  if (path === '/terms') return { tab: 'home', policy: 'terms' };
+  if (path === '/cancellation') return { tab: 'home', policy: 'cancellation' };
+  if (path === '/refund') return { tab: 'home', policy: 'refund' };
+
+  // Fallback to localStorage or home
+  const savedTab = localStorage.getItem('quiz_platform_active_tab') || 'home';
+  const savedPolicy = localStorage.getItem('quiz_platform_active_policy') || null;
+  return { tab: savedTab, policy: savedPolicy };
+};
+
 export const App = () => {
   const [isInitialAppLoading, setIsInitialAppLoading] = useState(true);
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
 
-  const [activeTab, setActiveTab] = useState(() => {
-    return localStorage.getItem('quiz_platform_active_tab') || 'home';
-  });
+  const initialRoute = resolveRouteFromPathname();
+
+  const [activeTab, setActiveTab] = useState(() => initialRoute.tab);
+  const [activePolicy, setActivePolicy] = useState(() => initialRoute.policy);
+
   const [selectedQuiz, setSelectedQuiz] = useState(() => {
     try {
       const saved = localStorage.getItem('quiz_platform_selected_quiz');
@@ -59,22 +86,34 @@ export const App = () => {
   const [isPracticeMode, setIsPracticeMode] = useState(() => {
     return localStorage.getItem('quiz_platform_is_practice') === 'true';
   });
-  const [activePolicy, setActivePolicy] = useState(() => {
-    return localStorage.getItem('quiz_platform_active_policy') || null;
-  });
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isGlobalReviewModalOpen, setIsGlobalReviewModalOpen] = useState(false);
 
   const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
   const { addToast } = useToast();
 
-  // Double Back Click Handler for Mobile / Browser Back Gesture
-  const lastBackPressTimeRef = useRef(0);
+  // Synchronize Browser Address Bar URL Path with App State
+  useEffect(() => {
+    let targetPath;
+    if (activePolicy) {
+      targetPath = `/${activePolicy}`;
+    } else if (isExecutingQuiz && selectedQuiz) {
+      targetPath = '/quiz/execution';
+    } else if (selectedQuiz) {
+      targetPath = '/quiz/detail';
+    } else if (activeTab === 'home') {
+      targetPath = '/';
+    } else {
+      targetPath = `/${activeTab}`;
+    }
+
+    if (window.location.pathname.toLowerCase() !== targetPath.toLowerCase()) {
+      window.history.pushState({ tab: activeTab, policy: activePolicy }, '', targetPath);
+    }
+  }, [activeTab, activePolicy, selectedQuiz, isExecutingQuiz]);
 
   useEffect(() => {
-    // Push a dummy history state to intercept browser back navigation
-    window.history.pushState({ page: activeTab }, '', window.location.href);
-
     const handlePopState = () => {
       if (isExecutingQuiz) {
         const confirmLeave = window.confirm(
@@ -87,39 +126,16 @@ export const App = () => {
           addToast('Quiz exited. Progress reset.', 'info');
         } else {
           window.history.pushState({ page: activeTab }, '', window.location.href);
+          return;
         }
-        return;
       }
 
-      const now = Date.now();
-      const timeDiff = now - lastBackPressTimeRef.current;
-      const isDoubleBack = timeDiff < 2000;
-
-      if (isDoubleBack) {
-        if (activeTab !== 'home') {
-          // Double back press on inner tab -> Return to Home
-          setActiveTab('home');
-          setActivePolicy(null);
-          setSelectedQuiz(null);
-          setIsExecutingQuiz(false);
-          setIsPracticeMode(false);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          addToast('Returned to Home page 🏠', 'info', 2000);
-        } else {
-          // Double back press on Home -> Exit App
-          addToast('Exiting App... 🚪', 'info', 2000);
-          window.history.go(-2);
-        }
-      } else {
-        // Single back press -> Intercept and request double press
-        lastBackPressTimeRef.current = now;
-        window.history.pushState({ page: activeTab }, '', window.location.href);
-
-        if (activeTab !== 'home') {
-          addToast('Press back again to go to Home 🏠', 'warning', 2000);
-        } else {
-          addToast('Press back again to exit 🚪', 'warning', 2000);
-        }
+      const route = resolveRouteFromPathname();
+      setActiveTab(route.tab);
+      setActivePolicy(route.policy);
+      if (route.tab !== 'quiz' && route.tab !== 'login' && route.tab !== 'signup') {
+        setSelectedQuiz(null);
+        setIsExecutingQuiz(false);
       }
     };
 
