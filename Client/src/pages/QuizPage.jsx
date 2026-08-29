@@ -362,7 +362,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
       {/* MOBILE SINGLE FILTER ICON DRAWER / MODAL POPUP */}
       {isMobileFilterDrawerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[9999] bg-black/75 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
           {/* Backdrop Overlay Click */}
           <div
             className="absolute inset-0"
@@ -371,10 +371,10 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
           />
 
           {/* Sliding Bottom Drawer Box */}
-          <div className="w-full sm:max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 animate-slideUp max-h-[85vh] overflow-y-auto custom-scrollbar space-y-5">
+          <div className="w-full sm:max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl relative z-10 animate-slideUp max-h-[85vh] overflow-y-auto custom-scrollbar space-y-4 pb-4 sm:pb-6">
             
             {/* Drawer Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-theme)] sticky top-0 bg-[var(--bg-card)] z-10">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-theme)] sticky top-0 bg-[var(--bg-card)] z-20">
               <div className="flex items-center space-x-2">
                 <span className="text-lg">🎛️</span>
                 <h3 className="font-poppins font-bold text-base text-[var(--text-main)]">
@@ -477,8 +477,8 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
               </div>
             </div>
 
-            {/* Drawer Bottom Action Buttons */}
-            <div className="pt-3 border-t border-[var(--border-theme)] flex items-center gap-3">
+            {/* Drawer Bottom Action Buttons (Sticky & Safe Above Mobile Nav Bar) */}
+            <div className="sticky -bottom-4 sm:bottom-0 bg-[var(--bg-card)] pt-3 pb-4 border-t border-[var(--border-theme)] flex items-center gap-3 z-20 mt-4 shadow-top">
               <button
                 type="button"
                 onClick={() => {
@@ -487,7 +487,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                   setSelectedPricing('All');
                   setSearchQuery('');
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--bg-main)] hover:bg-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--text-main)] font-poppins font-bold text-xs border border-[var(--border-theme)] transition-all cursor-pointer text-center"
+                className="flex-1 py-2.5 rounded-xl bg-[var(--bg-main)] hover:bg-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--text-main)] font-poppins font-bold text-xs border border-[var(--border-theme)] transition-all cursor-pointer text-center active:scale-95"
               >
                 Reset All
               </button>
@@ -495,7 +495,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
               <button
                 type="button"
                 onClick={() => setIsMobileFilterDrawerOpen(false)}
-                className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all cursor-pointer text-center"
+                className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all cursor-pointer text-center active:scale-95"
               >
                 Apply Filters ({filteredQuizzes.length})
               </button>

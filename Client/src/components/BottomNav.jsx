@@ -22,7 +22,7 @@ export const BottomNav = ({ activeTab, setActiveTab }) => {
   };
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[var(--bg-card)]/95 backdrop-blur-lg border-t border-[var(--border-theme)] shadow-2xl px-2 py-2 transition-colors duration-300 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-card)]/95 backdrop-blur-lg border-t border-[var(--border-theme)] shadow-2xl px-2 py-2 transition-colors duration-300 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
       <div className="max-w-md mx-auto flex items-center justify-around">
         {navItems.map((item) => {
           const isShortsActive =
