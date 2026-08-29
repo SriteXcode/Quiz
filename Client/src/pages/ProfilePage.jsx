@@ -158,31 +158,42 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
   // Touch Swipe Gesture Detection
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const touchEndX = useRef(0);
+  const touchEndY = useRef(0);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
     touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
   };
 
   const handleTouchMove = (e) => {
     touchEndX.current = e.targetTouches[0].clientX;
+    touchEndY.current = e.targetTouches[0].clientY;
   };
 
   const handleTouchEnd = () => {
     if (!touchStartX.current || !touchEndX.current) return;
-    const distance = touchStartX.current - touchEndX.current;
-    const isLeftSwipe = distance > 50; // swipe left -> go next tab
-    const isRightSwipe = distance < -50; // swipe right -> go prev tab
+    const deltaX = touchStartX.current - touchEndX.current;
+    const deltaY = touchStartY.current - touchEndY.current;
 
-    if (isLeftSwipe && activeTabIndex < TAB_KEYS.length - 1) {
-      setActiveTab(TAB_KEYS[activeTabIndex + 1]);
-    } else if (isRightSwipe && activeTabIndex > 0) {
-      setActiveTab(TAB_KEYS[activeTabIndex - 1]);
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    if (absX >= 110 && absX >= 2 * absY) {
+      if (deltaX > 0 && activeTabIndex < TAB_KEYS.length - 1) {
+        setActiveTab(TAB_KEYS[activeTabIndex + 1]);
+      } else if (deltaX < 0 && activeTabIndex > 0) {
+        setActiveTab(TAB_KEYS[activeTabIndex - 1]);
+      }
     }
 
     touchStartX.current = 0;
+    touchStartY.current = 0;
     touchEndX.current = 0;
+    touchEndY.current = 0;
   };
 
   const tabButtonRefs = useRef({});
@@ -624,7 +635,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
             <div className="flex flex-col items-center shrink-0">
               <div
                 onClick={() => headerAvatarInputRef.current && headerAvatarInputRef.current.click()}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl border-2 sm:border-4 border-[var(--color-primary-400)] bg-[var(--bg-main)] text-[var(--color-primary-600)] flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-md overflow-hidden shrink-0 cursor-pointer group relative hover:scale-105 transition-transform"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full sm:rounded-3xl border-2 sm:border-4 border-[var(--color-primary-400)] bg-[var(--bg-main)] text-[var(--color-primary-600)] flex items-center justify-center font-bold text-2xl sm:text-3xl shadow-md overflow-hidden shrink-0 cursor-pointer group relative hover:scale-105 transition-transform"
                 title="Click avatar to update photo"
               >
                 {user.avatarUrl ? (

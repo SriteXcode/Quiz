@@ -39,13 +39,13 @@ const initialMockReviews = [
   }
 ];
 
-// Helper to seed default reviews if database collection is empty
+// Helper to seed default reviews if database collection is empty or has no approved reviews
 const seedInitialReviewsIfEmpty = async () => {
   try {
-    const count = await Review.countDocuments();
-    if (count === 0) {
+    const approvedCount = await Review.countDocuments({ status: 'approved' });
+    if (approvedCount === 0) {
       await Review.insertMany(initialMockReviews);
-      console.log('✅ [Review Seeder]: Successfully seeded initial student reviews into MongoDB database.');
+      console.log('✅ [Review Seeder]: Successfully seeded initial approved student reviews into MongoDB database.');
     }
   } catch (err) {
     console.warn('[Review Seed Warning]:', err.message);

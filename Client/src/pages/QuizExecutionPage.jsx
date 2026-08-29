@@ -158,32 +158,47 @@ You are building a high-frequency financial settlement engine. Given an array of
   }, [activeResultsTab, RESULTS_TAB_KEYS]);
 
   const resultsTouchStartX = useRef(0);
+  const resultsTouchStartY = useRef(0);
   const resultsTouchEndX = useRef(0);
+  const resultsTouchEndY = useRef(0);
 
   const handleResultsTouchStart = (e) => {
     resultsTouchStartX.current = e.targetTouches[0].clientX;
+    resultsTouchStartY.current = e.targetTouches[0].clientY;
     resultsTouchEndX.current = e.targetTouches[0].clientX;
+    resultsTouchEndY.current = e.targetTouches[0].clientY;
   };
 
   const handleResultsTouchMove = (e) => {
     resultsTouchEndX.current = e.targetTouches[0].clientX;
+    resultsTouchEndY.current = e.targetTouches[0].clientY;
   };
 
   const handleResultsTouchEnd = () => {
     if (!resultsTouchStartX.current || !resultsTouchEndX.current) return;
-    const distance = resultsTouchStartX.current - resultsTouchEndX.current;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
+    
+    const deltaX = resultsTouchStartX.current - resultsTouchEndX.current;
+    const deltaY = resultsTouchStartY.current - resultsTouchEndY.current;
 
-    if (isLeftSwipe && activeResultsTabIndex === 0) {
-      setActiveResultsTab('leaderboard');
-      fetchLeaderboard();
-    } else if (isRightSwipe && activeResultsTabIndex === 1) {
-      setActiveResultsTab('review');
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+
+    // Intentional horizontal swipe criteria:
+    // 1. Min horizontal distance of 110px
+    // 2. Horizontal movement must be at least 2x greater than vertical movement
+    if (absX >= 110 && absX >= 2 * absY) {
+      if (deltaX > 0 && activeResultsTabIndex === 0) {
+        setActiveResultsTab('leaderboard');
+        fetchLeaderboard();
+      } else if (deltaX < 0 && activeResultsTabIndex === 1) {
+        setActiveResultsTab('review');
+      }
     }
 
     resultsTouchStartX.current = 0;
+    resultsTouchStartY.current = 0;
     resultsTouchEndX.current = 0;
+    resultsTouchEndY.current = 0;
   };
 
   useEffect(() => {

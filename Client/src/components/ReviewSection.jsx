@@ -32,9 +32,12 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
       const res = await apiGetPublicReviews();
       if (res && res.success !== false && Array.isArray(res.reviews)) {
         setReviews(res.reviews);
+      } else {
+        setReviews([]);
       }
     } catch (err) {
-      console.error('Failed to fetch reviews from DB:', err);
+      console.warn('[Review Fetch Notice]: Could not fetch reviews from backend DB', err.message);
+      setReviews([]);
     } finally {
       setIsLoading(false);
     }
@@ -226,7 +229,12 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
       <UniversalReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        onSuccess={() => fetchPublicReviews()}
+        onSuccess={(newReview) => {
+          if (newReview) {
+            setReviews((prev) => [newReview, ...prev.filter((r) => (r._id || r.id) !== (newReview._id || newReview.id))]);
+          }
+          fetchPublicReviews();
+        }}
       />
     </section>
   );
