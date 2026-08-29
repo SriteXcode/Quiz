@@ -622,7 +622,6 @@ You are building a high-frequency financial settlement engine. Given an array of
     const currentIndex = currentQuestionIndexRef.current;
     if (currentIndex < questions.length - 1) {
       const nextIndex = currentIndex + 1;
-      addToast(`⚡ Time expired for Q#${currentIndex + 1}! Moving to Q#${nextIndex + 1}`, 'warning');
       setCurrentQuestionIndex(nextIndex);
     } else {
       addToast('⚡ Time expired on final question! Submitting exam...', 'info');

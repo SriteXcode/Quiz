@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Skeleton from '../components/Skeleton';
 import { apiGetPreviousWorks, apiGetQuizzes } from '../services/api';
 import { getQuizAutoStatus } from '../utils/dateUtils';
@@ -47,36 +47,13 @@ export const QuizPageSkeleton = () => {
 export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('all'); // 'all' | 'running' | 'upcoming' | 'past'
-  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
-  const filterDropdownRef = useRef(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const categoryDropdownRef = useRef(null);
   const [selectedPricing, setSelectedPricing] = useState('All'); // 'All' | 'free' | 'paid'
-  const [isPricingDropdownOpen, setIsPricingDropdownOpen] = useState(false);
-  const pricingDropdownRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileFilterDrawerOpen, setIsMobileFilterDrawerOpen] = useState(false);
   const [dynamicQuizzes, setDynamicQuizzes] = useState([]);
   const [pastWorksList, setPastWorksList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
-        setIsCategoryDropdownOpen(false);
-      }
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
-        setIsFilterDropdownOpen(false);
-      }
-      if (pricingDropdownRef.current && !pricingDropdownRef.current.contains(event.target)) {
-        setIsPricingDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -192,205 +169,65 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
   if (propLoading || isLoading) return <QuizPageSkeleton />;
 
+  const hasActiveCustomFilters = activeFilter !== 'all' || selectedCategory !== 'All' || selectedPricing !== 'All';
+
   return (
-    <div className="space-y-8 py-4 animate-fadeIn">
+    <div className="space-y-6 py-2 animate-fadeIn">
       
-      {/* Top Banner Box */}
-      <div className="bg-gradient-to-r from-[var(--color-primary-600)] via-indigo-700 to-[var(--color-secondary-600)] text-white rounded-3xl p-6 sm:p-10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10">
-        <div>
-          <span className="inline-block px-3 py-1 rounded-full bg-white/20 text-xs font-poppins font-bold uppercase tracking-wider mb-2">
-            Explore All Quizzes & Challenges
-          </span>
-          <h1 className="text-2xl sm:text-4xl font-extrabold font-poppins mb-2">
-            Assessments & Works Hub
+      {/* Sticky Compact Header Card (Title Left, Count & Controls Right) */}
+      <div className="sticky top-[68px] sm:top-[72px] z-30 bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-5 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300">
+        {/* Left Side: Title strictly aligned left */}
+        <div className="flex items-center justify-between w-full sm:w-auto">
+          <h1 className="text-lg sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] flex items-center">
+            <span>⚡ Quiz Hub</span>
           </h1>
-          <p className="text-xs sm:text-sm font-lato text-blue-100 max-w-xl">
-            Prioritized by active Live Competitions 🔴, Upcoming challenges ⏳, and Completed Practice tests 🎯 with live countdowns.
-          </p>
-        </div>
 
-        {/* Search Bar Input */}
-        <div className="w-full md:w-80 relative">
-          <input
-            type="text"
-            placeholder="Search challenges or tech stack..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-3 pl-10 rounded-2xl bg-white/15 border border-white/20 text-white placeholder-blue-100 text-xs sm:text-sm focus:outline-none focus:bg-white/25 backdrop-blur-md"
-          />
-          <span className="absolute left-3.5 top-3.5 text-blue-200 text-sm">🔍</span>
-        </div>
-      </div>
-
-      {/* STICKY FILTER BAR (BELOW NAV BAR, DROPDOWNS TOUCH SLIDER ON MOBILE) */}
-      <div className="sticky top-[64px] z-30 bg-[var(--bg-main)]/95 backdrop-blur-md py-2.5 px-2 border-b border-[var(--border-theme)] flex items-center justify-between gap-2 transition-all duration-300">
-        
-        {/* Left: Active Count Badge */}
-        <div className="flex items-center space-x-2 shrink-0">
-          <span className="px-2 py-1 sm:px-2.5 rounded-xl text-xs font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 border border-[var(--color-primary-200)] dark:border-blue-800">
-            <span>{filteredQuizzes.length} Quizzes</span>
+          {/* Mobile Badge (Aligned Right on Mobile) */}
+          <span className="sm:hidden px-2.5 py-0.5 rounded-full text-xs font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 border border-[var(--color-primary-200)] dark:border-blue-800 shrink-0">
+            {filteredQuizzes.length} Quizzes
           </span>
         </div>
 
-        {/* Right: Horizontal Touch Slider Container for Dropdown Controls */}
-        <div className="flex items-center space-x-2 sm:space-x-3 overflow-x-auto no-scrollbar py-1 max-w-[calc(100%-95px)] sm:max-w-none ml-auto shrink-0 snap-x">
-          
-          {/* 1. Challenge Type Dropdown */}
-          <div className="relative shrink-0 snap-start" ref={filterDropdownRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsFilterDropdownOpen(!isFilterDropdownOpen);
-                setIsCategoryDropdownOpen(false);
-                setIsPricingDropdownOpen(false);
-              }}
-              className="flex items-center justify-between px-3 sm:px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-xs transition-all space-x-1.5"
-            >
-              <span className="truncate max-w-[110px] sm:max-w-[160px]">
-                {filterTabs.find((t) => t.id === activeFilter)?.label || 'All Challenges'}
-              </span>
-              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 font-bold ${isFilterDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
-                ▼
-              </span>
-            </button>
+        {/* Right Side: Count Badge (Desktop Right) + Search Input + Single Filter Button */}
+        <div className="flex items-center justify-end space-x-2.5 w-full sm:w-auto ml-auto">
+          {/* Desktop Count Badge (Aligned Right) */}
+          <span className="hidden sm:inline-block px-3 py-1 rounded-full text-xs font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 border border-[var(--color-primary-200)] dark:border-blue-800 shrink-0">
+            {filteredQuizzes.length} Quizzes
+          </span>
 
-            {isFilterDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-52 sm:w-60 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-50 p-1.5 animate-fadeIn max-h-64 overflow-y-auto custom-scrollbar">
-                <div className="px-3 py-1.5 text-[10px] font-poppins font-black uppercase text-[var(--text-muted)] border-b border-[var(--border-theme)] mb-1 sticky top-0 bg-[var(--bg-card)] z-10">
-                  Challenge Type
-                </div>
-                {filterTabs.map((tab) => {
-                  const count = allQuizzes.filter((q) => tab.id === 'all' || q.computedStatus === tab.id).length;
-                  const isSel = activeFilter === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => {
-                        handleFilterClick(tab.id);
-                        setIsFilterDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                        isSel
-                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 font-bold'
-                          : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'
-                      }`}
-                    >
-                      <span>{tab.label}</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--border-theme)] text-[var(--text-muted)] font-bold">
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Integrated Search Input */}
+          <div className="flex-1 sm:w-72 relative">
+            <input
+              type="text"
+              placeholder="Search challenges or tech..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-3.5 py-2 pl-9 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs sm:text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--color-primary-600)] transition-all"
+            />
+            <span className="absolute left-3 top-2.5 text-[var(--text-muted)] text-xs">🔍</span>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-2.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)] cursor-pointer"
+              >
+                ✕
+              </button>
             )}
           </div>
 
-          {/* 2. Category Dropdown */}
-          <div className="relative shrink-0 snap-start" ref={categoryDropdownRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
-                setIsFilterDropdownOpen(false);
-                setIsPricingDropdownOpen(false);
-              }}
-              className="flex items-center justify-between px-3 sm:px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-xs transition-all space-x-1.5"
-            >
-              <span className="truncate max-w-[100px] sm:max-w-[150px]">
-                {selectedCategory === 'All' ? 'Category: All' : selectedCategory}
-              </span>
-              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 font-bold ${isCategoryDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
-                ▼
-              </span>
-            </button>
-
-            {isCategoryDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-50 p-1.5 animate-fadeIn max-h-64 overflow-y-auto custom-scrollbar">
-                <div className="px-3 py-1.5 text-[10px] font-poppins font-black uppercase text-[var(--text-muted)] border-b border-[var(--border-theme)] mb-1 sticky top-0 bg-[var(--bg-card)] z-10">
-                  Select Category
-                </div>
-                {categories.map((cat) => {
-                  const isSel = selectedCategory === cat;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => {
-                        handleCategoryClick(cat);
-                        setIsCategoryDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                        isSel
-                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 font-bold'
-                          : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'
-                      }`}
-                    >
-                      <span className="truncate">
-                        {cat === 'All' ? 'All Categories' : cat}
-                      </span>
-                      {isSel && <span className="text-[var(--color-primary-600)] font-bold text-xs ml-1">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
+          {/* Single Filter Icon Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileFilterDrawerOpen(true)}
+            className="px-3.5 py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs flex items-center space-x-1.5 shadow-sm active:scale-95 cursor-pointer shrink-0 relative"
+            aria-label="Open Filter Controls"
+          >
+            <span>🎛️</span>
+            <span>Filter</span>
+            {hasActiveCustomFilters && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse absolute -top-1 -right-1 border border-white" />
             )}
-          </div>
-
-          {/* 3. Pricing Filter Dropdown */}
-          <div className="relative shrink-0 snap-start" ref={pricingDropdownRef}>
-            <button
-              type="button"
-              onClick={() => {
-                setIsPricingDropdownOpen(!isPricingDropdownOpen);
-                setIsFilterDropdownOpen(false);
-                setIsCategoryDropdownOpen(false);
-              }}
-              className="flex items-center justify-between px-3 sm:px-3.5 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] hover:border-[var(--color-primary-400)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] cursor-pointer focus:outline-none focus:border-[var(--color-primary-600)] shadow-xs transition-all space-x-1.5"
-            >
-              <span className="truncate max-w-[90px] sm:max-w-[130px]">
-                {selectedPricing === 'All' ? 'Pricing: All' : selectedPricing === 'free' ? 'Free Only' : 'Paid Only'}
-              </span>
-              <span className={`text-[10px] text-[var(--text-muted)] transition-transform duration-200 font-bold ${isPricingDropdownOpen ? 'rotate-180 text-[var(--color-primary-600)]' : ''}`}>
-                ▼
-              </span>
-            </button>
-
-            {isPricingDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-44 sm:w-52 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl shadow-2xl z-50 p-1.5 animate-fadeIn max-h-64 overflow-y-auto custom-scrollbar">
-                <div className="px-3 py-1.5 text-[10px] font-poppins font-black uppercase text-[var(--text-muted)] border-b border-[var(--border-theme)] mb-1 sticky top-0 bg-[var(--bg-card)] z-10">
-                  Pricing Access
-                </div>
-                {[
-                  { id: 'All', label: 'All Pricing Access' },
-                  { id: 'free', label: 'Free Quizzes Only' },
-                  { id: 'paid', label: 'Paid / Practice Only' }
-                ].map((item) => {
-                  const isSel = selectedPricing === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedPricing(item.id);
-                        setIsPricingDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-poppins font-semibold flex items-center justify-between transition-colors cursor-pointer ${
-                        isSel
-                          ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300 font-bold'
-                          : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'
-                      }`}
-                    >
-                      <span>{item.label}</span>
-                      {isSel && <span className="text-[var(--color-primary-600)] font-bold text-xs ml-1">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
+          </button>
         </div>
       </div>
 
@@ -520,6 +357,151 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MOBILE SINGLE FILTER ICON DRAWER / MODAL POPUP */}
+      {isMobileFilterDrawerOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+          {/* Backdrop Overlay Click */}
+          <div
+            className="absolute inset-0"
+            onClick={() => setIsMobileFilterDrawerOpen(false)}
+            aria-label="Close Filter Modal"
+          />
+
+          {/* Sliding Bottom Drawer Box */}
+          <div className="w-full sm:max-w-md bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl relative z-10 animate-slideUp max-h-[85vh] overflow-y-auto custom-scrollbar space-y-5">
+            
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-theme)] sticky top-0 bg-[var(--bg-card)] z-10">
+              <div className="flex items-center space-x-2">
+                <span className="text-lg">🎛️</span>
+                <h3 className="font-poppins font-bold text-base text-[var(--text-main)]">
+                  Filter Quiz Challenges
+                </h3>
+              </div>
+
+              <button
+                onClick={() => setIsMobileFilterDrawerOpen(false)}
+                className="w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-muted)] hover:text-[var(--text-main)] flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
+                aria-label="Close Drawer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* 1. Challenge Status Filter Section */}
+            <div className="space-y-2">
+              <label className="text-xs font-poppins font-black uppercase tracking-wider text-[var(--text-muted)]">
+                Challenge Status
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {filterTabs.map((tab) => {
+                  const isSel = activeFilter === tab.id;
+                  const count = allQuizzes.filter((q) => tab.id === 'all' || q.computedStatus === tab.id).length;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleFilterClick(tab.id)}
+                      className={`p-2.5 rounded-xl text-xs font-poppins font-bold flex items-center justify-between border transition-all cursor-pointer ${
+                        isSel
+                          ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow-xs'
+                          : 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
+                      }`}
+                    >
+                      <span className="truncate">{tab.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${isSel ? 'bg-white/25 text-white' : 'bg-[var(--border-theme)] text-[var(--text-muted)]'}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 2. Category Filter Section */}
+            <div className="space-y-2">
+              <label className="text-xs font-poppins font-black uppercase tracking-wider text-[var(--text-muted)]">
+                Technology Category
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {categories.map((cat) => {
+                  const isSel = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-poppins font-semibold transition-all cursor-pointer ${
+                        isSel
+                          ? 'bg-[var(--color-primary-600)] text-white font-bold shadow-xs'
+                          : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border border-[var(--border-theme)] hover:text-[var(--text-main)]'
+                      }`}
+                    >
+                      {cat === 'All' ? '🌐 All Categories' : cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 3. Pricing Access Filter Section */}
+            <div className="space-y-2">
+              <label className="text-xs font-poppins font-black uppercase tracking-wider text-[var(--text-muted)]">
+                Pricing Access
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'All', label: 'All Access' },
+                  { id: 'free', label: '🟢 Free' },
+                  { id: 'paid', label: '💳 Paid' }
+                ].map((item) => {
+                  const isSel = selectedPricing === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSelectedPricing(item.id)}
+                      className={`p-2 rounded-xl text-xs font-poppins font-bold text-center border transition-all cursor-pointer ${
+                        isSel
+                          ? 'bg-[var(--color-primary-600)] text-white border-[var(--color-primary-600)] shadow-xs'
+                          : 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--border-theme)]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Drawer Bottom Action Buttons */}
+            <div className="pt-3 border-t border-[var(--border-theme)] flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveFilter('all');
+                  setSelectedCategory('All');
+                  setSelectedPricing('All');
+                  setSearchQuery('');
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--bg-main)] hover:bg-[var(--border-theme)] text-[var(--text-muted)] hover:text-[var(--text-main)] font-poppins font-bold text-xs border border-[var(--border-theme)] transition-all cursor-pointer text-center"
+              >
+                Reset All
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsMobileFilterDrawerOpen(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md transition-all cursor-pointer text-center"
+              >
+                Apply Filters ({filteredQuizzes.length})
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
