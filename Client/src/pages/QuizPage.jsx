@@ -175,7 +175,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
     <div className="space-y-6 py-2 animate-fadeIn">
       
       {/* Sticky Compact Header Card (Title Left, Count & Controls Right) */}
-      <div className="sticky top-[68px] sm:top-[72px] z-30 bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-5 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300">
+      <div className="sticky top-[64px] sm:top-[72px] z-30 bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-5 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300">
         {/* Left Side: Title strictly aligned left */}
         <div className="flex items-center justify-between w-full sm:w-auto">
           <h1 className="text-lg sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] flex items-center">
