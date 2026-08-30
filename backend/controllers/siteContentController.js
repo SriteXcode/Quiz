@@ -47,7 +47,9 @@ const defaultSiteSettings = {
       twitter: 'https://twitter.com',
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
-      discord: 'https://discord.gg'
+      discord: 'https://discord.gg',
+      whatsappCommunity: 'https://chat.whatsapp.com',
+      telegramCommunity: 'https://t.me'
     }
   }
 };
@@ -131,10 +133,12 @@ exports.updateSiteSettings = async (req, res) => {
     }
 
     if (about) {
-      settings.about = { ...settings.about.toObject?.() || settings.about, ...about };
+      settings.about = { ...(settings.about?.toObject?.() || settings.about), ...about };
+      settings.markModified('about');
     }
     if (contact) {
-      settings.contact = { ...settings.contact.toObject?.() || settings.contact, ...contact };
+      settings.contact = { ...(settings.contact?.toObject?.() || settings.contact), ...contact };
+      settings.markModified('contact');
     }
 
     await settings.save();
