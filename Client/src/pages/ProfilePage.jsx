@@ -475,7 +475,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       phone: user.phone || '',
       upiId: user.upiId || '',
       isUpiVerified: user.isUpiVerified || false,
-      upiHolderName: user.upiHolderName || '',
+      upiHolderName: (user.upiHolderName && user.upiHolderName !== user.name) ? user.upiHolderName : '',
       github: socialLinks.github || '',
       instagram: socialLinks.instagram || '',
       x: socialLinks.x || '',
@@ -520,13 +520,13 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
 
     setIsVerifyingUpi(true);
     try {
-      const res = await apiVerifyUpiId(trimmed);
+      const res = await apiVerifyUpiId(trimmed, editForm.upiHolderName);
       if (res && res.success !== false) {
         setEditForm((prev) => ({
           ...prev,
           upiId: trimmed,
           isUpiVerified: true,
-          upiHolderName: res.upiHolderName || user?.name || 'Verified Candidate',
+          upiHolderName: res.upiHolderName || prev.upiHolderName || 'Verified Bank Account Holder',
           vpaBankName: res.vpaBankName || ''
         }));
         if (updateUserData && res.user) {
@@ -987,7 +987,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                       {user.isUpiVerified ? (
                         <span className="text-[9px] font-poppins font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 uppercase flex items-center space-x-1">
                           <span>Razorpay Verified Payee</span>
-                          {user.upiHolderName && <span>({user.upiHolderName})</span>}
+                          {user.upiHolderName && user.upiHolderName !== user.name && <span>({user.upiHolderName})</span>}
                         </span>
                       ) : (
                         <button
@@ -1527,6 +1527,20 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                     )}
                   </label>
 
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center justify-between">
+                      <span>Bank Account Holder Name (Parent / Friend / Self)</span>
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">NPCI Payee Name</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.upiHolderName}
+                      onChange={(e) => setEditForm({ ...editForm, upiHolderName: e.target.value })}
+                      placeholder="e.g. Ramesh Kumar (Father's or Friend's Name)"
+                      className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-poppins font-medium"
+                    />
+                  </div>
+
                   <div className="relative flex items-center">
                     <input
                       type="text"
@@ -1548,11 +1562,35 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                     </button>
                   </div>
 
-                  <span className="text-[10px] text-[var(--text-muted)] italic block">
-                    {(user?.isUpiVerified || editForm.isUpiVerified)
-                      ? `🟢 Live NPCI Active Payee: ${user?.upiHolderName || editForm.upiHolderName || user?.name || 'Verified Candidate'} ${user?.vpaBankName || editForm.vpaBankName ? `• ${user?.vpaBankName || editForm.vpaBankName}` : ''}`
-                      : 'Automated Razorpay NPCI Verification checks active VPA account status to guarantee instant payout delivery.'}
-                  </span>
+                  {/* VERIFIED ACCOUNT HOLDER INFO BOX */}
+                  {(user?.isUpiVerified || editForm.isUpiVerified) ? (
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1 text-xs animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="font-poppins font-bold text-emerald-700 dark:text-emerald-300 flex items-center space-x-1.5 text-[11px]">
+                          <span>⚡</span>
+                          <span>Razorpay NPCI Verified Bank Account</span>
+                        </span>
+                        <span className="text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-800 dark:text-emerald-200 border border-emerald-500/40">
+                          {user?.vpaBankName || editForm.vpaBankName || 'Active VPA'}
+                        </span>
+                      </div>
+
+                      <div className="pt-1 font-poppins text-xs text-[var(--text-main)]">
+                        <span className="text-[var(--text-muted)] font-medium">Bank Account Holder Name: </span>
+                        <span className="font-extrabold text-emerald-600 dark:text-emerald-400 underline decoration-emerald-500/50">
+                          {editForm.upiHolderName || (user?.upiHolderName && user?.upiHolderName !== user?.name ? user?.upiHolderName : '') || 'Verified Bank Account Holder'}
+                        </span>
+                      </div>
+
+                      <p className="text-[10.5px] font-lato text-[var(--text-muted)] leading-tight pt-0.5 italic">
+                        ℹ️ Note: Using a parent's or friend's UPI ID is supported. Cash rewards and prize money will be transferred directly to <strong>{editForm.upiHolderName || (user?.upiHolderName && user?.upiHolderName !== user?.name ? user?.upiHolderName : '') || 'this bank account'}</strong>.
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-[var(--text-muted)] italic block">
+                      Automated Razorpay NPCI Verification checks active VPA account status to guarantee instant payout delivery.
+                    </span>
+                  )}
                 </div>
               </div>
 

@@ -1679,21 +1679,24 @@ You are building a high-frequency financial settlement engine. Given an array of
         </div>
       </div>
 
-        {/* MORE QUIZ RECOMMENDATIONS SECTION (X-AXIS CAROUSEL, PLACED ABOVE REVIEW) */}
-        <div id="more-quizzes-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-7 space-y-4 shadow-sm">
-          <div className="flex items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-3">
+        {/* MORE QUIZ RECOMMENDATIONS SECTION (ATTRACTIVE INDIGO GRADIENT CAROUSEL) */}
+        <div
+          id="more-quizzes-section"
+          className="bg-gradient-to-br from-indigo-500/10 via-[var(--bg-card)] to-blue-500/5 dark:from-indigo-950/35 dark:via-[var(--bg-card)] dark:to-blue-950/20 border-2 border-indigo-400/50 dark:border-indigo-500/30 rounded-3xl p-5 sm:p-7 space-y-4 shadow-lg hover:shadow-xl transition-all"
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-indigo-500/20 pb-3">
             <div>
               <h3 className="text-base sm:text-lg font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
-                <span>🚀</span>
+                <span className="p-1 rounded-lg bg-indigo-500/15 text-indigo-500">🚀</span>
                 <span>More Recommended Quiz Challenges</span>
               </h3>
               <p className="text-xs font-lato text-[var(--text-muted)]">
-                Upcoming live exams, live challenges & practice quizzes (swipe horizontally ↔)
+                Upcoming live exams, challenges & practice sets (swipe horizontally ↔)
               </p>
             </div>
             <button
               onClick={onViewAllQuizzes ? onViewAllQuizzes : () => { if (onBack) onBack(); }}
-              className="text-xs font-poppins font-bold text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center space-x-1 shrink-0"
+              className="text-xs font-poppins font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer flex items-center space-x-1 shrink-0 bg-indigo-500/10 px-3 py-1.5 rounded-xl border border-indigo-500/20"
             >
               <span>View All</span>
               <span>→</span>
@@ -1702,7 +1705,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
           {recommendedQuizzes.length > 0 ? (
             <div className="relative">
-              {/* X-AXIS HORIZONTAL SCROLL CONTAINER WITH CSS MAGNET SNAP */}
+              {/* X-AXIS HORIZONTAL SCROLL CONTAINER WITH DISTINCTIVE CARD BACKGROUND */}
               <div className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-2 px-1">
                 {recommendedQuizzes.slice(0, 8).map((item) => {
                   const itemStatus = item.computedStatus;
@@ -1716,7 +1719,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                     <div
                       key={item._id || item.id || item.title}
                       onClick={() => onSelectQuiz ? onSelectQuiz(item) : onBack()}
-                      className="snap-start shrink-0 w-[270px] sm:w-[310px] bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-4.5 hover:border-[var(--color-primary-400)] transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1 relative overflow-hidden shadow-xs hover:shadow-md select-none"
+                      className="snap-start shrink-0 w-[270px] sm:w-[310px] bg-gradient-to-b from-[var(--bg-card)] to-indigo-50/40 dark:to-indigo-950/40 border-2 border-indigo-500/20 dark:border-indigo-500/30 hover:border-indigo-500 dark:hover:border-indigo-400 rounded-2xl p-4.5 transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1.5 relative overflow-hidden shadow-sm hover:shadow-xl select-none"
                     >
                       {/* Status Ribbon */}
                       {isUpcoming && (
@@ -1737,21 +1740,21 @@ You are building a high-frequency financial settlement engine. Given an array of
 
                       <div className="space-y-2.5">
                         <div className="flex items-center space-x-1.5 pt-1">
-                          <span className="px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-theme)] text-[10px] font-poppins font-bold text-[var(--color-primary-600)]">
+                          <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-poppins font-bold text-indigo-600 dark:text-indigo-300">
                             {item.category || 'General'}
                           </span>
                           {item.isPaid ? (
-                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 text-[10px] font-poppins font-bold">
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-300 text-[10px] font-poppins font-bold border border-amber-500/30">
                               ₹{itemEffPrice}
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 text-[10px] font-poppins font-bold">
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-[10px] font-poppins font-bold border border-emerald-500/30">
                               FREE
                             </span>
                           )}
                         </div>
 
-                        <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1 group-hover:text-[var(--color-primary-600)] transition-colors">
+                        <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                           {item.title}
                         </h4>
 
@@ -1760,12 +1763,13 @@ You are building a high-frequency financial settlement engine. Given an array of
                         </p>
                       </div>
 
-                      <div className="pt-3 border-t border-[var(--border-theme)] mt-3 flex items-center justify-between text-xs font-poppins">
+                      <div className="pt-3 border-t border-indigo-500/20 mt-3 flex items-center justify-between text-xs font-poppins">
                         <span className="text-[var(--text-muted)] font-semibold text-[11px]">
                           ⏱️ {item.durationMinutes || 30} mins
                         </span>
-                        <span className="font-bold text-[var(--color-primary-600)] group-hover:translate-x-1 transition-transform inline-flex items-center">
-                          Start Challenge →
+                        <span className="px-3 py-1 rounded-xl bg-indigo-600 group-hover:bg-indigo-700 text-white font-extrabold text-[11px] shadow-sm group-hover:scale-105 transition-all inline-flex items-center space-x-1">
+                          <span>Start</span>
+                          <span>→</span>
                         </span>
                       </div>
                     </div>

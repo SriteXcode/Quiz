@@ -22,15 +22,23 @@ export const request = async (endpoint, options = {}) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const config = {
-    ...options,
+  // Strict Standard Fetch Options (prevents 3rd-party extension 200.js M_ID TypeError)
+  const fetchConfig = {
+    method,
     headers
   };
 
   const parsedBody = options.body;
   if (!isFormData && options.body && typeof options.body === 'object') {
-    config.body = JSON.stringify(options.body);
+    fetchConfig.body = JSON.stringify(options.body);
+  } else if (options.body !== undefined && options.body !== null) {
+    fetchConfig.body = options.body;
   }
+
+  if (options.credentials) fetchConfig.credentials = options.credentials;
+  if (options.signal) fetchConfig.signal = options.signal;
+  if (options.mode) fetchConfig.mode = options.mode;
+  if (options.cache) fetchConfig.cache = options.cache;
 
   // If browser is offline, handle GET via cache and POST/PUT via offline action queue
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -67,7 +75,30 @@ export const request = async (endpoint, options = {}) => {
   }
 
   try {
-    const res = await fetch(url, config);
+    let res;
+    try {
+      res = await fetch(url, fetchConfig);
+    } catch (fetchErr) {
+      // Handle transient network changes (ERR_NETWORK_CHANGED) or 3rd-party extension script monkey-patches (200.js / requests.js)
+      const isTransientErr = fetchErr && (
+        fetchErr.name === 'TypeError' ||
+        fetchErr.message?.includes('M_ID') ||
+        fetchErr.message?.includes('network') ||
+        fetchErr.message?.includes('Failed to fetch') ||
+        fetchErr.stack?.includes('200.js') ||
+        fetchErr.stack?.includes('requests.js')
+      );
+
+      if (isTransientErr) {
+        console.warn('[Network/Extension Retry]: Transient fetch error detected, retrying request after 300ms delay...');
+        await new Promise((r) => setTimeout(r, 300));
+        const nativeFetch = (window.fetch && window.fetch.bind) ? window.fetch.bind(window) : fetch;
+        res = await nativeFetch(url, fetchConfig);
+      } else {
+        throw fetchErr;
+      }
+    }
+
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
@@ -163,10 +194,10 @@ export const apiUpdateProfile = async (profileData) => {
   });
 };
 
-export const apiVerifyUpiId = async (upiId) => {
+export const apiVerifyUpiId = async (upiId, upiHolderName = '') => {
   return await request('/auth/verify-upi', {
     method: 'POST',
-    body: { upiId }
+    body: { upiId, upiHolderName }
   });
 };
 

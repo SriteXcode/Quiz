@@ -12,6 +12,7 @@ import PwaInstallCard from './components/PwaInstallCard';
 import InitialLogoLoader from './components/InitialLogoLoader';
 import GlobalNetworkBanner from './components/GlobalNetworkBanner';
 import UniversalReviewModal from './components/UniversalReviewModal';
+import { CodeSyntaxBackgroundTexture } from './components/CodeSyntaxBackgroundTexture';
 
 // Dynamic Lazy-Loaded Pages & Heavy Subsystems
 const QuizDetailPage = lazy(() => import('./pages/QuizDetailPage'));
@@ -346,8 +347,11 @@ export const App = () => {
   }
 
   return (
-    <div className={`bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 flex flex-col font-lato ${isShortsTab ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'}`}>
+    <div className={`relative bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 flex flex-col font-lato ${isShortsTab ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'}`}>
       
+      {/* Programmer Code Syntax & Logic Background Texture */}
+      <CodeSyntaxBackgroundTexture />
+
       {/* Sticky Global Network Offline / Reconnected Banner */}
       <GlobalNetworkBanner
         isOnline={isOnline}
