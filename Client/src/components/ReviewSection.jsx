@@ -19,6 +19,26 @@ export const ReviewSkeleton = () => {
   );
 };
 
+const PRESET_CARD_BG_CLASSES = [
+  'bg-emerald-600 text-white',
+  'bg-teal-600 text-white',
+  'bg-indigo-600 text-white',
+  'bg-purple-600 text-white',
+  'bg-blue-600 text-white',
+  'bg-rose-600 text-white'
+];
+
+const getSanitizedCardBgClass = (review, index) => {
+  const bg = (review?.bgColor || '').toLowerCase();
+  if (bg.includes('emerald')) return 'bg-emerald-600 text-white';
+  if (bg.includes('teal')) return 'bg-teal-600 text-white';
+  if (bg.includes('indigo')) return 'bg-indigo-600 text-white';
+  if (bg.includes('purple')) return 'bg-purple-600 text-white';
+  if (bg.includes('blue')) return 'bg-blue-600 text-white';
+  if (bg.includes('rose') || bg.includes('red')) return 'bg-rose-600 text-white';
+  return PRESET_CARD_BG_CLASSES[index % PRESET_CARD_BG_CLASSES.length];
+};
+
 export const ReviewSection = ({ isLoading: propIsLoading }) => {
   const [reviews, setReviews] = useState([]);
   const [isLoading, setIsLoading] = useState(propIsLoading || false);
@@ -140,10 +160,10 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
           }
 
           const isBackgroundCard = position !== 'front';
-          const cardBgClass = review.bgColor || 'bg-[var(--color-secondary-600)] text-white';
+          const cardBgClass = getSanitizedCardBgClass(review, index);
           const avatarBgClass = isBackgroundCard
             ? 'bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 text-slate-950 shadow-lg border-2 border-white/80 font-black'
-            : (review.avatarBg || 'bg-white text-[var(--color-secondary-700)] dark:bg-slate-900 dark:text-emerald-400 shadow-md border-2 border-white/50 font-bold');
+            : (review.avatarBg || 'bg-white text-emerald-800 dark:bg-slate-900 dark:text-emerald-400 shadow-md border-2 border-white/50 font-bold');
           const authorName = review.userName || review.author || 'Anonymous';
 
           const userImageSrc = review.avatarUrl || review.avatar || review.userAvatar || review.profileImage || review.picture ||
@@ -155,7 +175,7 @@ export const ReviewSection = ({ isLoading: propIsLoading }) => {
             <div
               key={review._id || review.id || index}
               onClick={() => position !== 'front' && setActiveIndex(index)}
-              className={`absolute w-[84%] xs:w-[88%] sm:w-full max-w-[300px] sm:max-w-xl md:max-w-2xl h-[175px] xs:h-[185px] sm:h-[200px] rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all duration-300 ease-in-out transform border border-white/20 overflow-hidden flex flex-col justify-between ${cardBgClass} ${positionClasses}`}
+              className={`absolute w-[84%] xs:w-[88%] sm:w-full max-w-[300px] sm:max-w-xl md:max-w-2xl h-[175px] xs:h-[185px] sm:h-[200px] rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all duration-300 ease-in-out transform border border-white/20 overflow-hidden flex flex-col justify-between bg-indigo-600 ${cardBgClass} ${positionClasses}`}
             >
               <div className="flex flex-col space-y-2 sm:space-y-3">
                 

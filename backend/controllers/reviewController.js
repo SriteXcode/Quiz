@@ -104,13 +104,12 @@ const submitReview = async (req, res) => {
     const numericRating = Number(rating) || 5;
     const finalRating = Math.min(5, Math.max(1, numericRating));
 
-    // Determine color theme palette dynamically
     const bgStyles = [
-      { bgColor: 'bg-[var(--color-secondary-600)] text-white', avatarBg: 'bg-white text-[var(--color-secondary-700)]' },
-      { bgColor: 'bg-emerald-500 dark:bg-emerald-700 text-white', avatarBg: 'bg-white text-emerald-700' },
-      { bgColor: 'bg-teal-600 dark:bg-teal-800 text-white', avatarBg: 'bg-white text-teal-800' },
-      { bgColor: 'bg-indigo-600 dark:bg-indigo-800 text-white', avatarBg: 'bg-white text-indigo-800' },
-      { bgColor: 'bg-purple-600 dark:bg-purple-800 text-white', avatarBg: 'bg-white text-purple-800' }
+      { bgColor: 'bg-indigo-600 text-white', avatarBg: 'bg-white text-indigo-700' },
+      { bgColor: 'bg-emerald-600 text-white', avatarBg: 'bg-white text-emerald-700' },
+      { bgColor: 'bg-teal-600 text-white', avatarBg: 'bg-white text-teal-800' },
+      { bgColor: 'bg-purple-600 text-white', avatarBg: 'bg-white text-purple-800' },
+      { bgColor: 'bg-blue-600 text-white', avatarBg: 'bg-white text-blue-800' }
     ];
     const randomStyle = bgStyles[Math.floor(Math.random() * bgStyles.length)];
 

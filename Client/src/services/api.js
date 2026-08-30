@@ -163,6 +163,13 @@ export const apiUpdateProfile = async (profileData) => {
   });
 };
 
+export const apiVerifyUpiId = async (upiId) => {
+  return await request('/auth/verify-upi', {
+    method: 'POST',
+    body: { upiId }
+  });
+};
+
 // ==========================================
 // Admin & User Management Handlers
 // ==========================================
@@ -253,6 +260,21 @@ export const apiGetCertificateById = async (certificateId) => {
   return await request(`/quizzes/certificate/${certificateId}`, {
     method: 'GET',
     skipAuth: true
+  });
+};
+
+export const apiUploadImage = async (file) => {
+  if (file instanceof FormData) {
+    return await request('/admin/upload-image', {
+      method: 'POST',
+      body: file
+    });
+  }
+  const formData = new FormData();
+  formData.append('image', file);
+  return await request('/admin/upload-image', {
+    method: 'POST',
+    body: formData
   });
 };
 
@@ -572,6 +594,7 @@ export default {
   apiGetUserCertificates,
   apiGetCertificateById,
   apiGetAdminQuizzes,
+  apiUploadImage,
   apiCreateQuiz,
   apiUpdateQuiz,
   apiDeleteQuiz,

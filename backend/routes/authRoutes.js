@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, googleLogin, getProfile, updateProfile, getAllUsers } = require('../controllers/authController');
+const { register, login, googleLogin, getProfile, updateProfile, verifyUpiId, getAllUsers } = require('../controllers/authController');
 const { verifyToken, requireAdmin } = require('../middleware/authMiddleware');
 const { upload } = require('../config/cloudinary');
 
@@ -28,6 +28,11 @@ router.get('/me', verifyToken, getProfile);
 // @desc    Update current user profile with optional avatar
 // @access  Private
 router.put('/profile', verifyToken, upload.single('avatar'), updateProfile);
+
+// @route   POST /api/auth/verify-upi
+// @desc    Verify UPI ID format & VPA status
+// @access  Private
+router.post('/verify-upi', verifyToken, verifyUpiId);
 
 // @route   GET /api/auth/users
 // @desc    Get all users list

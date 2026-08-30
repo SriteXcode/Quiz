@@ -5,6 +5,7 @@ import { apiSubmitQuizResult, apiGetQuizLeaderboard, apiSubmitReview, apiCheckQu
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
 import CertificateModal from '../components/CertificateModal';
+import QuizShareModal from '../components/QuizShareModal';
 
 // Shuffles options while precisely updating correctAnswerIndex to match the new position
 export const shuffleQuestionOptions = (q) => {
@@ -143,6 +144,10 @@ You are building a high-frequency financial settlement engine. Given an array of
   const [isCertificateOpen, setIsCertificateOpen] = useState(false);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
+  const [postQuizRating, setPostQuizRating] = useState(5);
+  const [postQuizQuote, setPostQuizQuote] = useState('');
+  const [postQuizReviewSubmitted, setPostQuizReviewSubmitted] = useState(false);
+  const [isSubmittingPostQuizReview, setIsSubmittingPostQuizReview] = useState(false);
 
   const handleFinishClick = () => {
     setIsFinishModalOpen(true);
@@ -229,6 +234,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
   // Recommendations Data
   const [allQuizzes, setAllQuizzes] = useState([]);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -245,6 +251,69 @@ You are building a high-frequency financial settlement engine. Given an array of
     fetchQuizzes();
     return () => { isMounted = false; };
   }, []);
+
+  // Restore completed submission on refresh so candidate remains on final results & certificate view
+  useEffect(() => {
+    if (!quiz || isPractice) return;
+    const quizId = quiz._id || quiz.id;
+    if (!quizId) return;
+    const userId = user?._id || user?.id || 'guest';
+    const storageKey = `quiz_completed_result_${quizId}_${userId}`;
+
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          setSubmissionResult(parsed);
+          if (parsed.userAnswers) setUserAnswers(parsed.userAnswers);
+          setIsQuizCompleted(true);
+          isCompletedRef.current = true;
+        }
+      }
+    } catch (err) {
+      console.warn('[Restore Completed Quiz Error]:', err);
+    }
+  }, [quiz, user, isPractice]);
+
+  // Auto-restore unsaved post-quiz review draft on results view
+  useEffect(() => {
+    if (!quiz || !isQuizCompleted) return;
+    const quizId = quiz._id || quiz.id;
+    if (!quizId) return;
+    const userId = user?._id || user?.id || 'guest';
+    const draftKey = `draft_post_quiz_review_${quizId}_${userId}`;
+
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.rating) setPostQuizRating(parsed.rating);
+          if (parsed.quote) setPostQuizQuote(parsed.quote);
+        }
+      }
+    } catch {
+      // quiet
+    }
+  }, [quiz, user, isQuizCompleted]);
+
+  // Real-time post-quiz review draft synchronization as candidate types
+  useEffect(() => {
+    if (!quiz || !isQuizCompleted || postQuizReviewSubmitted) return;
+    const quizId = quiz._id || quiz.id;
+    if (!quizId) return;
+    const userId = user?._id || user?.id || 'guest';
+    const draftKey = `draft_post_quiz_review_${quizId}_${userId}`;
+
+    try {
+      if (postQuizQuote.trim() || postQuizRating !== 5) {
+        localStorage.setItem(draftKey, JSON.stringify({ rating: postQuizRating, quote: postQuizQuote }));
+      }
+    } catch {
+      // quiet
+    }
+  }, [postQuizQuote, postQuizRating, quiz, user, isQuizCompleted, postQuizReviewSubmitted]);
 
   // Sequence: 1. Upcoming -> 2. Live Now -> 3. Practice (Past)
   const recommendedQuizzes = useMemo(() => {
@@ -423,12 +492,6 @@ You are building a high-frequency financial settlement engine. Given an array of
     if (onBack) onBack();
   };
   
-  // Post-Quiz Review State
-  const [postQuizRating, setPostQuizRating] = useState(5);
-  const [postQuizQuote, setPostQuizQuote] = useState('');
-  const [isSubmittingPostQuizReview, setIsSubmittingPostQuizReview] = useState(false);
-  const [postQuizReviewSubmitted, setPostQuizReviewSubmitted] = useState(false);
-
   // References to prevent race conditions during submission and timeouts
   const userAnswersRef = useRef(userAnswers);
   const currentQuestionIndexRef = useRef(currentQuestionIndex);
@@ -505,7 +568,7 @@ You are building a high-frequency financial settlement engine. Given an array of
   }, [quiz]);
 
   // 2. Finish Quiz & Submit
-  const finishQuiz = useCallback(async () => {
+  const finishQuiz = async () => {
     if (isCompletedRef.current) return;
     isCompletedRef.current = true;
     setIsQuizCompleted(true);
@@ -571,7 +634,7 @@ You are building a high-frequency financial settlement engine. Given an array of
           }
         }
         if (res.success) {
-          setSubmissionResult(res.submission?.score ? res.submission : {
+          const finalResult = res.submission?.score ? res.submission : {
             score,
             accuracy,
             earnedXP,
@@ -584,8 +647,25 @@ You are building a high-frequency financial settlement engine. Given an array of
             isOfficialLeaderboardEntry: true,
             userName: candidateName,
             userEmail: user?.email || '',
-            username: emailPrefix
-          });
+            username: emailPrefix,
+            certificateId: res.submission?.certificateId || null,
+            issuedAt: res.submission?.issuedAt || new Date().toISOString(),
+            userAnswers: currentAns
+          };
+          setSubmissionResult(finalResult);
+
+          if (typeof window !== 'undefined' && !isPractice) {
+            try {
+              const uId = user?._id || user?.id || 'guest';
+              localStorage.setItem(
+                `quiz_completed_result_${quizId}_${uId}`,
+                JSON.stringify(finalResult)
+              );
+            } catch {
+              // Ignore storage write errors
+            }
+          }
+
           if (res.isOfflineQueued) {
             addToast(`⚡ Quiz Saved Offline! Your score (${score}%) & XP will sync automatically when online.`, 'info');
           } else if (res.submission?.isFirstAttempt) {
@@ -615,7 +695,7 @@ You are building a high-frequency financial settlement engine. Given an array of
     }
 
     fetchLeaderboard();
-  }, [questions, isCodeChallenge, quiz, isPractice, addToast, user, fetchLeaderboard]);
+  };
 
   // 3. Helper to handle timeout on active question without cascade race conditions
   const handleQuestionTimeout = useCallback(() => {
@@ -849,6 +929,16 @@ You are building a high-frequency financial settlement engine. Given an array of
     setSavedQuestionTimers({});
     setTotalTimerSeconds((quiz?.durationMinutes || 30) * 60);
     setQuestionTimer(getQuestionInitialTime(0));
+
+    if (typeof window !== 'undefined' && quiz) {
+      try {
+        const qId = quiz._id || quiz.id;
+        const uId = user?._id || user?.id || 'guest';
+        localStorage.removeItem(`quiz_completed_result_${qId}_${uId}`);
+      } catch {
+        // quiet
+      }
+    }
   };
 
   const formatTime = (secs) => {
@@ -903,7 +993,7 @@ You are building a high-frequency financial settlement engine. Given an array of
         {/* ========================================================================= */}
         {/* 1. QUIZ RESULT SUMMARY CARD (MATCHING AFTERQUIZSUBMIYT.PNG TOP CONTAINER) */}
         {/* ========================================================================= */}
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-xl space-y-6">
+        <div id="summary-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-xl space-y-6">
           
           {/* HEADER: QUIZ LOGO + QuizName + Subtitle */}
           <div className="flex items-center space-x-4">
@@ -978,42 +1068,100 @@ You are building a high-frequency financial settlement engine. Given an array of
             </div>
           </div>
 
-          {/* ROW 3: ACTION BUTTONS (Certificate, Practice Again) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* ROW 3: ACTION BUTTONS (Share Score & Challenge Friends, Certificate, Practice Again) */}
+          <div className="space-y-3 pt-1">
             <button
-              onClick={() => setIsCertificateOpen(true)}
-              className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+              onClick={() => setIsShareModalOpen(true)}
+              className="w-full py-3.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs sm:text-sm shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
             >
-              <span>🎓</span>
-              <span>Certificate</span>
+              <span className="text-base">🏆</span>
+              <span>Share Score & Challenge Friends</span>
             </button>
 
-            <button
-              onClick={handleRestartAsPractice}
-              className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
-            >
-              <span>🔁</span>
-              <span>Practice Again</span>
-            </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => setIsCertificateOpen(true)}
+                className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+              >
+                <span>🎓</span>
+                <span>Certificate</span>
+              </button>
+
+              <button
+                onClick={handleRestartAsPractice}
+                className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+              >
+                <span>🔁</span>
+                <span>Practice Again</span>
+              </button>
+            </div>
+
+            {/* WHATSAPP COMMUNITY INVITE BANNER */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-lg space-y-3">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center space-x-3 text-center sm:text-left">
+                  <span className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shrink-0">
+                    <svg className="w-6 h-6 fill-emerald-600" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.78 0-3.522-.479-5.042-1.385l-.362-.214-3.747.983.999-3.654-.236-.375a10.024 10.024 0 0 1-1.536-5.367c0-5.541 4.51-10.05 10.051-10.05 2.686 0 5.21 1.046 7.109 2.946a10.005 10.005 0 0 1 2.943 7.107c0 5.543-4.511 10.053-10.048 10.053m0-18.358c-4.577 0-8.303 3.726-8.303 8.305 0 1.579.444 3.12 1.286 4.455l.206.326-.757 2.766 2.831-.743.318.189a8.272 8.272 0 0 0 4.417 1.261c4.578 0 8.303-3.726 8.303-8.305 0-2.217-.863-4.301-2.435-5.871A8.254 8.254 0 0 0 12.051 3.484"/>
+                  </svg>
+                  </span>
+                  <div>
+                    <h4 className="font-poppins font-extrabold text-xs sm:text-sm text-white flex items-center space-x-1.5 justify-center sm:justify-start">
+                      <span>Join Official WhatsApp Community</span>
+                      {/* <span className="px-2 py-0.5 rounded-full bg-emerald-400/30 text-[9px] font-bold uppercase">Daily Alerts</span> */}
+                    </h4>
+                    <p className="text-[11px] font-lato text-emerald-100 leading-tight mt-0.5">
+                      Get daily quiz answers, contest schedules, cash reward alerts & winner lists!
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href="https://chat.whatsapp.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-poppins font-bold text-xs shadow-md transition-all cursor-pointer text-center shrink-0 flex items-center justify-center space-x-1.5 active:scale-95"
+                >
+                  <svg className="w-4 h-4 fill-emerald-600" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.78 0-3.522-.479-5.042-1.385l-.362-.214-3.747.983.999-3.654-.236-.375a10.024 10.024 0 0 1-1.536-5.367c0-5.541 4.51-10.05 10.051-10.05 2.686 0 5.21 1.046 7.109 2.946a10.005 10.005 0 0 1 2.943 7.107c0 5.543-4.511 10.053-10.048 10.053m0-18.358c-4.577 0-8.303 3.726-8.303 8.305 0 1.579.444 3.12 1.286 4.455l.206.326-.757 2.766 2.831-.743.318.189a8.272 8.272 0 0 0 4.417 1.261c4.578 0 8.303-3.726 8.303-8.305 0-2.217-.863-4.301-2.435-5.871A8.254 8.254 0 0 0 12.051 3.484"/>
+                  </svg>
+                  <span>Join Group →</span>
+                </a>
+              </div>
+            </div>
           </div>
+        </div>
 
-          {/* ROW 4: TAB SWITCHER (Review Answer / leaderboard) */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+        {/* ========================================================================= */}
+        {/* 2. TAB SWITCHER & CAROUSEL TRACK (REVIEW ANSWER & LEADERBOARD TABS) */}
+        {/* ========================================================================= */}
+        <div
+          id="results-tab-section"
+          className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-7 shadow-sm space-y-4"
+        >
+          {/* TAB SWITCHER BUTTONS (Review Answer / Leaderboard) */}
+          <div className="grid grid-cols-2 gap-3 pb-2 border-b border-[var(--border-theme)]">
             <button
-              onClick={() => setActiveResultsTab('review')}
+              onClick={() => {
+                setActiveResultsTab('review');
+                const el = document.getElementById('results-tab-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
               className={`py-3 rounded-2xl font-poppins font-extrabold text-xs sm:text-sm transition-all cursor-pointer text-center border-2 ${
                 activeResultsTab === 'review'
                   ? 'bg-[var(--bg-main)] text-[var(--text-main)] border-[var(--text-main)] shadow-md'
                   : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
               }`}
             >
-              Review Answer
+              Review Answer 📝
             </button>
 
             <button
               onClick={() => {
                 setActiveResultsTab('leaderboard');
                 fetchLeaderboard();
+                const el = document.getElementById('results-tab-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className={`py-3 rounded-2xl font-poppins font-medium text-xs sm:text-sm transition-all cursor-pointer text-center border-2 ${
                 activeResultsTab === 'leaderboard'
@@ -1021,21 +1169,16 @@ You are building a high-frequency financial settlement engine. Given an array of
                   : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
               }`}
             >
-              leaderboard
+              Leaderboard 🏆
             </button>
           </div>
 
-        </div>
-
-        {/* ========================================================================= */}
-        {/* SLIDE LEFT / RIGHT CAROUSEL TRACK (REVIEW ANSWER & LEADERBOARD TABS) */}
-        {/* ========================================================================= */}
-        <div
-          className="relative overflow-hidden w-full min-h-[300px] touch-pan-y"
-          onTouchStart={handleResultsTouchStart}
-          onTouchMove={handleResultsTouchMove}
-          onTouchEnd={handleResultsTouchEnd}
-        >
+          <div
+            className="relative overflow-hidden w-full min-h-[300px] touch-pan-y"
+            onTouchStart={handleResultsTouchStart}
+            onTouchMove={handleResultsTouchMove}
+            onTouchEnd={handleResultsTouchEnd}
+          >
           <div
             className="flex w-full transition-transform duration-300 ease-out items-start"
             style={{ transform: `translateX(-${activeResultsTabIndex * 100}%)` }}
@@ -1250,8 +1393,16 @@ You are building a high-frequency financial settlement engine. Given an array of
                             </button>
                           </div>
 
-                          {/* BOTTOM ACTION BUTTONS: More Quizzes | Add Reviews */}
-                          <div className="grid grid-cols-2 gap-3 pt-2">
+                          {/* BOTTOM ACTION BUTTONS: Share Score | More Quizzes | Add Reviews */}
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsShareModalOpen(true)}
+                              className="py-3 px-4 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-extrabold text-xs sm:text-sm shadow-md transition-all cursor-pointer active:scale-95 text-center flex items-center justify-center space-x-1.5"
+                            >
+                              <span>🏆 Share Score & Challenge Friends</span>
+                            </button>
+
                             <button
                               type="button"
                               onClick={() => {
@@ -1271,7 +1422,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                               }}
                               className="py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-400)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs transition-all cursor-pointer active:scale-95 text-center"
                             >
-                              Add Reviews
+                              Write Review
                             </button>
                           </div>
 
@@ -1526,9 +1677,118 @@ You are building a high-frequency financial settlement engine. Given an array of
 
           </div>
         </div>
+      </div>
 
-        {/* POST-QUIZ STUDENT REVIEW CARD */}
-        <div id="add-review-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm mt-6">
+        {/* MORE QUIZ RECOMMENDATIONS SECTION (X-AXIS CAROUSEL, PLACED ABOVE REVIEW) */}
+        <div id="more-quizzes-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-7 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-3">
+            <div>
+              <h3 className="text-base sm:text-lg font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                <span>🚀</span>
+                <span>More Recommended Quiz Challenges</span>
+              </h3>
+              <p className="text-xs font-lato text-[var(--text-muted)]">
+                Upcoming live exams, live challenges & practice quizzes (swipe horizontally ↔)
+              </p>
+            </div>
+            <button
+              onClick={onViewAllQuizzes ? onViewAllQuizzes : () => { if (onBack) onBack(); }}
+              className="text-xs font-poppins font-bold text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center space-x-1 shrink-0"
+            >
+              <span>View All</span>
+              <span>→</span>
+            </button>
+          </div>
+
+          {recommendedQuizzes.length > 0 ? (
+            <div className="relative">
+              {/* X-AXIS HORIZONTAL SCROLL CONTAINER WITH CSS MAGNET SNAP */}
+              <div className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x snap-mandatory py-2 px-1">
+                {recommendedQuizzes.slice(0, 8).map((item) => {
+                  const itemStatus = item.computedStatus;
+                  const isUpcoming = itemStatus === 'upcoming';
+                  const isRunning = itemStatus === 'running';
+                  const isEnded = itemStatus === 'past';
+                  const itemOrigPrice = item.price || 0;
+                  const itemEffPrice = isEnded && item.isPaid ? Math.max(1, Math.round(itemOrigPrice * 0.10)) : itemOrigPrice;
+
+                  return (
+                    <div
+                      key={item._id || item.id || item.title}
+                      onClick={() => onSelectQuiz ? onSelectQuiz(item) : onBack()}
+                      className="snap-start shrink-0 w-[270px] sm:w-[310px] bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-4.5 hover:border-[var(--color-primary-400)] transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1 relative overflow-hidden shadow-xs hover:shadow-md select-none"
+                    >
+                      {/* Status Ribbon */}
+                      {isUpcoming && (
+                        <div className="absolute top-0 right-0 bg-amber-500 text-white text-[9px] font-poppins font-black uppercase px-2.5 py-0.5 rounded-bl-xl shadow-xs">
+                          ⏳ Upcoming
+                        </div>
+                      )}
+                      {isRunning && (
+                        <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-poppins font-black uppercase px-2.5 py-0.5 rounded-bl-xl shadow-xs">
+                          🔴 Live Now
+                        </div>
+                      )}
+                      {isEnded && (
+                        <div className="absolute top-0 right-0 bg-slate-600 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
+                          🏁 Practice
+                        </div>
+                      )}
+
+                      <div className="space-y-2.5">
+                        <div className="flex items-center space-x-1.5 pt-1">
+                          <span className="px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-theme)] text-[10px] font-poppins font-bold text-[var(--color-primary-600)]">
+                            {item.category || 'General'}
+                          </span>
+                          {item.isPaid ? (
+                            <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 text-[10px] font-poppins font-bold">
+                              ₹{itemEffPrice}
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 text-[10px] font-poppins font-bold">
+                              FREE
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1 group-hover:text-[var(--color-primary-600)] transition-colors">
+                          {item.title}
+                        </h4>
+
+                        <p className="text-xs text-[var(--text-muted)] line-clamp-2 font-lato leading-relaxed">
+                          {item.description || 'Test your proficiency with this assessment challenge.'}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-[var(--border-theme)] mt-3 flex items-center justify-between text-xs font-poppins">
+                        <span className="text-[var(--text-muted)] font-semibold text-[11px]">
+                          ⏱️ {item.durationMinutes || 30} mins
+                        </span>
+                        <span className="font-bold text-[var(--color-primary-600)] group-hover:translate-x-1 transition-transform inline-flex items-center">
+                          Start Challenge →
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-6 text-xs text-[var(--text-muted)] font-lato">
+              No extra recommendations available right now.
+            </div>
+          )}
+        </div>
+
+        {/* POST-QUIZ STUDENT REVIEW CARD (ATTRACTIVE GRADIENT HIGHLIGHT CARD) */}
+        <div
+          id="add-review-section"
+          className="bg-gradient-to-br from-amber-500/10 via-[var(--bg-card)] to-amber-500/5 dark:from-amber-950/30 dark:via-[var(--bg-card)] dark:to-amber-900/10 border-2 border-amber-400/60 dark:border-amber-500/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xl hover:shadow-2xl transition-all mt-6 relative overflow-hidden"
+        >
+          {/* Attraction Tag */}
+          <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-poppins font-black text-[10px] uppercase px-3 py-1 rounded-bl-2xl shadow-sm flex items-center space-x-1 select-none">
+            <span>⭐ Share Your Feedback</span>
+          </div>
           {postQuizReviewSubmitted ? (
             <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-2 animate-fadeIn">
               <span className="text-3xl">🎉</span>
@@ -1562,6 +1822,13 @@ You are building a high-frequency financial settlement engine. Given an array of
                   if (res && res.success !== false) {
                     addToast('✨ Review submitted successfully!', 'success');
                     setPostQuizReviewSubmitted(true);
+                    try {
+                      const qId = quiz?._id || quiz?.id;
+                      const uId = user?._id || user?.id || 'guest';
+                      if (qId) localStorage.removeItem(`draft_post_quiz_review_${qId}_${uId}`);
+                    } catch {
+                      // quiet
+                    }
                   } else {
                     addToast(res?.message || 'Failed to submit review', 'error');
                   }
@@ -1633,124 +1900,6 @@ You are building a high-frequency financial settlement engine. Given an array of
           )}
         </div>
 
-        {/* MORE QUIZ RECOMMENDATIONS SECTION (SEQUENCED: UPCOMING -> LIVE NOW -> PRACTICE) */}
-        <div id="more-quizzes-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-4">
-            <div>
-              <h3 className="text-lg sm:text-xl font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
-                <span>🚀</span>
-                <span>More Recommended Quiz Challenges</span>
-              </h3>
-              <p className="text-xs font-lato text-[var(--text-muted)]">
-                Upcoming live exams, live challenges, and practice quizzes ordered by sequence.
-              </p>
-            </div>
-            <button
-              onClick={onViewAllQuizzes ? onViewAllQuizzes : () => { if (onBack) onBack(); }}
-              className="text-xs font-poppins font-bold text-[var(--color-primary-600)] hover:underline cursor-pointer flex items-center space-x-1"
-            >
-              <span>View All Quizzes</span>
-              <span>→</span>
-            </button>
-          </div>
-
-          {recommendedQuizzes.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {recommendedQuizzes.slice(0, 6).map((item) => {
-                const itemStatus = item.computedStatus;
-                const isUpcoming = itemStatus === 'upcoming';
-                const isRunning = itemStatus === 'running';
-                const isEnded = itemStatus === 'past';
-                const origPrice = item.price || 0;
-                const effPrice = isEnded && item.isPaid ? Math.max(1, Math.round(origPrice * 0.10)) : origPrice;
-                const isDisc = isEnded && item.isPaid && origPrice > 0;
-                const isUserRegistered = Boolean(isUserAdmin || (item.enrolledUsers && user && item.enrolledUsers.some((u) => (u.userId === user._id || u.userId === user.id))));
-
-                return (
-                  <div
-                    key={item._id || item.id || item.title}
-                    onClick={() => onSelectQuiz ? onSelectQuiz(item) : onBack()}
-                    className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-5 hover:border-[var(--color-primary-400)] transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1 relative overflow-hidden shadow-xs hover:shadow-md"
-                  >
-                    {/* Status Ribbon */}
-                    {isUpcoming && (
-                      <div className="absolute top-0 right-0 bg-amber-500 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
-                        ⏳ Upcoming
-                      </div>
-                    )}
-                    {isRunning && (
-                      <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
-                        🔴 Live Now
-                      </div>
-                    )}
-                    {isEnded && (
-                      <div className="absolute top-0 right-0 bg-slate-600 text-white text-[9px] font-poppins font-black uppercase px-3 py-0.5 rounded-bl-xl shadow-xs">
-                        🏁 Practice
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-1.5 pt-1">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
-                          {item.category || 'Web Dev'}
-                        </span>
-                        {isDisc ? (
-                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 flex items-center space-x-1">
-                            <span>🔥 ₹{effPrice}</span>
-                            <span className="line-through text-rose-500 dark:text-rose-400 text-[9px] font-bold">₹{origPrice}</span>
-                          </span>
-                        ) : item.isPaid && origPrice > 0 ? (
-                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                            💳 ₹{origPrice}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-poppins font-black px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
-                            🟢 FREE
-                          </span>
-                        )}
-                      </div>
-
-                      <h4 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors line-clamp-2">
-                        {item.title}
-                      </h4>
-
-                      <p className="text-xs font-lato text-[var(--text-secondary)] line-clamp-2 leading-relaxed">
-                        {item.description || 'Test your skills in this interactive challenge!'}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between mt-4">
-                      <div className="flex items-center space-x-1.5 text-[11px] font-lato text-[var(--text-muted)] font-bold">
-                        <span>⏱️ {item.durationMinutes ? `${item.durationMinutes}m` : '20m'}</span>
-                        <span>•</span>
-                        <span className="text-[var(--color-primary-600)]">👥 {item.enrolledUsers ? item.enrolledUsers.length : 0}</span>
-                      </div>
-
-                      <span className={`px-3 py-1 rounded-xl font-poppins font-bold text-[11px] transition-all shadow-xs ${
-                        isUpcoming
-                          ? isUserRegistered ? 'bg-emerald-700 text-white' : 'bg-amber-600 text-white'
-                          : isRunning
-                          ? isUserRegistered ? 'bg-emerald-600 text-white' : 'bg-slate-700 text-slate-300'
-                          : isUserRegistered ? 'bg-emerald-600 text-white' : 'bg-indigo-600 text-white'
-                      }`}>
-                        {isUpcoming
-                          ? isUserRegistered ? '✅ Registered' : '📝 Register'
-                          : isRunning
-                          ? isUserRegistered ? 'Compete 🚀' : '🔒 Closed'
-                          : (isUserRegistered || !item.isPaid) ? '🎯 Practice' : '📝 Unlock Practice'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-6 text-xs text-[var(--text-muted)]">
-              No other quiz recommendations available right now.
-            </div>
-          )}
-        </div>
-
         {/* CERTIFICATE MODAL */}
         <CertificateModal
           isOpen={isCertificateOpen}
@@ -1765,6 +1914,14 @@ You are building a high-frequency financial settlement engine. Given an array of
             userName: submissionResult?.userName || user?.name
           }}
           user={user}
+        />
+
+        {/* 🚀 UNIVERSAL QUIZ SCORE SHARE MODAL */}
+        <QuizShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          quiz={quiz}
+          score={submissionResult?.score ?? (overallExamScore ?? (accuracyPercentage ?? null))}
         />
 
       </div>
@@ -2443,6 +2600,13 @@ You are building a high-frequency financial settlement engine. Given an array of
         </div>
       )}
 
+      {/* 🚀 UNIVERSAL QUIZ SCORE SHARE MODAL */}
+      <QuizShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        quiz={quiz}
+        score={submissionResult?.score ?? submissionResult?.accuracy ?? null}
+      />
     </div>
   );
 };

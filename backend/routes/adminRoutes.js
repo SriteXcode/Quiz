@@ -8,8 +8,10 @@ const {
   getAllQuizzesAdmin,
   createQuiz,
   updateQuiz,
-  deleteQuiz
+  deleteQuiz,
+  uploadAdminImage
 } = require('../controllers/adminController');
+const { uploadGeneralImage } = require('../config/cloudinary');
 const {
   getAllPreviousWorks,
   createPreviousWork,
@@ -48,6 +50,10 @@ router.get('/stats', getAdminOverviewStats);
 router.get('/users', getAllUsersAdmin);
 router.put('/users/:id/role', updateUserRole);
 router.delete('/users/:id', deleteUserAdmin);
+
+// @route   POST /api/admin/upload-image
+// @desc    Upload image asset (quiz poster, language logo, partner logo)
+router.post('/upload-image', uploadGeneralImage.single('image'), uploadAdminImage);
 
 // @route   GET /api/admin/quizzes
 // @route   POST /api/admin/quizzes

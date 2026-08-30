@@ -375,6 +375,42 @@ const deleteQuiz = async (req, res) => {
   }
 };
 
+// @route   POST /api/admin/upload-image
+// @desc    Upload poster/logo asset image to Cloudinary (or fallback base64 Data URL)
+// @access  Private (Admin Only)
+const uploadAdminImage = async (req, res) => {
+  try {
+    let imageUrl = '';
+    if (req.file && req.file.path) {
+      imageUrl = req.file.path;
+    } else if (req.file && req.file.buffer) {
+      const mime = req.file.mimetype || 'image/png';
+      imageUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
+    } else if (req.body && req.body.imageUrl) {
+      imageUrl = req.body.imageUrl;
+    }
+
+    if (!imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file uploaded or image URL provided.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully!',
+      url: imageUrl
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process image upload',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAdminOverviewStats,
   getAllUsersAdmin,
@@ -383,5 +419,7 @@ module.exports = {
   getAllQuizzesAdmin,
   createQuiz,
   updateQuiz,
-  deleteQuiz
+  deleteQuiz,
+  uploadAdminImage
 };
+

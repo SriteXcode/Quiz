@@ -113,13 +113,11 @@ export const Navbar = ({
           
           {/* Brand Logo & Name */}
           <div className="flex items-center space-x-2 md:space-x-2.5 lg:space-x-3 cursor-pointer shrink-0" onClick={() => handleNavClick('home', 'Home')}>
-            <div className="w-9 h-9 md:w-8 md:h-8 lg:w-10 lg:h-10 rounded-xl bg-[var(--color-primary-600)] flex items-center justify-center text-white p-2 shadow-sm shrink-0 transition-transform hover:scale-105">
-              <svg className="w-full h-full text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5"/>
-                <path d="M2 12l10 5 10-5"/>
-              </svg>
-            </div>
+            <img
+              src="https://res.cloudinary.com/dtjkpcuy9/image/upload/v1788088347/quiz_platform_assets/brainarena_logo_transparent.png"
+              alt="brainArena Logo"
+              className="w-9 h-9 md:w-8 md:h-8 lg:w-10 lg:h-10 object-contain shrink-0 transition-transform hover:scale-105"
+            />
             <span className="font-poppins font-extrabold text-lg md:text-base lg:text-xl tracking-tight text-[var(--text-main)] shrink-0">
               brain<span className="text-[var(--color-primary-600)]">Arena</span>
             </span>

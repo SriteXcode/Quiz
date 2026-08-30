@@ -57,6 +57,28 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    upiId: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    isUpiVerified: {
+      type: Boolean,
+      default: false
+    },
+    upiHolderName: {
+      type: String,
+      default: ''
+    },
+    vpaBankName: {
+      type: String,
+      default: ''
+    },
+    vpaStatus: {
+      type: String,
+      enum: ['UNVERIFIED', 'ACTIVE_AND_PAYABLE', 'INVALID_VPA'],
+      default: 'UNVERIFIED'
+    },
     avatarUrl: {
       type: String,
       default: ''

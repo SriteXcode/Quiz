@@ -53,10 +53,21 @@ exports.getQuizById = async (req, res) => {
 exports.submitQuiz = async (req, res) => {
   try {
     const quizId = req.params.id;
+    if (!quizId || !mongoose.Types.ObjectId.isValid(quizId)) {
+      return res.status(400).json({ success: false, message: 'Invalid Quiz ID format' });
+    }
+
     const { userAnswers, timeTakenSeconds, isPracticeMode } = req.body;
     
-    // Resolve user credentials from authenticated JWT or payload
-    const userId = req.user ? (req.user._id || req.user.id || req.user.userId) : (req.body.userId || new mongoose.Types.ObjectId());
+    // Safely resolve user ObjectId from JWT or payload
+    const candidateUserId = req.user ? (req.user._id || req.user.id || req.user.userId) : req.body.userId;
+    let userId;
+    if (candidateUserId && mongoose.Types.ObjectId.isValid(candidateUserId)) {
+      userId = new mongoose.Types.ObjectId(candidateUserId);
+    } else {
+      userId = new mongoose.Types.ObjectId();
+    }
+
     const userEmail = (req.user?.email || req.body.userEmail || '').trim();
     const emailPrefix = userEmail ? userEmail.split('@')[0] : '';
     
@@ -122,8 +133,8 @@ exports.submitQuiz = async (req, res) => {
     const isOfficialFirstQuizAttempt = !isPractice && isFirstAttempt;
     const shouldGenerateCertificate = isOfficialFirstQuizAttempt || (isAdminUser && !isPractice);
 
-    let certificateId = null;
-    let issuedAt = null;
+    let certificateId = undefined;
+    let issuedAt = undefined;
 
     if (shouldGenerateCertificate) {
       const randomHex = Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -132,7 +143,7 @@ exports.submitQuiz = async (req, res) => {
       issuedAt = new Date();
     }
 
-    const submission = new QuizSubmission({
+    const submissionPayload = {
       quizId,
       userId,
       userName,
@@ -140,8 +151,6 @@ exports.submitQuiz = async (req, res) => {
       score,
       accuracy,
       earnedXP,
-      certificateId,
-      issuedAt,
       correctCount,
       totalQuestions,
       timeTakenSeconds: timeTakenSeconds || 45,
@@ -150,8 +159,14 @@ exports.submitQuiz = async (req, res) => {
       isOfficialLeaderboardEntry: isPractice ? false : isOfficialLeaderboardEntry,
       attemptNumber,
       isPracticeMode: isPractice
-    });
+    };
 
+    if (certificateId) {
+      submissionPayload.certificateId = certificateId;
+      submissionPayload.issuedAt = issuedAt;
+    }
+
+    const submission = new QuizSubmission(submissionPayload);
     await submission.save();
 
     res.json({
@@ -188,7 +203,8 @@ exports.submitQuiz = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('[Submit Quiz Error]:', error);
+    res.status(500).json({ success: false, message: error.message || 'Server error submitting quiz' });
   }
 };
 

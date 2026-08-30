@@ -9,15 +9,27 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Configure Multer storage using Cloudinary engine (Forces WebP format & optimization)
+// Configure Multer storage using Cloudinary engine (Forces WebP format & optimization for avatars)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'quiz_avatars',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-    format: 'webp', // Automatically converts and saves all uploads as WebP
+    format: 'webp',
     transformation: [
       { width: 500, height: 500, crop: 'limit', quality: 'auto', fetch_format: 'webp' }
+    ]
+  }
+});
+
+// Configure General Image storage for Quiz Posters, Language Logos, Partner Logos
+const generalStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'quiz_platform_assets',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif'],
+    transformation: [
+      { quality: 'auto', fetch_format: 'auto' }
     ]
   }
 });
@@ -27,4 +39,10 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-module.exports = { cloudinary, upload };
+const uploadGeneralImage = multer({
+  storage: generalStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
+module.exports = { cloudinary, upload, uploadGeneralImage };
+

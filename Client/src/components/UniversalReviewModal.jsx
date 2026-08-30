@@ -19,7 +19,41 @@ export const UniversalReviewModal = ({ isOpen, onClose, onSuccess, initialQuiz =
       setUserName(user.name || '');
       setRole(user.studentClass || user.school || 'Student Candidate');
     }
-  }, [user]);
+
+    // Auto-restore review draft on modal open
+    if (isOpen) {
+      const userId = user?._id || user?.id || 'guest';
+      const draftKey = `draft_universal_review_${userId}`;
+      try {
+        const savedDraft = localStorage.getItem(draftKey);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed && typeof parsed === 'object') {
+            if (parsed.rating) setRating(parsed.rating);
+            if (parsed.quote) setQuote(parsed.quote);
+            if (parsed.userName) setUserName(parsed.userName);
+            if (parsed.role) setRole(parsed.role);
+          }
+        }
+      } catch {
+        // quiet
+      }
+    }
+  }, [user, isOpen]);
+
+  // Instant real-time draft synchronization
+  useEffect(() => {
+    if (!isOpen) return;
+    const userId = user?._id || user?.id || 'guest';
+    const draftKey = `draft_universal_review_${userId}`;
+    try {
+      if (quote.trim() || rating !== 5) {
+        localStorage.setItem(draftKey, JSON.stringify({ rating, quote, userName, role }));
+      }
+    } catch {
+      // quiet
+    }
+  }, [rating, quote, userName, role, isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -47,6 +81,12 @@ export const UniversalReviewModal = ({ isOpen, onClose, onSuccess, initialQuiz =
       if (res && res.success !== false) {
         addToast('✨ Thank you! Your review has been submitted.', 'success');
         setQuote('');
+        try {
+          const userId = user?._id || user?.id || 'guest';
+          localStorage.removeItem(`draft_universal_review_${userId}`);
+        } catch {
+          // quiet
+        }
         if (onSuccess) onSuccess(res.review);
         onClose();
       } else {

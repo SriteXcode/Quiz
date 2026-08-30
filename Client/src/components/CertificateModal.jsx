@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useToast } from '../context/ToastContext';
+import QuizShareModal from './QuizShareModal';
 
 export const CertificateModal = ({
   isOpen,
@@ -9,6 +10,7 @@ export const CertificateModal = ({
 }) => {
   const { addToast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Strictly use authenticated/registered user name - no custom editing
   const recipientName = data.userName || user?.name || (user?.email ? user.email.split('@')[0] : 'Distinguished Scholar');
@@ -521,10 +523,10 @@ export const CertificateModal = ({
             </button>
 
             <button
-              onClick={handleShareLinkedIn}
-              className="px-2.5 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 font-poppins font-semibold text-xs transition-all cursor-pointer flex items-center space-x-1 active:scale-95"
+              onClick={() => setIsShareModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 font-poppins font-bold text-xs transition-all cursor-pointer flex items-center space-x-1 active:scale-95 shadow-xs"
             >
-              <span>💼 LinkedIn</span>
+              <span>🎓 Share Certificate</span>
             </button>
           </div>
 
@@ -549,6 +551,20 @@ export const CertificateModal = ({
         </div>
 
       </div>
+
+      {/* UNIVERSAL SOCIAL CERTIFICATE SHARE MODAL */}
+      <QuizShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        certificate={{
+          certificateId,
+          quizTitle,
+          recipientName,
+          score,
+          quizId: data.quizId || data.id
+        }}
+        score={score}
+      />
 
     </div>
   );

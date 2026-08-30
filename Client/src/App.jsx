@@ -158,6 +158,37 @@ export const App = () => {
     localStorage.setItem('quiz_platform_active_tab', activeTab);
   }, [activeTab]);
 
+  // Handle shared link deep-link query parameters (?quizId=... or ?quiz=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetQuizId = urlParams.get('quizId') || urlParams.get('quiz');
+    const targetRef = urlParams.get('ref');
+
+    if (targetRef) {
+      try {
+        localStorage.setItem('quiz_platform_referrer_id', targetRef);
+      } catch {
+        // ignore storage write error
+      }
+    }
+
+    if (targetQuizId) {
+      apiGetQuizzes()
+        .then((res) => {
+          if (res && res.success !== false && Array.isArray(res.quizzes)) {
+            const found = res.quizzes.find((q) => String(q._id || q.id) === String(targetQuizId));
+            if (found) {
+              setSelectedQuiz(found);
+              setActiveTab('quiz');
+              addToast(`🚀 Loaded shared quiz: "${found.title}"`, 'success');
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [addToast]);
+
   useEffect(() => {
     if (selectedQuiz) {
       localStorage.setItem('quiz_platform_selected_quiz', JSON.stringify(selectedQuiz));

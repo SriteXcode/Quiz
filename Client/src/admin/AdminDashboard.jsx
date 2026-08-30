@@ -43,6 +43,7 @@ import {
   STANDARD_TIME_OPTIONS
 } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
+import ImageUploadDropzone from '../components/ImageUploadDropzone';
 
 const generateTempId = () => 'temp_' + String(Date.now());
 
@@ -200,6 +201,7 @@ export const AdminDashboard = () => {
 
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const touchStartTarget = useRef(null);
   const tabButtonRefs = useRef({});
 
   useEffect(() => {
@@ -212,9 +214,25 @@ export const AdminDashboard = () => {
     }
   }, [activeTab]);
 
+  const findScrollableParent = (el) => {
+    let current = el;
+    while (current && current !== document.body && current !== document.documentElement) {
+      if (current.scrollWidth > current.clientWidth + 5) {
+        const style = window.getComputedStyle(current);
+        const overflowX = style.getPropertyValue('overflow-x');
+        if (overflowX === 'auto' || overflowX === 'scroll' || current.classList.contains('overflow-x-auto')) {
+          return current;
+        }
+      }
+      current = current.parentElement;
+    }
+    return null;
+  };
+
   const handleTouchStart = (e) => {
     touchStartX.current = e.targetTouches[0].clientX;
     touchEndX.current = e.targetTouches[0].clientX;
+    touchStartTarget.current = e.target;
   };
 
   const handleTouchMove = (e) => {
@@ -227,6 +245,32 @@ export const AdminDashboard = () => {
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
 
+    // Table Horizontal Scroll Disambiguation:
+    // If the touch originated inside a scrollable table or container, only permit tab switch
+    // if user has reached the edge of the scroll container!
+    if (touchStartTarget.current) {
+      const scrollParent = findScrollableParent(touchStartTarget.current);
+      if (scrollParent) {
+        const { scrollLeft, clientWidth, scrollWidth } = scrollParent;
+        const isAtRightEnd = scrollLeft + clientWidth >= scrollWidth - 10;
+        const isAtLeftStart = scrollLeft <= 10;
+
+        if (isLeftSwipe && !isAtRightEnd) {
+          touchStartX.current = 0;
+          touchEndX.current = 0;
+          touchStartTarget.current = null;
+          return; // Let user scroll table columns to the right, do not switch tab!
+        }
+
+        if (isRightSwipe && !isAtLeftStart) {
+          touchStartX.current = 0;
+          touchEndX.current = 0;
+          touchStartTarget.current = null;
+          return; // Let user scroll table columns to the left, do not switch tab!
+        }
+      }
+    }
+
     if (isLeftSwipe && activeTabIndex < ADMIN_TAB_KEYS.length - 1) {
       setActiveTab(ADMIN_TAB_KEYS[activeTabIndex + 1]);
     } else if (isRightSwipe && activeTabIndex > 0) {
@@ -235,6 +279,7 @@ export const AdminDashboard = () => {
 
     touchStartX.current = 0;
     touchEndX.current = 0;
+    touchStartTarget.current = null;
   };
 
   // Contact Messages & Inquiries State
@@ -486,6 +531,8 @@ export const AdminDashboard = () => {
     mcqSubtype: 'quick',
     timerType: 'per_question_general',
     generalQuestionTimerSeconds: 15,
+    posterUrl: '',
+    languageLogoUrl: '',
     category: 'Web Dev',
     techStack: 'JavaScript, React, Node.js',
     durationMinutes: 60,
@@ -839,6 +886,8 @@ You are building a high-frequency financial settlement engine. Given an array of
       mcqSubtype: 'quick',
       timerType: 'per_question_general',
       generalQuestionTimerSeconds: 15,
+      posterUrl: '',
+      languageLogoUrl: '',
       category: 'Web Dev',
       isPaid: false,
       price: 0,
@@ -921,6 +970,8 @@ You are building a high-frequency financial settlement engine. Given an array of
       mcqSubtype: quiz.mcqSubtype || 'quick',
       timerType: quiz.timerType || 'per_question_general',
       generalQuestionTimerSeconds: quiz.generalQuestionTimerSeconds || 15,
+      posterUrl: quiz.posterUrl || '',
+      languageLogoUrl: quiz.languageLogoUrl || '',
       category: quiz.category || 'Web Dev',
       isPaid: Boolean(quiz.isPaid),
       price: quiz.price || 0,
@@ -1113,6 +1164,11 @@ You are building a high-frequency financial settlement engine. Given an array of
 
   const handleSaveQuizSubmit = async (e) => {
     e.preventDefault();
+    if (!quizFormData.posterUrl?.trim() && !quizFormData.languageLogoUrl?.trim()) {
+      addToast('🖼️ Quiz Poster Image or Language Logo is required for quiz creation!', 'error');
+      setOpenQuizSection('category_tags');
+      return;
+    }
     try {
       const fullStartTime = `${quizFormData.startTime} ${quizFormData.startPeriod}`;
       const fullEndTime = `${quizFormData.endTime} ${quizFormData.endPeriod}`;
@@ -2529,6 +2585,40 @@ You are building a high-frequency financial settlement engine. Given an array of
                     className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
                   />
                 </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block flex items-center justify-between">
+                    <span>WhatsApp Community Invite Link</span>
+                    <span className="text-[10px] text-emerald-600 font-extrabold uppercase">Community</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://chat.whatsapp.com/..."
+                    value={siteSettings.contact?.socialLinks?.whatsappCommunity || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, whatsappCommunity: e.target.value } }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-[var(--text-main)] block flex items-center justify-between">
+                    <span>Telegram Community Channel Link</span>
+                    <span className="text-[10px] text-blue-600 font-extrabold uppercase">Telegram</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="https://t.me/..."
+                    value={siteSettings.contact?.socialLinks?.telegramCommunity || ''}
+                    onChange={(e) => setSiteSettings(prev => ({
+                      ...prev,
+                      contact: { ...prev.contact, socialLinks: { ...prev.contact?.socialLinks, telegramCommunity: e.target.value } }
+                    }))}
+                    className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end pt-4 border-t border-[var(--border-theme)]">
@@ -2597,7 +2687,11 @@ You are building a high-frequency financial settlement engine. Given an array of
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm">
-                            {partner.logoUrl || '⚖️'}
+                            {typeof partner.logoUrl === 'string' && (partner.logoUrl.startsWith('http') || partner.logoUrl.startsWith('data:')) ? (
+                              <img src={partner.logoUrl} alt={partner.name} className="w-9 h-9 object-contain" />
+                            ) : (
+                              partner.logoUrl || '⚖️'
+                            )}
                           </div>
                           <div>
                             <h4 className="font-poppins font-bold text-sm text-[var(--text-main)] line-clamp-1">
@@ -3430,6 +3524,37 @@ You are building a high-frequency financial settlement engine. Given an array of
                             value={quizFormData.techStack}
                             onChange={(e) => setQuizFormData({ ...quizFormData, techStack: e.target.value })}
                             className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none focus:border-[var(--color-primary-600)]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* QUIZ POSTER & LANGUAGE LOGO UPLOAD (REQUIRED AT LEAST 1) */}
+                      <div className="p-4 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="block font-poppins font-bold text-xs text-[var(--text-main)] uppercase tracking-wider">
+                            🖼️ Quiz Media Assets (Poster or Language Logo Required) <span className="text-rose-500 font-extrabold">*</span>
+                          </label>
+                          <span className="text-[10px] font-poppins font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30">
+                            At least 1 required
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <ImageUploadDropzone
+                            label="Quiz Poster / Banner Image"
+                            value={quizFormData.posterUrl}
+                            onChange={(url) => setQuizFormData({ ...quizFormData, posterUrl: url })}
+                            placeholder="Drag & drop poster file or paste image URL..."
+                            helpText="Banner image displayed on Quiz Detail page"
+                            aspectRatio="banner"
+                          />
+                          <ImageUploadDropzone
+                            label="Language / Tech Logo"
+                            value={quizFormData.languageLogoUrl}
+                            onChange={(url) => setQuizFormData({ ...quizFormData, languageLogoUrl: url })}
+                            placeholder="Drag & drop logo file or paste logo URL..."
+                            helpText="Logo image displayed alongside quiz badges"
+                            aspectRatio="square"
                           />
                         </div>
                       </div>
@@ -4784,14 +4909,13 @@ You are building a high-frequency financial settlement engine. Given an array of
                   </select>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="font-bold text-[var(--text-main)] block">Badge Icon / Logo</label>
-                  <input
-                    type="text"
-                    placeholder="⚖️ or 🎓 or image URL"
+                <div className="space-y-1 col-span-2">
+                  <ImageUploadDropzone
+                    label="Partner Logo / Badge Image"
                     value={partnerFormData.logoUrl}
-                    onChange={(e) => setPartnerFormData({ ...partnerFormData, logoUrl: e.target.value })}
-                    className="w-full p-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:outline-none"
+                    onChange={(url) => setPartnerFormData({ ...partnerFormData, logoUrl: url })}
+                    placeholder="Drag & drop partner logo or paste URL / emoji..."
+                    helpText="Upload logo file to Cloudinary or paste direct URL"
                   />
                 </div>
               </div>

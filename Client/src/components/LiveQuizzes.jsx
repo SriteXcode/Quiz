@@ -139,6 +139,9 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                   <div>
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center space-x-1.5">
+                        {quiz.languageLogoUrl && (
+                          <img src={quiz.languageLogoUrl} alt={quiz.title} className="w-5 h-5 object-contain rounded shrink-0" />
+                        )}
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold bg-[var(--color-primary-50)] text-[var(--color-primary-700)] dark:bg-blue-950 dark:text-blue-300">
                           {quiz.category || 'Web Dev'}
                         </span>
@@ -173,6 +176,12 @@ export const LiveQuizzes = ({ isLoading: propLoading, onSelectQuiz, onViewAll })
                         </span>
                       )}
                     </div>
+
+                    {quiz.posterUrl && (
+                      <div className="w-full h-24 mb-2.5 rounded-xl overflow-hidden bg-[var(--bg-main)] border border-[var(--border-theme)] shrink-0">
+                        <img src={quiz.posterUrl} alt={quiz.title} className="w-full h-full object-cover" />
+                      </div>
+                    )}
 
                     <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors line-clamp-2 leading-snug mb-2">
                       {quiz.title}

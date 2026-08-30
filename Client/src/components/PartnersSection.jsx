@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+
 import Skeleton from './Skeleton';
 import { apiGetPublicPartners } from '../services/api';
 
@@ -270,10 +271,9 @@ export const PartnersSection = () => {
     }, 4000);
   };
 
-  const handlePartnerClick = (partner) => {
-    if (isDraggingRef.current) return;
+  const handlePartnerClick = useCallback((partner) => {
     setSelectedPartner(partner);
-  };
+  }, []);
 
   const rawList = partnersList.length > 0 ? partnersList : DEFAULT_PARTNERS;
 
@@ -361,8 +361,12 @@ export const PartnersSection = () => {
                 className="w-72 sm:w-80 shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-xl hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between space-y-3 select-none group/card active:scale-95"
               >
                 <div>
-                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm mb-3 group-hover/card:scale-110 transition-transform">
-                    {partner.logoUrl || partner.icon || '⚖️'}
+                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm mb-3 group-hover/card:scale-110 transition-transform overflow-hidden">
+                    {typeof (partner.logoUrl || partner.icon) === 'string' && ((partner.logoUrl || partner.icon).startsWith('http') || (partner.logoUrl || partner.icon).startsWith('data:')) ? (
+                      <img src={partner.logoUrl || partner.icon} alt={partner.name} className="w-9 h-9 object-contain" />
+                    ) : (
+                      partner.logoUrl || partner.icon || '⚖️'
+                    )}
                   </div>
                   <div className="flex items-center justify-between gap-1 mb-1">
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-900 dark:text-amber-200 font-bold inline-block">

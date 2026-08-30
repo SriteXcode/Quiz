@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import { apiGetQuizLeaderboard, apiCreatePaymentOrder, apiVerifyPayment, apiEnrollInQuiz } from '../services/api';
+import QuizShareModal from '../components/QuizShareModal';
 
 export const QuizDetailSkeleton = () => {
   return (
@@ -100,6 +101,7 @@ Rules & Guidelines:
   const isDiscounted = isPast && quiz?.isPaid && originalPrice > 0;
   const isPaid = Boolean(quiz?.isPaid && originalPrice > 0);
   const price = effectivePrice;
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const quizId = quiz?._id || quiz?.id;
   const isAdmin = Boolean(user && user.role === 'admin');
 
@@ -416,12 +418,21 @@ Rules & Guidelines:
       
       {/* 1. TOP SUBHEADER ROW: ← Back to Quizzes (Left) & {Quiz status} (Right) */}
       <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-4 flex-wrap gap-2">
-        <button
-          onClick={handleBack}
-          className="px-4 py-2 rounded-xl border-2 border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-[var(--color-primary-400)] transition-all font-poppins font-bold text-xs sm:text-sm cursor-pointer active:scale-95 flex items-center space-x-2 shadow-xs"
-        >
-          <span>← Back to Quizzes</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleBack}
+            className="px-4 py-2 rounded-xl border-2 border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] hover:border-[var(--color-primary-400)] transition-all font-poppins font-bold text-xs sm:text-sm cursor-pointer active:scale-95 flex items-center space-x-2 shadow-xs"
+          >
+            <span>← Back to Quizzes</span>
+          </button>
+
+          <button
+            onClick={() => setIsShareModalOpen(true)}
+            className="px-4 py-2 rounded-xl border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-blue-950/60 text-[var(--color-primary-700)] dark:text-blue-300 hover:bg-[var(--color-primary-100)] transition-all font-poppins font-bold text-xs sm:text-sm cursor-pointer active:scale-95 flex items-center space-x-1.5 shadow-xs"
+          >
+            <span>🔗 Share Quiz</span>
+          </button>
+        </div>
 
         {/* Exam Status Badge */}
         <span className={`px-3 py-1 rounded-xl text-xs font-poppins font-bold uppercase tracking-wide border ${
@@ -441,8 +452,8 @@ Rules & Guidelines:
         {/* Left: Quiz poster / logo */}
         <div className="shrink-0 flex flex-col items-center space-y-1.5">
           <div className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] flex flex-col items-center justify-center p-2 sm:p-4 text-center shadow-inner relative overflow-hidden shrink-0 group">
-            {quiz?.coverImage ? (
-              <img src={quiz.coverImage} alt={title} className="w-full h-full object-cover rounded-xl" />
+            {quiz?.posterUrl || quiz?.languageLogoUrl || quiz?.coverImage ? (
+              <img src={quiz.posterUrl || quiz.languageLogoUrl || quiz.coverImage} alt={title} className="w-full h-full object-contain p-1 rounded-xl" />
             ) : (
               <div className={`w-full h-full rounded-xl bg-gradient-to-br ${techLogoInfo.bg} text-white flex flex-col items-center justify-center p-2 shadow-sm space-y-1`}>
                 <span className="text-2xl sm:text-4xl">{techLogoInfo.symbol}</span>
@@ -1136,6 +1147,12 @@ Rules & Guidelines:
         </div>
       )}
 
+      {/* 🚀 UNIVERSAL SOCIAL QUIZ SHARE MODAL */}
+      <QuizShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        quiz={quiz}
+      />
     </div>
   );
 };

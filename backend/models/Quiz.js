@@ -240,6 +240,14 @@ const quizSchema = new mongoose.Schema(
       enum: ['running', 'upcoming', 'past'],
       default: 'upcoming'
     },
+    posterUrl: {
+      type: String,
+      default: ''
+    },
+    languageLogoUrl: {
+      type: String,
+      default: ''
+    },
     quickDetails: {
       type: String,
       default: ''

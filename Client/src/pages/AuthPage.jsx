@@ -183,12 +183,12 @@ export const AuthPage = ({ isOpen = true, onClose, initialMode = 'signup', isLoa
 
             {/* Circular Avatar / App Icon Badge */}
             <div className="flex flex-col items-center justify-center mb-2 shrink-0">
-              <div className="w-12 h-12 rounded-full border-2 border-[var(--color-primary-300)] bg-[var(--color-primary-50)] dark:bg-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
-                {mode === 'signup' ? (
-                  <Zap className="w-5 h-5 text-[var(--color-primary-600)]" />
-                ) : (
-                  <User className="w-5 h-5 text-[var(--color-primary-600)]" />
-                )}
+              <div className="w-12 h-12 rounded-2xl border border-[var(--border-theme)] bg-[var(--bg-main)] flex items-center justify-center p-1.5 shadow-sm">
+                <img
+                  src="https://res.cloudinary.com/dtjkpcuy9/image/upload/v1788088347/quiz_platform_assets/brainarena_logo_transparent.png"
+                  alt="brainArena Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
             </div>
 

@@ -44,7 +44,7 @@ const quizSubmissionSchema = new mongoose.Schema(
     },
     userAnswers: {
       type: Map,
-      of: Number,
+      of: mongoose.Schema.Types.Mixed,
       default: {}
     },
     isFirstAttempt: {

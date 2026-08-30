@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import CertificateModal from '../components/CertificateModal';
 import ImageAdjustModal from '../components/ImageAdjustModal';
-import { apiGetUserCertificates, apiUpdateProfile, apiGetUserProfileStats } from '../services/api';
+import { apiGetUserCertificates, apiUpdateProfile, apiGetUserProfileStats, apiVerifyUpiId } from '../services/api';
 
 // Custom SVG Icons for Social Links
 const GithubIcon = ({ className = "w-4 h-4" }) => (
@@ -138,6 +138,7 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     studentClass: '',
     fatherName: '',
     phone: '',
+    upiId: '',
     github: '',
     instagram: '',
     x: '',
@@ -436,6 +437,21 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     return Math.min(100, score);
   }, [editForm, user]);
 
+  const [isVerifyingUpi, setIsVerifyingUpi] = useState(false);
+
+  // Instant real-time draft synchronization as user edits profile
+  useEffect(() => {
+    if (!isEditModalOpen || !user) return;
+    const userId = user._id || user.id || 'guest';
+    const draftKey = `draft_user_profile_${userId}`;
+    try {
+      const { avatarFile: _file, avatarPreview: _prev, ...storableForm } = editForm;
+      localStorage.setItem(draftKey, JSON.stringify(storableForm));
+    } catch {
+      // quiet
+    }
+  }, [editForm, isEditModalOpen, user]);
+
   if (!user) {
     return (
       <div className="text-center py-20 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-xl">
@@ -448,23 +464,83 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
     );
   }
 
-  // Handle opening Edit Profile Modal with pre-filled data
+  // Handle opening Edit Profile Modal with pre-filled data & draft restoration
   const handleOpenEditModal = () => {
-    setEditForm({
+    const baseData = {
       name: user.name || '',
       dob: user.dob || '',
       school: user.school || '',
       studentClass: user.studentClass || '',
       fatherName: user.fatherName || '',
       phone: user.phone || '',
+      upiId: user.upiId || '',
+      isUpiVerified: user.isUpiVerified || false,
+      upiHolderName: user.upiHolderName || '',
       github: socialLinks.github || '',
       instagram: socialLinks.instagram || '',
       x: socialLinks.x || '',
       linkedin: socialLinks.linkedin || '',
       avatarFile: null,
       avatarPreview: user.avatarUrl || ''
-    });
+    };
+
+    // Auto-restore unsaved draft if present
+    const userId = user?._id || user?.id || 'guest';
+    const draftKey = `draft_user_profile_${userId}`;
+    try {
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          setEditForm({ ...baseData, ...parsed, avatarFile: null });
+          setIsEditModalOpen(true);
+          addToast('✨ Restored unsaved profile draft', 'info');
+          return;
+        }
+      }
+    } catch {
+      // quiet
+    }
+
+    setEditForm(baseData);
     setIsEditModalOpen(true);
+  };
+
+  const handleVerifyUpiId = async () => {
+    if (!editForm.upiId || !editForm.upiId.trim()) {
+      addToast('Please enter a UPI ID to verify (e.g. username@upi or 9876543210@paytm)', 'warning');
+      return;
+    }
+    const trimmed = editForm.upiId.trim();
+    const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+    if (!upiRegex.test(trimmed)) {
+      addToast('Invalid UPI ID format. Use standard handle format like name@okicici, phone@paytm, user@ybl.', 'error');
+      return;
+    }
+
+    setIsVerifyingUpi(true);
+    try {
+      const res = await apiVerifyUpiId(trimmed);
+      if (res && res.success !== false) {
+        setEditForm((prev) => ({
+          ...prev,
+          upiId: trimmed,
+          isUpiVerified: true,
+          upiHolderName: res.upiHolderName || user?.name || 'Verified Candidate',
+          vpaBankName: res.vpaBankName || ''
+        }));
+        if (updateUserData && res.user) {
+          updateUserData(res.user);
+        }
+        addToast(res.message || '✨ Automated Razorpay UPI Verification Successful!', 'success');
+      } else {
+        addToast(res?.message || 'UPI verification failed', 'error');
+      }
+    } catch (err) {
+      addToast(err.message || 'Error verifying UPI ID', 'error');
+    } finally {
+      setIsVerifyingUpi(false);
+    }
   };
 
   // Handle saving updated profile
@@ -495,12 +571,18 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
       formData.append('studentClass', editForm.studentClass.trim());
       formData.append('fatherName', editForm.fatherName.trim());
       formData.append('phone', editForm.phone.trim());
+      formData.append('upiId', editForm.upiId.trim());
 
       if (editForm.avatarFile) {
         formData.append('avatar', editForm.avatarFile);
       }
 
       const res = await apiUpdateProfile(formData);
+      try {
+        localStorage.removeItem(`draft_user_profile_${userId}`);
+      } catch {
+        // quiet
+      }
       if (res.success && res.user) {
         if (updateUserData) {
           updateUserData({ ...res.user, socialLinks: newSocials });
@@ -892,6 +974,40 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                 <div className="space-y-1">
                   <span className="text-[var(--text-muted)] font-semibold uppercase text-[10px] block">Phone Number</span>
                   <p className="font-bold text-[var(--text-main)] text-base">{user.phone || '8299821825'}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[var(--text-muted)] font-semibold uppercase text-[10px] block">💸 UPI ID (Prize Payouts)</span>
+                  {user.upiId ? (
+                    <div className="flex items-center space-x-2 flex-wrap gap-1">
+                      <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base flex items-center space-x-1 font-mono">
+                        <span>{user.isUpiVerified ? '⚡' : '⏳'}</span>
+                        <span>{user.upiId}</span>
+                      </p>
+                      {user.isUpiVerified ? (
+                        <span className="text-[9px] font-poppins font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 uppercase flex items-center space-x-1">
+                          <span>Razorpay Verified Payee</span>
+                          {user.upiHolderName && <span>({user.upiHolderName})</span>}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleOpenEditModal}
+                          className="text-[10px] font-poppins font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 cursor-pointer hover:underline"
+                        >
+                          Verify Now
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleOpenEditModal}
+                      className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center space-x-1"
+                    >
+                      <span>⚠️ No UPI ID Added - Click to Add</span>
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -1396,6 +1512,47 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                     placeholder="8299821825"
                     className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
                   />
+                </div>
+
+                <div className="space-y-1 col-span-1 sm:col-span-2">
+                  <label className="font-bold text-[var(--text-main)] block flex items-center justify-between">
+                    <span>💸 UPI ID (For Prize Rewards & Instant Payouts)</span>
+                    {user?.isUpiVerified || editForm.isUpiVerified ? (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-1">
+                        <span>⚡</span>
+                        <span>Razorpay Verified</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-amber-600 font-extrabold uppercase">Unverified</span>
+                    )}
+                  </label>
+
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={editForm.upiId}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditForm({ ...editForm, upiId: val, isUpiVerified: val === user?.upiId ? user?.isUpiVerified : false });
+                      }}
+                      placeholder="username@upi or 9876543210@paytm / @ybl"
+                      className="w-full p-2.5 pr-28 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleVerifyUpiId}
+                      disabled={isVerifyingUpi}
+                      className="absolute right-1 top-1 bottom-1 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold rounded-lg transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
+                    >
+                      {isVerifyingUpi ? 'Verifying...' : user?.isUpiVerified || editForm.isUpiVerified ? '✓ Re-verify' : 'Verify UPI'}
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] text-[var(--text-muted)] italic block">
+                    {(user?.isUpiVerified || editForm.isUpiVerified)
+                      ? `🟢 Live NPCI Active Payee: ${user?.upiHolderName || editForm.upiHolderName || user?.name || 'Verified Candidate'} ${user?.vpaBankName || editForm.vpaBankName ? `• ${user?.vpaBankName || editForm.vpaBankName}` : ''}`
+                      : 'Automated Razorpay NPCI Verification checks active VPA account status to guarantee instant payout delivery.'}
+                  </span>
                 </div>
               </div>
 
