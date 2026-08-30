@@ -976,34 +976,46 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                   <p className="font-bold text-[var(--text-main)] text-base">{user.phone || '8299821825'}</p>
                 </div>
 
-                <div className="space-y-1">
-                  <span className="text-[var(--text-muted)] font-semibold uppercase text-[10px] block">💸 UPI ID (Prize Payouts)</span>
+                <div className="space-y-1.5 p-3 rounded-2xl bg-[var(--bg-main)]/60 border border-[var(--border-theme)]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--text-muted)] font-bold uppercase text-[10px] tracking-wider flex items-center space-x-1">
+                      <span>💸 UPI ID (Prize Payouts)</span>
+                    </span>
+                    {user.isUpiVerified ? (
+                      <span className="text-[10px] font-poppins font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center space-x-1">
+                        <span>⚡</span>
+                        <span>Verified Account</span>
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-poppins font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                        Unverified
+                      </span>
+                    )}
+                  </div>
+
                   {user.upiId ? (
-                    <div className="flex items-center space-x-2 flex-wrap gap-1">
-                      <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base flex items-center space-x-1 font-mono">
-                        <span>{user.isUpiVerified ? '⚡' : '⏳'}</span>
-                        <span>{user.upiId}</span>
-                      </p>
-                      {user.isUpiVerified ? (
-                        <span className="text-[9px] font-poppins font-extrabold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 uppercase flex items-center space-x-1">
-                          <span>Razorpay Verified Payee</span>
-                          {user.upiHolderName && user.upiHolderName !== user.name && <span>({user.upiHolderName})</span>}
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleOpenEditModal}
-                          className="text-[10px] font-poppins font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 cursor-pointer hover:underline"
-                        >
-                          Verify Now
-                        </button>
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2 flex-wrap gap-1">
+                        <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm sm:text-base flex items-center space-x-1.5 font-mono">
+                          <span>{user.upiId}</span>
+                        </p>
+                        {user.vpaBankName && (
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-theme)]">
+                            {user.vpaBankName}
+                          </span>
+                        )}
+                      </div>
+                      {user.upiHolderName && user.upiHolderName !== user.name && (
+                        <p className="text-[11px] text-[var(--text-muted)] font-poppins font-medium">
+                          👤 Registered Payee: <strong className="text-[var(--text-main)]">{user.upiHolderName}</strong>
+                        </p>
                       )}
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={handleOpenEditModal}
-                      className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center space-x-1"
+                      className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer flex items-center space-x-1 pt-1"
                     >
                       <span>⚠️ No UPI ID Added - Click to Add</span>
                     </button>
@@ -1513,58 +1525,78 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                     className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-1 col-span-1 sm:col-span-2">
-                  <label className="font-bold text-[var(--text-main)] block flex items-center justify-between">
-                    <span>💸 UPI ID (For Prize Rewards & Instant Payouts)</span>
+              {/* UPI Payout Section Container (100% Full Width) */}
+              <div className="p-4 rounded-2xl bg-[var(--bg-main)]/50 border border-[var(--border-theme)] space-y-3 w-full">
+                <div className="flex items-center justify-between">
+                    <label className="font-extrabold text-[var(--text-main)] text-xs flex items-center space-x-1.5">
+                      <span>💸</span>
+                      <span>UPI ID & Bank Payout Details</span>
+                    </label>
                     {user?.isUpiVerified || editForm.isUpiVerified ? (
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-1">
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center space-x-1">
                         <span>⚡</span>
                         <span>Razorpay Verified</span>
                       </span>
                     ) : (
-                      <span className="text-[10px] text-amber-600 font-extrabold uppercase">Unverified</span>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+                        Pending Verification
+                      </span>
                     )}
-                  </label>
-
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-semibold text-[var(--text-muted)] flex items-center justify-between">
-                      <span>Bank Account Holder Name (Parent / Friend / Self)</span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">NPCI Payee Name</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.upiHolderName}
-                      onChange={(e) => setEditForm({ ...editForm, upiHolderName: e.target.value })}
-                      placeholder="e.g. Ramesh Kumar (Father's or Friend's Name)"
-                      className="w-full p-2.5 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-poppins font-medium"
-                    />
                   </div>
 
-                  <div className="relative flex items-center">
-                    <input
-                      type="text"
-                      value={editForm.upiId}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditForm({ ...editForm, upiId: val, isUpiVerified: val === user?.upiId ? user?.isUpiVerified : false });
-                      }}
-                      placeholder="username@upi or 9876543210@paytm / @ybl"
-                      className="w-full p-2.5 pr-28 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleVerifyUpiId}
-                      disabled={isVerifyingUpi}
-                      className="absolute right-1 top-1 bottom-1 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold rounded-lg transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm"
-                    >
-                      {isVerifyingUpi ? 'Verifying...' : user?.isUpiVerified || editForm.isUpiVerified ? '✓ Re-verify' : 'Verify UPI'}
-                    </button>
+                  <div className="space-y-3 w-full">
+                    {/* Input 1: Virtual Payment Address (100% Full Width) */}
+                    <div className="space-y-1 w-full">
+                      <label className="text-[11px] font-semibold text-[var(--text-muted)] block">
+                        Virtual Payment Address (UPI VPA Handle)
+                      </label>
+                      <div className="flex items-center space-x-2 w-full">
+                        <input
+                          type="text"
+                          value={editForm.upiId}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setEditForm({ ...editForm, upiId: val, isUpiVerified: val === user?.upiId ? user?.isUpiVerified : false });
+                          }}
+                          placeholder="username@upi or 9876543210@paytm / @ybl"
+                          className="flex-1 w-full p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyUpiId}
+                          disabled={isVerifyingUpi}
+                          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold rounded-xl transition-all cursor-pointer active:scale-95 disabled:opacity-50 shadow-sm shrink-0 whitespace-nowrap"
+                        >
+                          {isVerifyingUpi ? 'Verifying...' : user?.isUpiVerified || editForm.isUpiVerified ? '✓ Re-verify' : '⚡ Verify UPI'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Input 2: Bank Account Holder Name (100% Full Width) */}
+                    <div className="space-y-1 w-full">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <label className="font-semibold text-[var(--text-muted)]">
+                          Bank Account Holder Name (Self / Parent / Friend)
+                        </label>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">
+                          NPCI Payee Name
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={editForm.upiHolderName}
+                        onChange={(e) => setEditForm({ ...editForm, upiHolderName: e.target.value })}
+                        placeholder="e.g. Ramesh Kumar (Father's or Friend's Name)"
+                        className="w-full p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] text-xs text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-emerald-500 font-poppins font-medium shadow-sm"
+                      />
+                    </div>
                   </div>
 
                   {/* VERIFIED ACCOUNT HOLDER INFO BOX */}
                   {(user?.isUpiVerified || editForm.isUpiVerified) ? (
-                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1 text-xs animate-fadeIn">
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-1.5 text-xs animate-fadeIn">
                       <div className="flex items-center justify-between">
                         <span className="font-poppins font-bold text-emerald-700 dark:text-emerald-300 flex items-center space-x-1.5 text-[11px]">
                           <span>⚡</span>
@@ -1575,24 +1607,23 @@ export const ProfilePage = ({ onNavigateToQuiz, onNavigateHome, onNavigateAdmin 
                         </span>
                       </div>
 
-                      <div className="pt-1 font-poppins text-xs text-[var(--text-main)]">
-                        <span className="text-[var(--text-muted)] font-medium">Bank Account Holder Name: </span>
+                      <div className="font-poppins text-xs text-[var(--text-main)]">
+                        <span className="text-[var(--text-muted)] font-medium">Bank Account Holder: </span>
                         <span className="font-extrabold text-emerald-600 dark:text-emerald-400 underline decoration-emerald-500/50">
                           {editForm.upiHolderName || (user?.upiHolderName && user?.upiHolderName !== user?.name ? user?.upiHolderName : '') || 'Verified Bank Account Holder'}
                         </span>
                       </div>
 
-                      <p className="text-[10.5px] font-lato text-[var(--text-muted)] leading-tight pt-0.5 italic">
+                      <p className="text-[10.5px] font-lato text-[var(--text-muted)] leading-tight italic">
                         ℹ️ Note: Using a parent's or friend's UPI ID is supported. Cash rewards and prize money will be transferred directly to <strong>{editForm.upiHolderName || (user?.upiHolderName && user?.upiHolderName !== user?.name ? user?.upiHolderName : '') || 'this bank account'}</strong>.
                       </p>
                     </div>
                   ) : (
-                    <span className="text-[10px] text-[var(--text-muted)] italic block">
+                    <span className="text-[10px] text-[var(--text-muted)] italic block pt-0.5">
                       Automated Razorpay NPCI Verification checks active VPA account status to guarantee instant payout delivery.
                     </span>
                   )}
                 </div>
-              </div>
 
               {/* Social Media Links Section */}
               <div className="pt-2 border-t border-[var(--border-theme)] space-y-3">

@@ -93,9 +93,12 @@ $RECYCLE.BIN/
 *.temp
 
 # ==========================================
-# 📁 Local Scratch Scripts
+# 📁 Local Scratch & Assets
 # ==========================================
 scratch/
 */scratch/
 tmp/
 temp/
+assetsss/
+*/assetsss/
+

@@ -346,7 +346,7 @@ export const CertificateModal = ({
     }
   };
 
-  const handleShareLinkedIn = () => {
+  const _handleShareLinkedIn = () => {
     const summary = encodeURIComponent(`I am thrilled to announce that I scored ${score}% on the proctored ${quizTitle} assessment on brainArena! 🏆 Certificate ID: ${certificateId}`);
     const url = `https://www.linkedin.com/feed/?shareActive=true&text=${summary}`;
     window.open(url, '_blank', 'noopener,noreferrer');

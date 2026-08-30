@@ -37,7 +37,7 @@ export const shuffleQuestionOptions = (q) => {
 export const QuizExecutionPage = ({ quiz, _onFinish, onBack, onSelectQuiz, onViewAllQuizzes, isPractice = false }) => {
   const { user, isAdmin, isAuthenticated } = useAuth();
   const { addToast } = useToast();
-  const isUserAdmin = Boolean(user && (user.role === 'admin' || isAdmin));
+  const _isUserAdmin = Boolean(user && (user.role === 'admin' || isAdmin));
 
   const isCodeChallenge = quiz?.quizType === 'code';
   
@@ -569,7 +569,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
   // 2. Finish Quiz & Submit
   const finishQuiz = async () => {
-    if (isCompletedRef.current) return;
+    // eslint-disable-next-line react-hooks/immutability
     isCompletedRef.current = true;
     setIsQuizCompleted(true);
 
@@ -921,6 +921,7 @@ You are building a high-frequency financial settlement engine. Given an array of
   };
 
   const handleRestartAsPractice = () => {
+    // eslint-disable-next-line react-hooks/immutability
     isCompletedRef.current = false;
     setIsQuizCompleted(false);
     setCurrentQuestionIndex(0);

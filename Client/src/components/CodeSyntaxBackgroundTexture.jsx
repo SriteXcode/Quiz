@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 // Comprehensive Code Syntax, Language & OOPS Concept Pool
 const SYNTAX_ITEMS = [

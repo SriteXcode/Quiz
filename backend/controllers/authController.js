@@ -9,10 +9,10 @@ const isKeyValid = rawKeyId.startsWith('rzp_') && !rawKeyId.includes('YOUR_RAZOR
 const RAZORPAY_KEY_ID = isKeyValid ? rawKeyId : 'rzp_test_quiz_platform_2026';
 const RAZORPAY_KEY_SECRET = isKeyValid ? rawSecret : 'super_secret_razorpay_key_2026';
 
-let razorpayInstance = null;
+let _razorpayInstance = null;
 if (isKeyValid) {
   try {
-    razorpayInstance = new Razorpay({
+    _razorpayInstance = new Razorpay({
       key_id: RAZORPAY_KEY_ID,
       key_secret: RAZORPAY_KEY_SECRET
     });
@@ -294,7 +294,7 @@ const makeHttpsPost = (path, bodyObj) => {
         try {
           const parsed = JSON.parse(data);
           resolve(parsed);
-        } catch (e) {
+        } catch (_e) {
           resolve({ error: { message: 'Invalid JSON response', raw: data } });
         }
       });
@@ -373,10 +373,7 @@ const verifyUpiId = async (req, res) => {
     // Live Automated Razorpay NPCI VPA Lookup via Official REST API
     if (isKeyValid) {
       try {
-        console.log(`\n==================================================`);
-        console.log(`[RAZORPAY VPA LOOKUP REQUEST] -> VPA: "${trimmed}"`);
         const rzpRes = await validateVpaViaRazorpay(trimmed);
-        console.log(`[RAZORPAY VPA LOOKUP RESPONSE] -> Payload for "${trimmed}":`, JSON.stringify(rzpRes, null, 2));
 
         const isSuccess = rzpRes && !rzpRes.error && !rzpRes.message && (rzpRes.success === true || Boolean(rzpRes.customer_name));
 
@@ -390,20 +387,10 @@ const verifyUpiId = async (req, res) => {
                            rzpRes.entity?.name;
           if (liveName && typeof liveName === 'string' && liveName.trim()) {
             payeeName = liveName.trim();
-            console.log(`[RAZORPAY VPA EXTRACTED PAYEE] -> Account Holder Name: "${payeeName}"`);
-          } else {
-            console.log(`[RAZORPAY VPA NOTICE] -> VPA is active but customer_name was null/empty in payload.`);
           }
-        } else {
-          const errDetail = rzpRes?.error?.description || rzpRes?.message || 'Razorpay Test Key VPA validation notice';
-          console.warn(`[RAZORPAY VPA LOOKUP NOTICE] -> VPA: "${trimmed}", Razorpay Notice: ${errDetail}`);
-          console.log(`[RAZORPAY VPA LOOKUP FALLBACK] -> Standard NPCI handle verification active.`);
         }
-        console.log(`==================================================\n`);
-      } catch (rzpErr) {
-        const errDesc = rzpErr?.error?.description || rzpErr?.message || 'Razorpay lookup notice';
-        console.warn(`[RAZORPAY VPA LOOKUP ERROR] -> Exception for "${trimmed}":`, errDesc);
-        console.log(`==================================================\n`);
+      } catch (_rzpErr) {
+        // Fall back gracefully to PSP handle verification
       }
     }
 
@@ -418,7 +405,7 @@ const verifyUpiId = async (req, res) => {
       } else if (handlePrefix && !/^\d+$/.test(handlePrefix)) {
         // e.g. "ramesh.kumar" -> "Ramesh Kumar"
         const formatted = handlePrefix
-          .replace(/[._\-]/g, ' ')
+          .replace(/[._-]/g, ' ')
           .replace(/\b\w/g, (c) => c.toUpperCase());
         payeeName = `${formatted} (Bank Holder)`;
       } else if (customHolderName && customHolderName.trim()) {
