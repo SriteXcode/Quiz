@@ -989,100 +989,100 @@ You are building a high-frequency financial settlement engine. Given an array of
     const totalEarnedXP = isCodeChallenge ? 100 : baseXP + completionBonus + accuracyBonus;
 
     return (
-      <div className="max-w-4xl mx-auto py-6 px-3 sm:px-4 space-y-6 animate-fadeIn">
+      <div className="max-w-4xl mx-auto py-3 sm:py-4 px-3 sm:px-4 space-y-4 sm:space-y-5 animate-fadeIn">
         
         {/* ========================================================================= */}
         {/* 1. QUIZ RESULT SUMMARY CARD (MATCHING AFTERQUIZSUBMIYT.PNG TOP CONTAINER) */}
         {/* ========================================================================= */}
-        <div id="summary-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-xl space-y-6">
+        <div id="summary-section" className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xl space-y-4 sm:space-y-5">
           
           {/* HEADER: QUIZ LOGO + QuizName + Subtitle */}
-          <div className="flex items-center space-x-4">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--color-primary-600)] flex flex-col items-center justify-center text-center font-bold font-poppins shrink-0 shadow-sm p-1">
-              <span className="text-xl sm:text-2xl leading-none">🏆</span>
-              <span className="text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-tighter mt-0.5">QUIZ LOGO</span>
+          <div className="flex items-center space-x-3 sm:space-x-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--color-primary-600)] flex flex-col items-center justify-center text-center font-bold font-poppins shrink-0 shadow-sm p-1">
+              <span className="text-lg sm:text-xl leading-none">🏆</span>
+              <span className="text-[7px] sm:text-[8px] font-mono text-[var(--text-muted)] uppercase tracking-tighter mt-0.5">QUIZ LOGO</span>
             </div>
 
             <div className="space-y-0.5 min-w-0">
-              <h1 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] truncate">
+              <h1 className="text-lg sm:text-xl font-extrabold font-poppins text-[var(--text-main)] truncate">
                 {quiz?.title || 'QuizName'}
               </h1>
-              <p className="text-xs font-poppins font-medium text-[var(--text-muted)]">
+              <p className="text-[11px] sm:text-xs font-poppins font-medium text-[var(--text-muted)]">
                 Assessment Completed
               </p>
             </div>
           </div>
 
           {/* ROW 1: 3-CARD STATS GRID (Correct x, Incorrect y, Skipped z) */}
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-3 gap-2.5 sm:gap-3 text-center">
             {/* Correct x */}
-            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 space-y-1">
-              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-2.5 sm:p-3 space-y-0.5">
+              <div className="text-[11px] sm:text-xs font-poppins font-bold text-[var(--text-main)]">
                 Correct
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-emerald-500">
+              <div className="text-lg sm:text-xl font-extrabold font-poppins text-emerald-500">
                 {correctCount}
               </div>
             </div>
 
             {/* Incorrect y */}
-            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 space-y-1">
-              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-2.5 sm:p-3 space-y-0.5">
+              <div className="text-[11px] sm:text-xs font-poppins font-bold text-[var(--text-main)]">
                 Incorrect
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-rose-500">
+              <div className="text-lg sm:text-xl font-extrabold font-poppins text-rose-500">
                 {incorrectCount}
               </div>
             </div>
 
             {/* Skipped z */}
-            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 space-y-1">
-              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-2.5 sm:p-3 space-y-0.5">
+              <div className="text-[11px] sm:text-xs font-poppins font-bold text-[var(--text-main)]">
                 Skipped
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-slate-500 dark:text-slate-400">
+              <div className="text-lg sm:text-xl font-extrabold font-poppins text-slate-500 dark:text-slate-400">
                 {unattemptedCount}
               </div>
             </div>
           </div>
 
           {/* ROW 2: 2-CARD STATS GRID (Accuracy h, Total Score f) */}
-          <div className="grid grid-cols-2 gap-3 text-center">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 text-center">
             {/* Accuracy h */}
-            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-4 space-y-1">
-              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-2.5 sm:p-3 space-y-0.5">
+              <div className="text-[11px] sm:text-xs font-poppins font-bold text-[var(--text-main)]">
                 Accuracy
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--color-primary-600)]">
+              <div className="text-lg sm:text-xl font-extrabold font-poppins text-[var(--color-primary-600)]">
                 {accuracyPercentage}%
               </div>
             </div>
 
             {/* Total Score f */}
-            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-4 space-y-1">
-              <div className="text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)]">
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] rounded-2xl p-2.5 sm:p-3 space-y-0.5">
+              <div className="text-[11px] sm:text-xs font-poppins font-bold text-[var(--text-main)]">
                 Total Score
               </div>
-              <div className="text-xl sm:text-2xl font-extrabold font-poppins text-amber-500">
+              <div className="text-lg sm:text-xl font-extrabold font-poppins text-amber-500">
                 {overallExamScore}%
               </div>
             </div>
           </div>
 
           {/* ROW 3: ACTION BUTTONS (Share Score & Challenge Friends, Certificate, Practice Again) */}
-          <div className="space-y-3 pt-1">
+          <div className="space-y-2.5 pt-0.5">
             <button
               onClick={() => setIsShareModalOpen(true)}
-              className="w-full py-3.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs sm:text-sm shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30 transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+              className="w-full py-2.5 sm:py-3 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs sm:text-sm shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
             >
-              <span className="text-base">🏆</span>
+              <span className="text-sm sm:text-base">🏆</span>
               <span>Share Score & Challenge Friends</span>
             </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 onClick={() => setIsCertificateOpen(true)}
-                className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+                className="w-full py-2.5 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
               >
                 <span>🎓</span>
                 <span>Certificate</span>
@@ -1090,7 +1090,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
               <button
                 onClick={handleRestartAsPractice}
-                className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+                className="w-full py-2.5 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
               >
                 <span>🔁</span>
                 <span>Practice Again</span>
@@ -1098,20 +1098,19 @@ You are building a high-frequency financial settlement engine. Given an array of
             </div>
 
             {/* WHATSAPP COMMUNITY INVITE BANNER */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-lg space-y-3">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="flex items-center space-x-3 text-center sm:text-left">
-                  <span className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-xl shrink-0">
-                    <svg className="w-6 h-6 fill-emerald-600" viewBox="0 0 24 24">
+            <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-md space-y-2.5">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
+                <div className="flex items-center space-x-2.5 text-center sm:text-left">
+                  <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white flex items-center justify-center text-lg shrink-0">
+                    <svg className="w-5 h-5 fill-emerald-600" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.78 0-3.522-.479-5.042-1.385l-.362-.214-3.747.983.999-3.654-.236-.375a10.024 10.024 0 0 1-1.536-5.367c0-5.541 4.51-10.05 10.051-10.05 2.686 0 5.21 1.046 7.109 2.946a10.005 10.005 0 0 1 2.943 7.107c0 5.543-4.511 10.053-10.048 10.053m0-18.358c-4.577 0-8.303 3.726-8.303 8.305 0 1.579.444 3.12 1.286 4.455l.206.326-.757 2.766 2.831-.743.318.189a8.272 8.272 0 0 0 4.417 1.261c4.578 0 8.303-3.726 8.303-8.305 0-2.217-.863-4.301-2.435-5.871A8.254 8.254 0 0 0 12.051 3.484"/>
-                  </svg>
+                    </svg>
                   </span>
                   <div>
                     <h4 className="font-poppins font-extrabold text-xs sm:text-sm text-white flex items-center space-x-1.5 justify-center sm:justify-start">
                       <span>Join Official WhatsApp Community</span>
-                      {/* <span className="px-2 py-0.5 rounded-full bg-emerald-400/30 text-[9px] font-bold uppercase">Daily Alerts</span> */}
                     </h4>
-                    <p className="text-[11px] font-lato text-emerald-100 leading-tight mt-0.5">
+                    <p className="text-[10.5px] font-lato text-emerald-100 leading-tight mt-0.5">
                       Get daily quiz answers, contest schedules, cash reward alerts & winner lists!
                     </p>
                   </div>
@@ -1121,9 +1120,9 @@ You are building a high-frequency financial settlement engine. Given an array of
                   href="https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-poppins font-bold text-xs shadow-md transition-all cursor-pointer text-center shrink-0 flex items-center justify-center space-x-1.5 active:scale-95"
+                  className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-poppins font-bold text-xs shadow-sm transition-all cursor-pointer text-center shrink-0 flex items-center justify-center space-x-1.5 active:scale-95"
                 >
-                  <svg className="w-4 h-4 fill-emerald-600" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 fill-emerald-600" viewBox="0 0 24 24">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.461c-1.78 0-3.522-.479-5.042-1.385l-.362-.214-3.747.983.999-3.654-.236-.375a10.024 10.024 0 0 1-1.536-5.367c0-5.541 4.51-10.05 10.051-10.05 2.686 0 5.21 1.046 7.109 2.946a10.005 10.005 0 0 1 2.943 7.107c0 5.543-4.511 10.053-10.048 10.053m0-18.358c-4.577 0-8.303 3.726-8.303 8.305 0 1.579.444 3.12 1.286 4.455l.206.326-.757 2.766 2.831-.743.318.189a8.272 8.272 0 0 0 4.417 1.261c4.578 0 8.303-3.726 8.303-8.305 0-2.217-.863-4.301-2.435-5.871A8.254 8.254 0 0 0 12.051 3.484"/>
                   </svg>
                   <span>Join Group →</span>
@@ -2287,42 +2286,42 @@ You are building a high-frequency financial settlement engine. Given an array of
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   return (
-    <div className="max-w-4xl mx-auto py-3 px-3 sm:px-4 space-y-4 animate-fadeIn">
+    <div className="max-w-7xl mx-auto py-1.5 sm:py-2 px-2.5 sm:px-4 space-y-2.5 animate-fadeIn">
       
       {/* ========================================================================= */}
-      {/* 1. STICKY TOP SUB-HEADER BAR (MATCHING QUIZLAYOUT.PNG TOP ROW) */}
+      {/* 1. STICKY TOP SUB-HEADER BAR FOR MOBILE / TABLET ONLY (< lg BREAKPOINT) */}
       {/* ========================================================================= */}
-      <div className="sticky top-14 sm:top-16 z-30 bg-[var(--bg-main)]/95 backdrop-blur-md py-1 transition-all">
-        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-3 sm:p-4 flex items-center justify-between shadow-md gap-3">
+      <div className="lg:hidden sticky top-14 sm:top-16 z-30 bg-[var(--bg-main)]/95 backdrop-blur-md py-0.5 transition-all">
+        <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-xl sm:rounded-2xl p-2 sm:p-2.5 flex items-center justify-between shadow-md gap-2">
           
-          {/* LEFT: BACK ARROW + EXAM TITLE (ExamName) */}
-          <div className="flex items-center space-x-3 min-w-0">
+          {/* LEFT: BACK ARROW + EXAM TITLE */}
+          <div className="flex items-center space-x-2 min-w-0">
             <button
               onClick={handleExitClick}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-main)] font-bold text-base flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-xs"
+              className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-main)] font-bold text-xs sm:text-sm flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-xs"
               title="Exit Assessment"
             >
               <span>←</span>
             </button>
 
             <div className="min-w-0">
-              <h2 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] truncate leading-tight">
+              <h2 className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] truncate leading-tight">
                 {quiz?.title || 'ExamName'}
               </h2>
-              <span className="text-[10px] font-poppins text-[var(--text-muted)] hidden sm:inline">
+              <span className="text-[9px] sm:text-[9.5px] font-poppins text-[var(--text-muted)] hidden sm:inline">
                 Active Assessment
               </span>
             </div>
           </div>
 
           {/* RIGHT: CIRCULAR TIMER + FINISH BUTTON */}
-          <div className="flex items-center space-x-2.5 shrink-0">
+          <div className="flex items-center space-x-1.5 shrink-0">
             {isPerQuestionTiming ? (
-              <div className="w-10 h-10 rounded-full bg-amber-500 text-white font-mono font-extrabold text-xs flex items-center justify-center shadow-md animate-pulse shrink-0 border-2 border-amber-300">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-amber-500 text-white font-mono font-extrabold text-[11px] sm:text-xs flex items-center justify-center shadow-md animate-pulse shrink-0 border-2 border-amber-300">
                 {questionTimer}s
               </div>
             ) : (
-              <div className="px-3 py-1.5 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] font-mono font-bold text-xs text-[var(--color-primary-600)] shrink-0 flex items-center space-x-1 shadow-xs">
+              <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full bg-[var(--bg-main)] border border-[var(--border-theme)] font-mono font-bold text-[11px] sm:text-xs text-[var(--color-primary-600)] shrink-0 flex items-center space-x-1 shadow-xs">
                 <span>⏱️</span>
                 <span>{formatTime(totalTimerSeconds)}</span>
               </div>
@@ -2330,7 +2329,7 @@ You are building a high-frequency financial settlement engine. Given an array of
 
             <button
               onClick={handleFinishClick}
-              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs sm:text-sm cursor-pointer shadow-md transition-all active:scale-95 shrink-0"
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs cursor-pointer shadow-md transition-all active:scale-95 shrink-0"
             >
               Finish
             </button>
@@ -2340,125 +2339,260 @@ You are building a high-frequency financial settlement engine. Given an array of
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. QUESTION CARD BODY (MATCHING QUIZLAYOUT.PNG MIDDLE CARD) */}
+      {/* 2. TWO-COLUMN MAIN WORKSPACE (LEFT: QnA, RIGHT: QUIZ DETAILS, TIMER & GRID) */}
       {/* ========================================================================= */}
-      <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 sm:p-8 shadow-md space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 sm:gap-4 items-start">
         
-        {/* CARD TOP HEADER: Question no.1 & XP Badge */}
-        <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-3 text-xs font-poppins">
-          <h3 className="font-extrabold text-sm sm:text-base text-[var(--text-main)]">
-            Question no.{currentQuestionIndex + 1}
-          </h3>
-          <span className="text-[11px] font-semibold text-[var(--text-muted)] bg-[var(--bg-main)] px-2.5 py-1 rounded-full border border-[var(--border-theme)]">
-            Single choice (+10 XP)
-          </span>
+        {/* LEFT COLUMN: QUESTION & OPTIONS (8 COLS ON DESKTOP) */}
+        <div className="lg:col-span-8 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-xl sm:rounded-2xl lg:rounded-3xl p-3 sm:p-4 lg:p-5 shadow-sm space-y-2.5 sm:space-y-3">
+          
+          {/* CARD TOP HEADER: Question no.1 & XP Badge */}
+          <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2 text-[11px] sm:text-xs font-poppins">
+            <h3 className="font-extrabold text-xs sm:text-sm text-[var(--text-main)]">
+              Question no.{currentQuestionIndex + 1} of {questions.length}
+            </h3>
+            <span className="text-[9.5px] sm:text-[10px] font-semibold text-[var(--text-muted)] bg-[var(--bg-main)] px-2 py-0.5 rounded-full border border-[var(--border-theme)]">
+              Single choice (+10 XP)
+            </span>
+          </div>
+
+          {/* QUESTION TEXT */}
+          <h4 className="font-poppins font-semibold text-xs sm:text-sm lg:text-[14.5px] text-[var(--text-main)] leading-snug">
+            {currentQ?.questionText}
+          </h4>
+
+          {/* CODE SNIPPET BOX (WHEN PRESENT) */}
+          {(currentQ?.questionType === 'pattern' || currentQ?.codeSnippet) && (
+            <div className="rounded-xl border border-[var(--border-theme)] bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs animate-fadeIn relative">
+              <div className="bg-slate-900 px-2.5 py-1 border-b border-slate-800 flex items-center justify-between text-[9.5px] sm:text-[10px] font-poppins">
+                <span className="px-1.5 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold">
+                  Code Snippet
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[9px] uppercase font-bold">
+                  {currentQ?.language || 'language'}
+                </span>
+              </div>
+              <div className="p-2 sm:p-2.5 overflow-x-auto max-h-36 custom-scrollbar leading-relaxed">
+                <pre className="text-emerald-400 font-mono whitespace-pre text-[10.5px] sm:text-[11.5px]">{currentQ?.codeSnippet}</pre>
+              </div>
+            </div>
+          )}
+
+          {/* 4 ANSWER OPTIONS (A, B, C, D) */}
+          <div className="space-y-1.5 sm:space-y-2 pt-0.5">
+            {currentQ?.options?.map((option, optIdx) => {
+              const isSelected = userAnswers[currentQuestionIndex] === optIdx;
+
+              return (
+                <div
+                  key={optIdx}
+                  onClick={() => {
+                    setUserAnswers((prev) => {
+                      if (prev[currentQuestionIndex] === optIdx) {
+                        const updated = { ...prev };
+                        delete updated[currentQuestionIndex];
+                        return updated;
+                      }
+                      return { ...prev, [currentQuestionIndex]: optIdx };
+                    });
+                  }}
+                  className={`p-2 sm:p-2.5 lg:py-2 lg:px-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between select-none ${
+                    isSelected
+                      ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 dark:bg-blue-950/30 text-[var(--text-main)] font-bold shadow-2xs'
+                      : 'border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-300)] text-[var(--text-secondary)]'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 sm:space-x-2.5">
+                    <div
+                      className={`w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center font-poppins font-bold text-[11px] shrink-0 transition-all ${
+                        isSelected
+                          ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-600)] text-white shadow-2xs'
+                          : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-muted)]'
+                      }`}
+                    >
+                      {String.fromCharCode(65 + optIdx)}
+                    </div>
+                    <span className="font-lato text-xs sm:text-[13px] leading-snug">{option}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* NAVIGATION ACTION BUTTONS DIRECTLY INSIDE CARD */}
+          <div className="pt-2 sm:pt-2.5 border-t border-[var(--border-theme)] flex items-center justify-between gap-2">
+            <button
+              onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
+              disabled={currentQuestionIndex === 0 || isPerQuestionTiming}
+              className="px-3.5 py-1.5 sm:py-2 rounded-xl border-2 border-[var(--border-theme)] text-xs font-poppins font-bold text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] transition-all cursor-pointer shadow-2xs active:scale-95"
+            >
+              Previous Question
+            </button>
+
+            {isLastQuestion ? (
+              <button
+                onClick={handleFinishClick}
+                className="px-4.5 py-1.5 sm:py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                Submit Exam
+              </button>
+            ) : (
+              <button
+                onClick={handleNextQuestion}
+                className="px-4.5 py-1.5 sm:py-2 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                Next Question
+              </button>
+            )}
+          </div>
+
         </div>
 
-        {/* QUESTION TEXT */}
-        <h4 className="font-poppins font-semibold text-base sm:text-lg text-[var(--text-main)] leading-relaxed">
-          {currentQ?.questionText}
-        </h4>
+        {/* RIGHT COLUMN: QUIZ DETAILS, HEADER CONTROLS & QUESTION JUMP GRID (4 COLS ON DESKTOP) */}
+        <div className="lg:col-span-4 space-y-3">
+          
+          {/* QUIZ DETAILS & HEADER CONTROLS CARD */}
+          <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-xl sm:rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3">
+            
+            {/* ROW 1: BACK ARROW + EXAM TITLE + CATEGORY BADGE */}
+            <div className="flex items-center justify-between border-b border-[var(--border-theme)] pb-2.5 gap-2">
+              <div className="flex items-center space-x-2 min-w-0">
+                <button
+                  onClick={handleExitClick}
+                  className="w-7.5 h-7.5 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] hover:bg-slate-200 dark:hover:bg-slate-800 text-[var(--text-main)] font-bold text-xs flex items-center justify-center cursor-pointer transition-all active:scale-95 shrink-0 shadow-2xs"
+                  title="Exit Assessment"
+                >
+                  <span>←</span>
+                </button>
 
-        {/* CODE SNIPPET BOX (WHEN PRESENT) */}
-        {(currentQ?.questionType === 'pattern' || currentQ?.codeSnippet) && (
-          <div className="rounded-2xl border border-[var(--border-theme)] bg-slate-950 text-slate-100 overflow-hidden shadow-inner font-mono text-xs animate-fadeIn relative">
-            <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center justify-between text-[11px] font-poppins">
-              <span className="px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-bold">
-                Code Snippet
-              </span>
-              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] uppercase font-bold">
-                {currentQ?.language || 'language'}
-              </span>
-            </div>
-            <div className="p-4 overflow-x-auto custom-scrollbar leading-relaxed">
-              <pre className="text-emerald-400 font-mono whitespace-pre text-xs">{currentQ?.codeSnippet}</pre>
-            </div>
-          </div>
-        )}
-
-        {/* 4 ANSWER OPTIONS (A, B, C, D) */}
-        <div className="space-y-3 pt-1">
-          {currentQ?.options?.map((option, optIdx) => {
-            const isSelected = userAnswers[currentQuestionIndex] === optIdx;
-
-            return (
-              <div
-                key={optIdx}
-                onClick={() => {
-                  setUserAnswers((prev) => {
-                    if (prev[currentQuestionIndex] === optIdx) {
-                      const updated = { ...prev };
-                      delete updated[currentQuestionIndex];
-                      return updated;
-                    }
-                    return { ...prev, [currentQuestionIndex]: optIdx };
-                  });
-                }}
-                className={`p-3.5 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between select-none ${
-                  isSelected
-                    ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]/40 dark:bg-blue-950/30 text-[var(--text-main)] font-bold shadow-xs'
-                    : 'border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-300)] text-[var(--text-secondary)]'
-                }`}
-              >
-                <div className="flex items-center space-x-3.5">
-                  <div
-                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-poppins font-bold text-xs sm:text-sm shrink-0 transition-all ${
-                      isSelected
-                        ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-600)] text-white shadow-xs'
-                        : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-muted)]'
-                    }`}
-                  >
-                    {String.fromCharCode(65 + optIdx)}
-                  </div>
-                  <span className="font-lato text-xs sm:text-sm leading-snug">{option}</span>
+                <div className="min-w-0">
+                  <h3 className="font-poppins font-bold text-xs sm:text-sm text-[var(--text-main)] truncate leading-tight">
+                    {quiz?.title || 'ExamName'}
+                  </h3>
+                  <span className="text-[9px] font-poppins text-[var(--text-muted)] block">
+                    Active Assessment
+                  </span>
                 </div>
               </div>
-            );
-          })}
-        </div>
 
-        {/* NAVIGATION ACTION BUTTONS DIRECTLY INSIDE CARD */}
-        <div className="pt-4 border-t border-[var(--border-theme)] flex items-center justify-between gap-3">
-          <button
-            onClick={() => setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))}
-            disabled={currentQuestionIndex === 0 || isPerQuestionTiming}
-            className="px-5 py-2.5 rounded-2xl border-2 border-[var(--border-theme)] text-xs sm:text-sm font-poppins font-bold text-[var(--text-main)] disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[var(--bg-main)] transition-all cursor-pointer shadow-xs active:scale-95"
-          >
-            Previous Question
-          </button>
+              <span className="text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
+                {quiz?.category || 'General'}
+              </span>
+            </div>
 
-          {isLastQuestion ? (
-            <button
-              onClick={handleFinishClick}
-              className="px-6 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-poppins font-bold shadow-md transition-all cursor-pointer active:scale-95"
-            >
-              Submit Exam
-            </button>
-          ) : (
-            <button
-              onClick={handleNextQuestion}
-              className="px-6 py-2.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs sm:text-sm font-poppins font-bold shadow-md transition-all cursor-pointer active:scale-95"
-            >
-              Next Question
-            </button>
-          )}
+            {/* ROW 2: TIMER & FINISH BUTTON ROW (DESKTOP INTEGRATED) */}
+            <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-2.5 rounded-xl flex items-center justify-between gap-2">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xs">⏱️</span>
+                <span className="text-[11px] font-poppins font-semibold text-[var(--text-muted)]">Time Left:</span>
+              </div>
+
+              {isPerQuestionTiming ? (
+                <div className="px-2.5 py-1 rounded-full bg-amber-500 text-white font-mono font-extrabold text-xs shadow-xs animate-pulse border border-amber-300">
+                  {questionTimer}s
+                </div>
+              ) : (
+                <div className="px-2.5 py-1 rounded-full bg-[var(--bg-card)] border border-[var(--border-theme)] font-mono font-bold text-xs text-[var(--color-primary-600)] shadow-2xs">
+                  {formatTime(totalTimerSeconds)}
+                </div>
+              )}
+
+              <button
+                onClick={handleFinishClick}
+                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-xs shadow-2xs transition-all cursor-pointer active:scale-95 shrink-0"
+              >
+                Finish
+              </button>
+            </div>
+
+            {/* STATS PROGRESS SUMMARY */}
+            <div className="grid grid-cols-2 gap-2 text-center text-xs font-poppins">
+              <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-2 rounded-xl">
+                <div className="text-[9.5px] font-lato text-[var(--text-muted)] uppercase">Attempted</div>
+                <div className="text-xs sm:text-sm font-extrabold text-emerald-500">
+                  {Object.keys(userAnswers).length} / {questions.length}
+                </div>
+              </div>
+
+              <div className="bg-[var(--bg-main)] border border-[var(--border-theme)] p-2 rounded-xl">
+                <div className="text-[9.5px] font-lato text-[var(--text-muted)] uppercase">Unattempted</div>
+                <div className="text-xs sm:text-sm font-extrabold text-slate-500">
+                  {questions.length - Object.keys(userAnswers).length}
+                </div>
+              </div>
+            </div>
+
+            {/* ALL QUESTIONS GRID NAVIGATOR */}
+            <div className="space-y-1.5 pt-0.5">
+              <div className="flex items-center justify-between text-[10.5px] font-poppins font-bold text-[var(--text-main)]">
+                <span>Jump to Question:</span>
+                <span className="text-[9.5px] font-lato text-[var(--text-muted)]">
+                  Green = Answered
+                </span>
+              </div>
+
+              <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-4 gap-1.5 max-h-52 overflow-y-auto custom-scrollbar p-0.5">
+                {questions.map((_, i) => {
+                  const isAnswered = userAnswers[i] !== undefined && userAnswers[i] !== null;
+                  const isActive = currentQuestionIndex === i;
+
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => {
+                        if (isPerQuestionTiming) {
+                          setQuestionTimer(getQuestionInitialTime(i));
+                        }
+                        setCurrentQuestionIndex(i);
+                      }}
+                      className={`h-7.5 rounded-lg sm:rounded-xl font-poppins font-bold text-xs transition-all duration-150 flex items-center justify-center space-x-0.5 cursor-pointer ${
+                        isActive
+                          ? 'bg-[var(--color-primary-600)] text-white shadow-xs scale-105 border-2 border-[var(--color-primary-600)]'
+                          : isAnswered
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-2 border-emerald-500/40 hover:bg-emerald-500/25'
+                          : 'bg-[var(--bg-main)] text-[var(--text-secondary)] border-2 border-[var(--border-theme)] hover:border-[var(--color-primary-400)]'
+                      }`}
+                      title={`Jump to Question ${i + 1}${isAnswered ? ' (Answered)' : ''}`}
+                    >
+                      <span>Q{i + 1}</span>
+                      {isAnswered && <span className="text-[8.5px]">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SIDEBAR SUBMIT BUTTON */}
+            <div className="pt-1">
+              <button
+                onClick={handleFinishClick}
+                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-poppins font-bold text-xs shadow-sm transition-all cursor-pointer active:scale-95 flex items-center justify-center space-x-1.5"
+              >
+                <span>🏁</span>
+                <span>Finish & Submit Exam</span>
+              </button>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. STICKY BOTTOM GO TO : NAV BAR (MATCHING QUIZLAYOUT.PNG BOTTOM ROW) */}
+      {/* 3. STICKY BOTTOM JUMP BAR FOR MOBILE ONLY (< lg BREAKPOINT) */}
       {/* ========================================================================= */}
-      <div className="sticky bottom-3 z-30 transition-all mt-4">
-        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] py-2.5 px-4 rounded-2xl sm:rounded-3xl shadow-xl flex items-center gap-3 backdrop-blur-md">
+      <div className="lg:hidden sticky bottom-2 sm:bottom-3 z-30 transition-all mt-2.5 sm:mt-3">
+        <div className="bg-[var(--bg-card)] border-2 border-[var(--border-theme)] py-1.5 px-3 sm:py-2 sm:px-4 rounded-xl sm:rounded-2xl shadow-xl flex items-center gap-2.5 backdrop-blur-md">
           
           {/* GO TO : LABEL */}
-          <span className="font-poppins font-black text-xs sm:text-sm text-[var(--text-main)] uppercase tracking-wider shrink-0 select-none">
+          <span className="font-poppins font-black text-[10px] sm:text-xs text-[var(--text-main)] uppercase tracking-wider shrink-0 select-none">
             GO TO :
           </span>
 
           {/* HORIZONTAL JUMP BUTTONS (Q1, Q2, Q3...) WITH AUTO-SCROLL INTO VIEW */}
-          <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar scroll-smooth flex-1 py-0.5">
+          <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar scroll-smooth flex-1 py-0.5">
             {questions.map((_, i) => {
               const isAnswered = userAnswers[i] !== undefined && userAnswers[i] !== null;
               const isActive = currentQuestionIndex === i;
@@ -2474,7 +2608,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                     }
                     setCurrentQuestionIndex(i);
                   }}
-                  className={`min-w-[42px] h-9 px-3 rounded-xl font-poppins font-bold text-xs shrink-0 cursor-pointer transition-all duration-150 flex items-center justify-center space-x-1 ${
+                  className={`min-w-[36px] sm:min-w-[40px] h-7 sm:h-8 px-2.5 rounded-lg sm:rounded-xl font-poppins font-bold text-xs shrink-0 cursor-pointer transition-all duration-150 flex items-center justify-center space-x-1 ${
                     isActive
                       ? 'bg-[var(--color-primary-600)] text-white shadow-md scale-105 border-2 border-[var(--color-primary-600)]'
                       : isAnswered
@@ -2484,7 +2618,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                   title={`Jump to Question ${i + 1}${isAnswered ? ' (Answered)' : ''}`}
                 >
                   <span>Q{i + 1}</span>
-                  {isAnswered && <span className="text-[10px]">✓</span>}
+                  {isAnswered && <span className="text-[9px]">✓</span>}
                 </button>
               );
             })}
