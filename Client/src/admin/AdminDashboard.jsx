@@ -338,7 +338,9 @@ export const AdminDashboard = () => {
         twitter: 'https://twitter.com',
         github: 'https://github.com',
         linkedin: 'https://linkedin.com',
-        discord: 'https://discord.gg'
+        discord: 'https://discord.gg/AnJNehCT2',
+        whatsappCommunity: 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1',
+        telegramCommunity: 'https://t.me/braiiinarena'
       }
     }
   });
@@ -2593,7 +2595,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                   </label>
                   <input
                     type="text"
-                    placeholder="https://chat.whatsapp.com/..."
+                    placeholder="https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1"
                     value={siteSettings.contact?.socialLinks?.whatsappCommunity || ''}
                     onChange={(e) => setSiteSettings(prev => ({
                       ...prev,
@@ -2610,7 +2612,7 @@ You are building a high-frequency financial settlement engine. Given an array of
                   </label>
                   <input
                     type="text"
-                    placeholder="https://t.me/..."
+                    placeholder="https://t.me/braiiinarena"
                     value={siteSettings.contact?.socialLinks?.telegramCommunity || ''}
                     onChange={(e) => setSiteSettings(prev => ({
                       ...prev,

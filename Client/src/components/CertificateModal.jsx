@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useToast } from '../context/ToastContext';
 import QuizShareModal from './QuizShareModal';
+import CertificateStoryPoster from './CertificateStoryPoster';
 
 export const CertificateModal = ({
   isOpen,
@@ -11,6 +12,7 @@ export const CertificateModal = ({
   const { addToast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isStoryPosterOpen, setIsStoryPosterOpen] = useState(false);
 
   // Strictly use authenticated/registered user name - no custom editing
   const recipientName = data.userName || user?.name || (user?.email ? user.email.split('@')[0] : 'Distinguished Scholar');
@@ -140,9 +142,9 @@ export const CertificateModal = ({
       ctx.fillText('★ ★ ★  BRAINARENA GLOBAL CERTIFICATION  ★ ★ ★', width / 2, 230);
 
       ctx.fillStyle = theme.canvasText;
-      ctx.font = 'bold 92px "Cinzel", "Playfair Display", Georgia, serif';
-      ctx.letterSpacing = '4px';
-      ctx.fillText('CERTIFICATE OF MASTERY', width / 2, 360);
+      ctx.font = 'bold 80px "Cinzel", "Playfair Display", Georgia, serif';
+      ctx.letterSpacing = '2px';
+      ctx.fillText('CERTIFICATE OF PARTICIPATION', width / 2, 360);
 
       ctx.fillStyle = '#57534e';
       ctx.font = 'italic 34px "Playfair Display", Georgia, serif';
@@ -337,7 +339,7 @@ export const CertificateModal = ({
   };
 
   const handleCopyLink = () => {
-    const textToCopy = `🎓 Quiz Certificate of Mastery\nRecipient: ${recipientName}\nAssessment: ${quizTitle}\nScore: ${score}%\nVerification ID: ${certificateId}`;
+    const textToCopy = `🎓 Certificate of Participation\nRecipient: ${recipientName}\nAssessment: ${quizTitle}\nScore: ${score}%\nVerification ID: ${certificateId}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(textToCopy);
       addToast('📋 Verified Certificate details copied to clipboard!', 'success');
@@ -427,7 +429,7 @@ export const CertificateModal = ({
               </div>
 
               <h1 className="text-xs sm:text-base md:text-lg font-extrabold font-cinzel tracking-wider uppercase text-[#1c1917]">
-                Certificate of Mastery
+                Certificate of Participation
               </h1>
 
               <p className="text-[7.5px] sm:text-[9px] font-playfair italic opacity-85">
@@ -528,6 +530,13 @@ export const CertificateModal = ({
             >
               <span>🎓 Share Certificate</span>
             </button>
+
+            <button
+              onClick={() => setIsStoryPosterOpen(true)}
+              className="px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 font-poppins font-bold text-xs transition-all cursor-pointer flex items-center space-x-1 active:scale-95 shadow-xs"
+            >
+              <span>📱 Story Poster (9:16)</span>
+            </button>
           </div>
 
           {/* Download & Print Primary Actions */}
@@ -564,6 +573,22 @@ export const CertificateModal = ({
           quizId: data.quizId || data.id
         }}
         score={score}
+      />
+
+      {/* VERTICAL 9:16 SOCIAL MEDIA STORY POSTER MODAL */}
+      <CertificateStoryPoster
+        isOpen={isStoryPosterOpen}
+        onClose={() => setIsStoryPosterOpen(false)}
+        certificateData={{
+          certificateId,
+          quizTitle,
+          recipientName,
+          score,
+          accuracy,
+          earnedXP,
+          id: data.quizId || data.id
+        }}
+        user={user}
       />
 
     </div>

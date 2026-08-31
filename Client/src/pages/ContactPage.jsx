@@ -34,7 +34,9 @@ export const ContactPage = () => {
         twitter: 'https://twitter.com',
         github: 'https://github.com',
         linkedin: 'https://linkedin.com',
-        discord: 'https://discord.gg'
+        discord: 'https://discord.gg/AnJNehCT2',
+        whatsappCommunity: 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1',
+        telegramCommunity: 'https://t.me/braiiinarena'
       }
     }
   });
@@ -46,7 +48,15 @@ export const ContactPage = () => {
       try {
         const res = await apiGetSiteSettings();
         if (res.success && res.settings) {
-          setSiteSettings(res.settings);
+          const settings = res.settings;
+          if (settings.contact?.socialLinks) {
+            const s = settings.contact.socialLinks;
+            const norm = (val, base, full) => (!val || val === base ? full : val);
+            s.whatsappCommunity = norm(s.whatsappCommunity, 'https://chat.whatsapp.com', 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1');
+            s.telegramCommunity = norm(s.telegramCommunity, 'https://t.me', 'https://t.me/braiiinarena');
+            s.discord = norm(s.discord, 'https://discord.gg', 'https://discord.gg/AnJNehCT2');
+          }
+          setSiteSettings(settings);
         }
       } catch (err) {
         console.warn('[ContactPage Settings Error]: Using default fallback', err.message);
@@ -133,8 +143,8 @@ export const ContactPage = () => {
             {
               icon: '💬',
               title: 'Discord Community',
-              detail: contact.socialLinks?.discord ? 'Join Discord Server' : 'discord.gg/quizplatform',
-              link: contact.socialLinks?.discord || 'https://discord.gg',
+              detail: contact.socialLinks?.discord ? 'Join Discord Server' : 'discord.gg/AnJNehCT2',
+              link: contact.socialLinks?.discord || 'https://discord.gg/AnJNehCT2',
               sub: 'Connect with over 15k developers'
             }
           ].map((info, idx) => (
@@ -223,7 +233,7 @@ export const ContactPage = () => {
                 </a>
               )}
               <a
-                href={contact.socialLinks?.whatsappCommunity || 'https://chat.whatsapp.com'}
+                href={contact.socialLinks?.whatsappCommunity || 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1'}
                 target="_blank"
                 rel="noreferrer"
                 className="w-10 h-10 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center hover:scale-110 hover:border-emerald-500 transition-all shadow-xs"
@@ -234,7 +244,7 @@ export const ContactPage = () => {
                 </svg>
               </a>
               <a
-                href={contact.socialLinks?.telegramCommunity || 'https://t.me'}
+                href={contact.socialLinks?.telegramCommunity || 'https://t.me/braiiinarena'}
                 target="_blank"
                 rel="noreferrer"
                 className="w-10 h-10 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center hover:scale-110 hover:border-blue-500 transition-all shadow-xs"

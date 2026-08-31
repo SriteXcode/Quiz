@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import CertificateStoryPoster from './CertificateStoryPoster';
 
 // Official Social Platform SVG Brand Logos
 const WhatsAppIcon = ({ className = "w-6 h-6" }) => (
@@ -54,6 +55,13 @@ export const QuizShareModal = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [_copiedCaption, setCopiedCaption] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
+  const [isStoryPosterOpen, setIsStoryPosterOpen] = useState(false);
+
+  const handleOpenTargetWebsite = () => {
+    if (!shareUrl) return;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+    addToast('🚀 Opening active website link...', 'info');
+  };
 
   // Derive target quiz & certificate identifiers
   const isCertificateMode = Boolean(certificate);
@@ -83,7 +91,7 @@ export const QuizShareModal = ({
     
     if (isCertificateMode) {
       const scoreStr = !hideScore && displayScore !== null ? ` with a score of ${displayScore}%` : '';
-      return `🎓 I earned a Verified Certificate of Mastery on ${brandMention} for completing the "${quizTitle}" assessment${scoreStr}! 🏆 Verification ID: ${certId}\n\nCheck out my credential and challenge yourself:`;
+      return `🎓 I earned an Official Certificate of Participation on ${brandMention} for completing the "${quizTitle}" assessment${scoreStr}! 🏆 Verification ID: ${certId}\n\nCheck out my credential and challenge yourself:`;
     }
 
     if (displayScore !== null && !hideScore) {
@@ -341,29 +349,40 @@ export const QuizShareModal = ({
         </div>
 
         {/* ONE-CLICK COPY DIRECT QUIZ LINK & QR TOGGLE */}
-        <div className="flex items-center space-x-2 pt-2 border-t border-[var(--border-theme)]">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              readOnly
-              value={shareUrl}
-              className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] focus:outline-none"
-            />
+        <div className="flex flex-col space-y-2 pt-2 border-t border-[var(--border-theme)]">
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                readOnly
+                value={shareUrl}
+                className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] focus:outline-none"
+              />
+              <button
+                onClick={handleCopyLink}
+                className="absolute right-1 top-1 bottom-1 px-3 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold rounded-lg transition-all cursor-pointer"
+              >
+                {copiedLink ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
+
             <button
-              onClick={handleCopyLink}
-              className="absolute right-1 top-1 bottom-1 px-3 bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white text-xs font-poppins font-bold rounded-lg transition-all cursor-pointer"
+              type="button"
+              onClick={() => setShowQrCode(!showQrCode)}
+              className="p-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] hover:bg-[var(--bg-card)] text-xs font-poppins font-bold text-[var(--text-main)] cursor-pointer shrink-0"
+              title="Toggle QR Code"
             >
-              {copiedLink ? '✓ Copied' : 'Copy'}
+              {showQrCode ? '✕ QR' : '📷 QR Code'}
             </button>
           </div>
 
+          {/* 📱 9:16 SOCIAL MEDIA STORY POSTER BUTTON */}
           <button
             type="button"
-            onClick={() => setShowQrCode(!showQrCode)}
-            className="p-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] hover:bg-[var(--bg-card)] text-xs font-poppins font-bold text-[var(--text-main)] cursor-pointer shrink-0"
-            title="Toggle QR Code"
+            onClick={() => setIsStoryPosterOpen(true)}
+            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-poppins font-extrabold text-xs shadow-sm transition-all cursor-pointer flex items-center justify-center space-x-2 active:scale-98"
           >
-            {showQrCode ? '✕ QR' : '📷 QR Code'}
+            <span>📱 Generate & Customize 9:16 Story Poster (PNG)</span>
           </button>
         </div>
 
@@ -386,7 +405,7 @@ export const QuizShareModal = ({
             </div>
           </div>
           <a
-            href="https://chat.whatsapp.com"
+            href="https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1"
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-[11px] transition-all cursor-pointer shrink-0 shadow-xs"
@@ -396,6 +415,20 @@ export const QuizShareModal = ({
         </div>
 
       </div>
+
+      {/* 9:16 STORY POSTER MODAL */}
+      <CertificateStoryPoster
+        isOpen={isStoryPosterOpen}
+        onClose={() => setIsStoryPosterOpen(false)}
+        certificateData={{
+          certificateId: certId,
+          quizTitle,
+          recipientName,
+          score: displayScore !== null ? displayScore : 100,
+          id: quizId
+        }}
+        user={user}
+      />
     </div>
   );
 };

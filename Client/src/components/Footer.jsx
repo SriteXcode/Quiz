@@ -7,9 +7,9 @@ export const Footer = ({ onNavigatePolicy }) => {
     twitter: 'https://twitter.com',
     github: 'https://github.com',
     linkedin: 'https://linkedin.com',
-    whatsappCommunity: 'https://chat.whatsapp.com',
-    telegramCommunity: 'https://t.me',
-    discord: 'https://discord.gg'
+    whatsappCommunity: 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1',
+    telegramCommunity: 'https://t.me/braiiinarena',
+    discord: 'https://discord.gg/AnJNehCT2'
   });
 
   useEffect(() => {
@@ -25,6 +25,8 @@ export const Footer = ({ onNavigatePolicy }) => {
     const mediaQuery = window.matchMedia('(display-mode: standalone)');
     mediaQuery.addEventListener('change', checkStandalone);
 
+    const normalizeLink = (val, base, full) => (!val || val === base ? full : val);
+
     const fetchSiteSocials = async () => {
       try {
         const res = await apiGetSiteSettings();
@@ -34,9 +36,9 @@ export const Footer = ({ onNavigatePolicy }) => {
             twitter: s.twitter || 'https://twitter.com',
             github: s.github || 'https://github.com',
             linkedin: s.linkedin || 'https://linkedin.com',
-            whatsappCommunity: s.whatsappCommunity || 'https://chat.whatsapp.com',
-            telegramCommunity: s.telegramCommunity || 'https://t.me',
-            discord: s.discord || 'https://discord.gg'
+            whatsappCommunity: normalizeLink(s.whatsappCommunity, 'https://chat.whatsapp.com', 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1'),
+            telegramCommunity: normalizeLink(s.telegramCommunity, 'https://t.me', 'https://t.me/braiiinarena'),
+            discord: normalizeLink(s.discord, 'https://discord.gg', 'https://discord.gg/AnJNehCT2')
           });
         }
       } catch (err) {

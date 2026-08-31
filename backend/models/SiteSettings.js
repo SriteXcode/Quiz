@@ -58,9 +58,9 @@ const siteSettingsSchema = new mongoose.Schema(
         twitter: { type: String, default: 'https://twitter.com' },
         github: { type: String, default: 'https://github.com' },
         linkedin: { type: String, default: 'https://linkedin.com' },
-        discord: { type: String, default: 'https://discord.gg' },
-        whatsappCommunity: { type: String, default: 'https://chat.whatsapp.com' },
-        telegramCommunity: { type: String, default: 'https://t.me' }
+        discord: { type: String, default: 'https://discord.gg/AnJNehCT2' },
+        whatsappCommunity: { type: String, default: 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1' },
+        telegramCommunity: { type: String, default: 'https://t.me/braiiinarena' }
       }
     }
   },

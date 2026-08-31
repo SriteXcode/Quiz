@@ -47,9 +47,9 @@ const defaultSiteSettings = {
       twitter: 'https://twitter.com',
       github: 'https://github.com',
       linkedin: 'https://linkedin.com',
-      discord: 'https://discord.gg',
-      whatsappCommunity: 'https://chat.whatsapp.com',
-      telegramCommunity: 'https://t.me'
+      discord: 'https://discord.gg/AnJNehCT2',
+      whatsappCommunity: 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1',
+      telegramCommunity: 'https://t.me/braiiinarena'
     }
   }
 };
@@ -111,6 +111,29 @@ exports.getSiteSettings = async (req, res) => {
     let settings = await SiteSettings.findOne();
     if (!settings) {
       settings = await SiteSettings.create(defaultSiteSettings);
+    } else {
+      // Auto-migrate generic social links to new official community links
+      let modified = false;
+      if (!settings.contact) settings.contact = {};
+      if (!settings.contact.socialLinks) settings.contact.socialLinks = {};
+      
+      const sl = settings.contact.socialLinks;
+      if (!sl.whatsappCommunity || sl.whatsappCommunity === 'https://chat.whatsapp.com') {
+        sl.whatsappCommunity = 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1';
+        modified = true;
+      }
+      if (!sl.telegramCommunity || sl.telegramCommunity === 'https://t.me') {
+        sl.telegramCommunity = 'https://t.me/braiiinarena';
+        modified = true;
+      }
+      if (!sl.discord || sl.discord === 'https://discord.gg') {
+        sl.discord = 'https://discord.gg/AnJNehCT2';
+        modified = true;
+      }
+      if (modified) {
+        settings.markModified('contact');
+        await settings.save();
+      }
     }
     res.status(200).json({
       success: true,
