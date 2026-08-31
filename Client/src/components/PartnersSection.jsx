@@ -58,8 +58,21 @@ export const PartnerModal = ({ partner, onClose }) => {
 
         {/* Modal Header */}
         <div className="flex items-start space-x-4 pt-1">
-          <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary-50)] dark:bg-slate-800 border border-[var(--color-primary-300)] flex items-center justify-center text-2xl font-bold shrink-0 shadow-sm">
-            {partnerLogo}
+          <div className="w-14 h-14 rounded-2xl bg-[var(--color-primary-50)] dark:bg-slate-800 border border-[var(--color-primary-300)] flex items-center justify-center text-2xl font-bold shrink-0 shadow-sm overflow-hidden p-1">
+            {typeof partnerLogo === 'string' && (partnerLogo.startsWith('http') || partnerLogo.startsWith('data:') || partnerLogo.startsWith('/') || partnerLogo.includes('.')) ? (
+              <img
+                src={partnerLogo}
+                alt={partnerName}
+                className="w-11 h-11 object-contain"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = 'none';
+                  if (e.target.parentNode) e.target.parentNode.innerText = '⚖️';
+                }}
+              />
+            ) : (
+              partnerLogo
+            )}
           </div>
           <div>
             <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-poppins font-bold bg-amber-500/20 text-amber-900 dark:text-amber-200 mb-1">
@@ -361,9 +374,18 @@ export const PartnersSection = () => {
                 className="w-72 sm:w-80 shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-xl hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between space-y-3 select-none group/card active:scale-95"
               >
                 <div>
-                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm mb-3 group-hover/card:scale-110 transition-transform overflow-hidden">
-                    {typeof (partner.logoUrl || partner.icon) === 'string' && ((partner.logoUrl || partner.icon).startsWith('http') || (partner.logoUrl || partner.icon).startsWith('data:')) ? (
-                      <img src={partner.logoUrl || partner.icon} alt={partner.name} className="w-9 h-9 object-contain" />
+                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm mb-3 group-hover/card:scale-110 transition-transform overflow-hidden p-1">
+                    {typeof (partner.logoUrl || partner.icon) === 'string' && ((partner.logoUrl || partner.icon).startsWith('http') || (partner.logoUrl || partner.icon).startsWith('data:') || (partner.logoUrl || partner.icon).startsWith('/') || (partner.logoUrl || partner.icon).includes('.')) ? (
+                      <img
+                        src={partner.logoUrl || partner.icon}
+                        alt={partner.name}
+                        className="w-9 h-9 object-contain"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.style.display = 'none';
+                          if (e.target.parentNode) e.target.parentNode.innerText = '⚖️';
+                        }}
+                      />
                     ) : (
                       partner.logoUrl || partner.icon || '⚖️'
                     )}

@@ -2689,8 +2689,17 @@ You are building a high-frequency financial settlement engine. Given an array of
                       <div className="flex items-start justify-between">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm">
-                            {typeof partner.logoUrl === 'string' && (partner.logoUrl.startsWith('http') || partner.logoUrl.startsWith('data:')) ? (
-                              <img src={partner.logoUrl} alt={partner.name} className="w-9 h-9 object-contain" />
+                            {typeof partner.logoUrl === 'string' && (partner.logoUrl.startsWith('http') || partner.logoUrl.startsWith('data:') || partner.logoUrl.startsWith('/') || partner.logoUrl.includes('.')) ? (
+                              <img
+                                src={partner.logoUrl}
+                                alt={partner.name}
+                                className="w-9 h-9 object-contain"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.style.display = 'none';
+                                  if (e.target.parentNode) e.target.parentNode.innerText = '⚖️';
+                                }}
+                              />
                             ) : (
                               partner.logoUrl || '⚖️'
                             )}

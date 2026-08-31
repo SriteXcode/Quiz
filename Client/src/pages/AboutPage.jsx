@@ -232,9 +232,18 @@ export const AboutPage = ({ onNavigate, onExploreQuizzes, onNavigateToQuiz, onEx
                   className="w-72 sm:w-80 shrink-0 bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-xl hover:border-amber-400 dark:hover:border-amber-500/50 transition-all cursor-pointer flex flex-col justify-between space-y-3 select-none group/card active:scale-95"
                 >
                   <div>
-                    <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm mb-3 group-hover/card:scale-110 transition-transform overflow-hidden">
-                      {typeof (partner.logoUrl || partner.icon) === 'string' && ((partner.logoUrl || partner.icon).startsWith('http') || (partner.logoUrl || partner.icon).startsWith('data:')) ? (
-                        <img src={partner.logoUrl || partner.icon} alt={partner.name} className="w-9 h-9 object-contain" />
+                    <div className="w-12 h-12 rounded-xl bg-[var(--bg-main)] border border-[var(--border-theme)] flex items-center justify-center text-2xl shadow-sm mb-3 group-hover/card:scale-110 transition-transform overflow-hidden p-1">
+                      {typeof (partner.logoUrl || partner.icon) === 'string' && ((partner.logoUrl || partner.icon).startsWith('http') || (partner.logoUrl || partner.icon).startsWith('data:') || (partner.logoUrl || partner.icon).startsWith('/') || (partner.logoUrl || partner.icon).includes('.')) ? (
+                        <img
+                          src={partner.logoUrl || partner.icon}
+                          alt={partner.name}
+                          className="w-9 h-9 object-contain"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.style.display = 'none';
+                            if (e.target.parentNode) e.target.parentNode.innerText = '⚖️';
+                          }}
+                        />
                       ) : (
                         partner.logoUrl || partner.icon || '⚖️'
                       )}
