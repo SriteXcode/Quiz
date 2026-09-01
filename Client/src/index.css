@@ -353,3 +353,25 @@ iframe[src*="razorpay"] {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ==========================================================================
+   NOTES MARQUEE TICKER ANIMATION
+   ========================================================================== */
+@keyframes notesMarqueeSlide {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-notes-marquee {
+  display: flex;
+  width: max-content;
+  animation: notesMarqueeSlide 35s linear infinite;
+}
+
+.animate-notes-marquee:hover {
+  animation-play-state: paused;
+}

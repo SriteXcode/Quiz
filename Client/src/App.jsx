@@ -467,7 +467,10 @@ export const App = () => {
           ) : (activeTab === 'home' || activeTab === 'login' || activeTab === 'signup') ? (
             <div className="space-y-12">
               {/* Hero Banner */}
-              <HeroBanner onExploreLiveQuizzes={handleExploreLiveQuizzes} />
+              <HeroBanner
+                onExploreLiveQuizzes={handleExploreLiveQuizzes}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
 
               {/* Live Quizzes Section */}
               <LiveQuizzes
