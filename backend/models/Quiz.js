@@ -286,6 +286,17 @@ const quizSchema = new mongoose.Schema(
       mic: { type: Boolean, default: true },
       tabSwitchLimit: { type: Number, default: 3 }
     },
+    rewardConfig: {
+      enableCertificate: { type: Boolean, default: true },
+      enableGithubBadge: { type: Boolean, default: true },
+      enableDiagnosticRadar: { type: Boolean, default: true },
+      enableSocialShareCard: { type: Boolean, default: true },
+      enableBrainCoins: { type: Boolean, default: true },
+      brainCoinsAmount: { type: Number, default: 50 },
+      enableSponsorVoucher: { type: Boolean, default: false },
+      sponsorVoucherCode: { type: String, default: '' },
+      sponsorVoucherDetails: { type: String, default: '' }
+    },
     questions: [questionSchema],
     codingChallenge: codingChallengeSchema,
     rewards: [rewardSchema],
@@ -308,6 +319,13 @@ quizSchema.pre('save', function () {
 
 quizSchema.statics.calculateStatus = calculateDynamicStatus;
 
+// High-Performance Indexes for Category, Type, Status filtering & Text Search
+quizSchema.index({ category: 1, quizType: 1, status: 1, createdAt: -1 });
+quizSchema.index({ status: 1, createdAt: -1 });
+quizSchema.index({ 'enrolledUsers.userId': 1 });
+quizSchema.index({ title: 'text', category: 'text', techStack: 'text' });
+
 const Quiz = mongoose.model('Quiz', quizSchema);
 
 module.exports = Quiz;
+

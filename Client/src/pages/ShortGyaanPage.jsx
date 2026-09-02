@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import Skeleton from '../components/Skeleton';
+import NativeShortsAdCard from '../components/NativeShortsAdCard';
 import { downloadShortsGyaanTemplate } from '../utils/excelTemplateUtils';
 import {
   apiGetShortsGyaan,
@@ -154,11 +155,26 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [showOverflowMenu, setShowOverflowMenu] = useState(false);
 
-  // Active step index (0 to shorts.length - 1)
+  // Active step index (0 to feedItems.length - 1)
   const [activeCardIndex, setActiveCardIndex] = useState(() => {
     const saved = sessionStorage.getItem('shorts_gyaan_active_step');
     return saved ? parseInt(saved, 10) || 0 : 0;
   });
+
+  const feedItems = useMemo(() => {
+    const items = [];
+    (shorts || []).forEach((shortItem, idx) => {
+      if (idx > 0 && idx % 2 === 0) {
+        items.push({ type: 'ad', id: `ad-slot-${idx}` });
+      }
+      items.push({ type: 'short', data: shortItem, id: shortItem._id || `short-${idx}` });
+    });
+    return items;
+  }, [shorts]);
+
+  const activeFeedItem = feedItems[activeCardIndex] || feedItems[0] || null;
+  const isAdActive = activeFeedItem?.type === 'ad';
+  const activeShort = activeFeedItem?.type === 'short' ? activeFeedItem.data : null;
 
   // State map per question: { [shortId]: { selectedIndex, isAnswered, isCorrect, isTimedOut } }
   const [answersState, setAnswersState] = useState(() => {
@@ -527,7 +543,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
       setExplanationBufferTimer(null);
       setIsBufferPaused(false);
 
-      if (targetIndex >= shorts.length - 3) {
+      if (targetIndex >= feedItems.length - 3) {
         loadMoreShorts();
       }
 
@@ -536,15 +552,15 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
         isProgrammaticScrollRef.current = false;
       }, 300);
     }
-  }, [shorts.length, loadMoreShorts, playSoundEffect]);
+  }, [feedItems.length, loadMoreShorts, playSoundEffect]);
 
   const scrollToNextCard = useCallback(() => {
-    if (activeCardIndex < shorts.length - 1) {
+    if (activeCardIndex < feedItems.length - 1) {
       scrollToStepIndex(activeCardIndex + 1);
     } else {
       loadMoreShorts();
     }
-  }, [activeCardIndex, shorts.length, scrollToStepIndex, loadMoreShorts]);
+  }, [activeCardIndex, feedItems.length, scrollToStepIndex, loadMoreShorts]);
 
   const scrollToPrevCard = useCallback(() => {
     if (activeCardIndex > 0) {
@@ -773,7 +789,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
   // -------------------------------------------------------------
   useEffect(() => {
     const container = feedContainerRef.current;
-    if (!container || shorts.length === 0) return;
+    if (!container || feedItems.length === 0) return;
 
     if (observerRef.current) {
       observerRef.current.disconnect();
@@ -794,7 +810,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
           if (!isNaN(index)) {
             setActiveCardIndex((prev) => {
               if (prev !== index) {
-                if (index >= shorts.length - 3) {
+                if (index >= feedItems.length - 3) {
                   loadMoreShorts();
                 }
                 return index;
@@ -813,9 +829,8 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
     return () => {
       if (observerRef.current) observerRef.current.disconnect();
     };
-  }, [shorts, loadMoreShorts, isDesktopLayout]);
+  }, [feedItems, loadMoreShorts, isDesktopLayout]);
 
-  const activeShort = shorts[activeCardIndex] || null;
   const currentShortId = activeShort?._id || `short_${activeCardIndex}`;
   const currentAnswerState = answersState[currentShortId] || {
     isAnswered: false,
@@ -824,10 +839,38 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
     isTimedOut: false
   };
 
+  const [adCardTimer, setAdCardTimer] = useState(10);
+
+  useEffect(() => {
+    if (isAdActive) {
+      setExplanationBufferTimer(null);
+    }
+  }, [isAdActive]);
+
+  // -------------------------------------------------------------
+  // 5B. 10-SECOND COUNTDOWN TIMER FOR NATIVE AD CARDS IN SHORTS FEED
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (!isAdActive || !isTabActive) return;
+
+    setAdCardTimer(10);
+
+    const timer = setInterval(() => {
+      setAdCardTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          scrollToNextCard();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeCardIndex, isAdActive, isTabActive, scrollToNextCard]);
+
   // -------------------------------------------------------------
   // 6. PAUSABLE / RESUMABLE COUNTDOWN TIMER PER ACTIVE QUESTION
-  // -------------------------------------------------------------
-  // 6. QUESTION COUNTDOWN TIMER WITH PAUSE & RESUME
   // -------------------------------------------------------------
   const handleQuestionTimeout = useCallback((shortId) => {
     setAnswersState((prev) => ({
@@ -843,12 +886,8 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
     setExplanationBufferTimer(10);
   }, [playSoundEffect]);
 
-  // - When user scrolls away (to previous or next question) or switches browser tabs:
-  //   Timer for that question immediately stops/pauses and preserves remaining seconds.
-  // - When user returns / tab becomes visible, timer resumes where left off.
-  // - Moving to next question without answering does NOT count as an attempt.
   useEffect(() => {
-    if (!activeShort || currentAnswerState.isAnswered || !isTabActive || isQuestionTimerPaused) return;
+    if (isAdActive || !activeShort || currentAnswerState.isAnswered || !isTabActive || isQuestionTimerPaused) return;
 
     const sId = currentShortId;
     const initialTime = remainingTimes[sId] !== undefined ? remainingTimes[sId] : (activeShort.timerSeconds || 30);
@@ -882,14 +921,14 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
       clearTimeout(initTimeout);
       clearInterval(timer);
     };
-  }, [activeCardIndex, activeShort, currentAnswerState.isAnswered, currentShortId, handleQuestionTimeout, isTabActive, isQuestionTimerPaused, remainingTimes]);
+  }, [activeCardIndex, activeShort, currentAnswerState.isAnswered, currentShortId, handleQuestionTimeout, isAdActive, isTabActive, isQuestionTimerPaused, remainingTimes]);
 
   // -------------------------------------------------------------
   // 7. 10-SECOND EXPLANATION AUTO-STEP BUFFER
   // -------------------------------------------------------------
   // Freezes when browser tab is inactive / blurred so it does NOT move ahead in background.
   useEffect(() => {
-    if (explanationBufferTimer === null || isBufferPaused || !isTabActive) return;
+    if (isAdActive || explanationBufferTimer === null || isBufferPaused || !isTabActive) return;
 
     if (explanationBufferTimer <= 0) {
       const stepTimer = setTimeout(() => {
@@ -904,7 +943,7 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [explanationBufferTimer, isBufferPaused, isTabActive, scrollToNextCard]);
+  }, [isAdActive, explanationBufferTimer, isBufferPaused, isTabActive, scrollToNextCard]);
 
   // -------------------------------------------------------------
   // 8. USER CHOOSES AN ANSWER
@@ -1458,7 +1497,28 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                 </button>
               </div>
             ) : (
-              shorts.map((shortItem, idx) => {
+              feedItems.map((item, idx) => {
+                const isActive = activeCardIndex === idx;
+
+                if (item.type === 'ad') {
+                  return (
+                    <div
+                      key={item.id}
+                      ref={(el) => setCardRef(el, idx, true)}
+                      data-index={idx}
+                      onClick={() => setActiveCardIndex(idx)}
+                      className={`w-full h-full min-h-full max-h-full snap-start snap-always shrink-0 rounded-3xl bg-[var(--bg-card)] border-2 transition-all duration-300 shadow-md p-2 sm:p-4 flex flex-col justify-center items-center relative overflow-hidden my-0 cursor-pointer ${
+                        isActive
+                          ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-amber-500/15'
+                          : 'border-amber-500/30 opacity-95 hover:border-amber-500/60'
+                      }`}
+                    >
+                      <NativeShortsAdCard timerSeconds={isActive ? adCardTimer : 10} onSkip={scrollToNextCard} />
+                    </div>
+                  );
+                }
+
+                const shortItem = item.data;
                 const sId = shortItem._id;
                 const answerState = answersState[sId] || {
                   isAnswered: false,
@@ -1466,7 +1526,6 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                   isCorrect: false,
                   isTimedOut: false
                 };
-                const isActive = activeCardIndex === idx;
 
                 return (
                   <div
@@ -1647,7 +1706,6 @@ export const ShortGyaanPage = ({ onRequireAuth, onNavigateHome }) => {
                         </button>
                       </div>
                     </div>
-
                   </div>
                 );
               })

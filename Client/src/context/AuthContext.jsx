@@ -30,6 +30,16 @@ export const AuthProvider = ({ children }) => {
     };
 
     initAuth();
+
+    const handleUnauthorized = () => {
+      console.warn('[Auth 401 Warning]: Unauthorized event received. Clearing session.');
+      localStorage.removeItem('quiz_token');
+      setToken(null);
+      setUser(null);
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, [token]);
 
   // Login handler

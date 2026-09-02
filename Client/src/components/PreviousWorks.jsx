@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import Skeleton from './Skeleton';
+import AdBanner from './AdBanner';
 import { apiGetPreviousWorks } from '../services/api';
 
 export const WorkSkeletonCard = () => {
@@ -77,63 +78,70 @@ export const PreviousWorks = ({ isLoading: propLoading, onViewAll }) => {
           ? Array.from({ length: 4 }).map((_, idx) => (
               <WorkSkeletonCard key={idx} />
             ))
-          : works.map((work) => {
+          : works.map((work, idx) => {
               const workId = work._id || work.id;
               const gradientClass = work.gradient || 'from-blue-500 to-indigo-600';
+              const showAdBefore = idx > 0 && idx % 2 === 0;
 
               return (
-                <div
-                  key={workId}
-                  onClick={() => setSelectedWork(work)}
-                  className="w-[230px] sm:w-[290px] md:w-[330px] shrink-0 group bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 cursor-pointer"
-                >
-                  <div>
-                    {/* Compact Banner Visual */}
-                    <div className={`h-28 sm:h-36 rounded-xl sm:rounded-2xl bg-gradient-to-r ${gradientClass} p-3.5 sm:p-4 text-white flex flex-col justify-between mb-3 sm:mb-4 shadow-md relative overflow-hidden`}>
-                      <div className="flex justify-between items-start z-10">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold font-poppins bg-black/25 backdrop-blur-md">
-                          {work.badge || 'Completed'}
-                        </span>
-                        <span className="text-[10px] sm:text-xs font-medium font-lato bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-md">
-                          🏆 {work.topWinner || 'Top Winner'}
-                        </span>
+                <Fragment key={workId || idx}>
+                  {showAdBefore && (
+                    <div className="w-[260px] sm:w-[320px] shrink-0 self-stretch flex items-center">
+                      <AdBanner placement="quiz_catalog_top" className="w-full h-full my-0" />
+                    </div>
+                  )}
+                  <div
+                    onClick={() => setSelectedWork(work)}
+                    className="w-[230px] sm:w-[290px] md:w-[330px] shrink-0 group bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between hover:-translate-y-1 cursor-pointer"
+                  >
+                    <div>
+                      {/* Compact Banner Visual */}
+                      <div className={`h-28 sm:h-36 rounded-xl sm:rounded-2xl bg-gradient-to-r ${gradientClass} p-3.5 sm:p-4 text-white flex flex-col justify-between mb-3 sm:mb-4 shadow-md relative overflow-hidden`}>
+                        <div className="flex justify-between items-start z-10">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold font-poppins bg-black/25 backdrop-blur-md">
+                            {work.badge || 'Completed'}
+                          </span>
+                          <span className="text-[10px] sm:text-xs font-medium font-lato bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-md">
+                            🏆 {work.topWinner || 'Top Winner'}
+                          </span>
+                        </div>
+
+                        <div className="z-10">
+                          <div className="text-[10px] sm:text-xs font-lato opacity-80">
+                            {work.category || 'Archived Challenge'}
+                          </div>
+                          <div className="font-poppins font-bold text-sm sm:text-base line-clamp-1">
+                            {work.title}
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="z-10">
-                        <div className="text-[10px] sm:text-xs font-lato opacity-80">
-                          {work.category || 'Archived Challenge'}
-                        </div>
-                        <div className="font-poppins font-bold text-sm sm:text-base line-clamp-1">
-                          {work.title}
-                        </div>
+                      <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors mb-1.5 line-clamp-1">
+                        {work.title}
+                      </h3>
+
+                      <p className="font-lato text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed mb-3 line-clamp-2">
+                        {work.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
+                      <div className="text-[10px] sm:text-xs font-lato text-[var(--text-muted)] space-y-0.5">
+                        <div className="font-medium text-[var(--text-main)]">{work.participantsCount || '1,200 Participants'}</div>
+                        <div>{work.avgScore || '80% Avg'}</div>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedWork(work);
+                        }}
+                        className="px-3 py-1.5 rounded-xl font-poppins font-semibold text-[11px] sm:text-xs text-[var(--color-primary-600)] bg-[var(--color-primary-50)] hover:bg-[var(--color-primary-100)] dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer active:scale-95"
+                      >
+                        Results
+                      </button>
                     </div>
-
-                    <h3 className="font-poppins font-bold text-sm sm:text-base text-[var(--text-main)] group-hover:text-[var(--color-primary-600)] transition-colors mb-1.5 line-clamp-1">
-                      {work.title}
-                    </h3>
-
-                    <p className="font-lato text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed mb-3 line-clamp-2">
-                      {work.description}
-                    </p>
                   </div>
-
-                  <div className="pt-3 border-t border-[var(--border-theme)] flex items-center justify-between">
-                    <div className="text-[10px] sm:text-xs font-lato text-[var(--text-muted)] space-y-0.5">
-                      <div className="font-medium text-[var(--text-main)]">{work.participantsCount || '1,200 Participants'}</div>
-                      <div>{work.avgScore || '80% Avg'}</div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedWork(work);
-                      }}
-                      className="px-3 py-1.5 rounded-xl font-poppins font-semibold text-[11px] sm:text-xs text-[var(--color-primary-600)] bg-[var(--color-primary-50)] hover:bg-[var(--color-primary-100)] dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer active:scale-95"
-                    >
-                      Results
-                    </button>
-                  </div>
-                </div>
+                </Fragment>
               );
             })}
       </div>

@@ -11,27 +11,70 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="brainArena" />
-    <meta name="description" content="e-learningplatform for Live Contests, quizzes, Code Challenges, and Shorts Gyaan micro-learning." />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>brainArena - Knowledge & Learning Hub</title>
+    <!-- Primary SEO Meta Tags -->
+    <title>brainArena - Live Quiz Contests, HTML & Coding Question Practice with Certificates</title>
+    <meta name="title" content="brainArena - Live Quiz Contests, HTML & Coding Question Practice with Certificates" />
+    <meta name="description" content="Master coding with free online question practice, HTML & JavaScript quizzes, Shorts Gyaan micro-learning, and win rewards in weekend live contests on brainArena." />
+    <meta name="keywords" content="brainarena, quiz, question practice, html quiz, javascript quiz, java mcq, arena quiz, coding contest, free certificate quiz, shorts gyaan, daily live practice" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://brainarena.in/" />
+
+    <!-- OpenGraph / Facebook / WhatsApp Meta Tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://brainarena.in/" />
+    <meta property="og:title" content="brainArena - Live Quiz Contests & Coding Question Practice" />
+    <meta property="og:description" content="Practice HTML, JavaScript, Java & Python questions online. Take daily live quizzes, earn certificates, and win prizes on brainArena." />
+    <meta property="og:image" content="https://res.cloudinary.com/dtjkpcuy9/image/upload/v1788088347/quiz_platform_assets/brainarena_logo_transparent.png" />
+    <meta property="og:site_name" content="brainArena" />
+
+    <!-- Twitter Cards Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://brainarena.in/" />
+    <meta name="twitter:title" content="brainArena - Live Quiz Contests & HTML Question Practice" />
+    <meta name="twitter:description" content="Practice HTML, JS & Java MCQs. Win rewards in live weekend competitions on brainArena." />
+    <meta name="twitter:image" content="https://res.cloudinary.com/dtjkpcuy9/image/upload/v1788088347/quiz_platform_assets/brainarena_logo_transparent.png" />
+
+    <!-- JSON-LD Structured Data Schema for Google Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "brainArena",
+      "url": "https://brainarena.in",
+      "logo": "https://res.cloudinary.com/dtjkpcuy9/image/upload/v1788088347/quiz_platform_assets/brainarena_logo_transparent.png",
+      "description": "e-Learning platform for live quiz contests, HTML question practice, coding challenges, and Shorts Gyaan micro-learning.",
+      "sameAs": []
+    }
+    </script>
+
     <!-- Google Fonts: Poppins, Lato, Cinzel, Playfair Display & Alex Brush -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin="anonymous">
     <meta name="google-site-verification" content="MbyBx3dNYQUaCqHDhAqFWz5VDB1gRFb4x_bTQMqUbE4" />
     <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@500;600;700;800;900&family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600&family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
   </head>
   <body class="bg-[var(--bg-main)] text-[var(--text-main)] transition-colors duration-300 min-h-screen antialiased">
     <div id="root">
-      <!-- HTML Pre-React Animating Logo Loader -->
+      <!-- HTML Pre-React Animating Logo & Skeleton Loader -->
       <div id="initial-page-loader" style="position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif;">
-        <div style="position: relative; width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
-          <div style="position: absolute; inset: 0; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #6366f1, #38bdf8); opacity: 0.8; filter: blur(8px); animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;"></div>
-          <div style="position: relative; width: 80px; height: 80px; border-radius: 20px; background: linear-gradient(135deg, #2563eb, #4f46e5); display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+        <style>
+          @keyframes glowPulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.08); opacity: 1; filter: blur(12px); } }
+          @keyframes shimmerProgress { 0% { width: 0%; } 50% { width: 70%; } 100% { width: 100%; } }
+          .loader-glow { animation: glowPulse 1.5s ease-in-out infinite; }
+          .loader-bar { animation: shimmerProgress 1.2s ease-in-out infinite; }
+        </style>
+        <div style="position: relative; width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+          <div class="loader-glow" style="position: absolute; inset: 0; border-radius: 24px; background: linear-gradient(135deg, #2563eb, #6366f1, #38bdf8); filter: blur(8px);"></div>
+          <div style="position: relative; width: 80px; height: 80px; border-radius: 24px; background: linear-gradient(135deg, #2563eb, #4f46e5); display: flex; align-items: center; justify-content: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5);">
             <span style="color: #ffffff; font-weight: 900; font-size: 36px; letter-spacing: 1px;">B</span>
           </div>
         </div>
-        <div style="font-weight: 800; font-size: 24px; color: #38bdf8; margin-bottom: 8px; letter-spacing: -0.5px;">brainArena</div>
-        <div style="font-size: 13px; color: #94a3b8; letter-spacing: 0.5px;">Loading Knowledge & Contests...</div>
+        <div style="font-weight: 800; font-size: 24px; color: #38bdf8; margin-bottom: 6px; letter-spacing: -0.5px;">brainArena</div>
+        <div style="font-size: 13px; color: #94a3b8; margin-bottom: 16px; letter-spacing: 0.5px;">Loading Knowledge & Contests...</div>
+        <div style="width: 160px; height: 4px; background: #1e293b; border-radius: 999px; overflow: hidden; position: relative;">
+          <div class="loader-bar" style="height: 100%; background: linear-gradient(90deg, #2563eb, #38bdf8); border-radius: 999px;"></div>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>

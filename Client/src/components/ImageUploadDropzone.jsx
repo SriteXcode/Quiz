@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { apiUploadImage } from '../services/api';
 import { useToast } from '../context/ToastContext';
+import ImageAdjustModal from './ImageAdjustModal';
 
 export const ImageUploadDropzone = ({
   label = 'Upload Image',
@@ -15,6 +16,7 @@ export const ImageUploadDropzone = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileUpload = async (file) => {
@@ -162,9 +164,22 @@ export const ImageUploadDropzone = ({
             </div>
 
             <div className="flex-1 text-center sm:text-left min-w-0">
-              <span className="inline-block px-2 py-0.5 rounded text-[10px] font-poppins font-extrabold bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 mb-1">
-                ✓ Image Selected / Uploaded
-              </span>
+              <div className="flex items-center space-x-2 mb-1">
+                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-poppins font-extrabold bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30">
+                  ✓ Image Selected / Uploaded
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAdjustModalOpen(true);
+                  }}
+                  className="px-2.5 py-0.5 rounded-md bg-indigo-600 text-white font-poppins font-bold text-[10px] hover:bg-indigo-700 cursor-pointer shadow-xs flex items-center space-x-1"
+                >
+                  <span>✂️</span>
+                  <span>Adjust & Crop Logo</span>
+                </button>
+              </div>
               <p className="text-xs font-mono text-[var(--text-muted)] truncate max-w-xs">
                 {value}
               </p>
@@ -217,6 +232,19 @@ export const ImageUploadDropzone = ({
           {helpText}
         </p>
       )}
+
+      {/* IMAGE ADJUST & CROP MODAL */}
+      <ImageAdjustModal
+        isOpen={isAdjustModalOpen}
+        imageSrc={value}
+        title="Adjust & Crop Sponsor Logo / Graphic"
+        onClose={() => setIsAdjustModalOpen(false)}
+        onApply={(croppedUrl) => {
+          onChange(croppedUrl);
+          setIsAdjustModalOpen(false);
+          addToast('Sponsor logo adjusted and cropped successfully! ✂️', 'success');
+        }}
+      />
     </div>
   );
 };

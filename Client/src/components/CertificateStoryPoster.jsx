@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useToast } from '../context/ToastContext';
+import { getRankCertificateConfig } from './CertificateModal';
 
 // Official Social Platform SVG Brand Icons
 const WhatsAppIcon = ({ className = "w-5 h-5" }) => (
@@ -48,6 +49,8 @@ export const CertificateStoryPoster = ({
   const accuracy = certificateData.accuracy !== undefined ? certificateData.accuracy : 100;
   const earnedXP = certificateData.earnedXP || 150;
   const certId = certificateData.certificateId || certificateData._id || certificateData.id || 'CERT-OFFICIAL';
+  const userRank = certificateData.rank || certificateData.rankPosition || certificateData.place || 0;
+  const rankConfig = getRankCertificateConfig(userRank);
 
   // Verified target URL
   const targetUrl = useMemo(() => {
@@ -104,7 +107,7 @@ export const CertificateStoryPoster = ({
 
       // Background Watermark Patterns
       ctx.save();
-      ctx.strokeStyle = selectedTheme === 'gold' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)';
+      ctx.strokeStyle = activeTheme.id === 'gold' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)';
       ctx.lineWidth = 3;
       for (let r = 150; r <= 650; r += 100) {
         ctx.beginPath();
@@ -186,7 +189,7 @@ export const CertificateStoryPoster = ({
         const cy = boxY + row * (cardH + 20);
 
         ctx.save();
-        ctx.fillStyle = selectedTheme === 'gold' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+        ctx.fillStyle = activeTheme.id === 'gold' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
         ctx.strokeStyle = activeTheme.canvasBorder;
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -195,7 +198,7 @@ export const CertificateStoryPoster = ({
         ctx.stroke();
 
         ctx.textAlign = 'center';
-        ctx.fillStyle = selectedTheme === 'gold' ? '#64748b' : '#94a3b8';
+        ctx.fillStyle = activeTheme.id === 'gold' ? '#64748b' : '#94a3b8';
         ctx.font = 'bold 20px "Poppins", sans-serif';
         ctx.fillText(m.label, cx + cardW / 2, cy + 42);
 
@@ -380,7 +383,7 @@ export const CertificateStoryPoster = ({
                   ★ BRAINARENA CERTIFIED ★
                 </div>
                 <h3 className="text-xs sm:text-sm font-extrabold font-cinzel tracking-wider uppercase text-[#1c1917]">
-                  Certificate of Participation
+                  {rankConfig.certificateTitle}
                 </h3>
                 <div className="pt-2">
                   <span className="text-[9px] font-lato opacity-80 block text-slate-700">Awarded to:</span>

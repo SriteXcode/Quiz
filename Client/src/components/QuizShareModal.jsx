@@ -57,12 +57,6 @@ export const QuizShareModal = ({
   const [showQrCode, setShowQrCode] = useState(false);
   const [isStoryPosterOpen, setIsStoryPosterOpen] = useState(false);
 
-  const handleOpenTargetWebsite = () => {
-    if (!shareUrl) return;
-    window.open(shareUrl, '_blank', 'noopener,noreferrer');
-    addToast('🚀 Opening active website link...', 'info');
-  };
-
   // Derive target quiz & certificate identifiers
   const isCertificateMode = Boolean(certificate);
   const quizId = quiz?._id || quiz?.id || certificate?.quizId || '';
@@ -84,6 +78,12 @@ export const QuizShareModal = ({
     const queryString = params.toString();
     return queryString ? `${origin}/?${queryString}` : origin;
   }, [quizId, certId, user]);
+
+  const _handleOpenTargetWebsite = () => {
+    if (!shareUrl) return;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+    addToast('🚀 Opening active website link...', 'info');
+  };
 
   // Construct dynamic pre-filled post caption with @brainArena mention
   const shareCaption = useMemo(() => {

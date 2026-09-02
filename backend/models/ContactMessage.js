@@ -49,8 +49,13 @@ const contactMessageSchema = new mongoose.Schema({
     type: String,
     default: ''
   }
-}, {
+},
+{
   timestamps: true
 });
+
+// High-Performance Indexes for Email & Support Ticket Lookups
+contactMessageSchema.index({ email: 1, createdAt: -1 });
+contactMessageSchema.index({ status: 1, priority: 1, createdAt: -1 });
 
 module.exports = mongoose.model('ContactMessage', contactMessageSchema);

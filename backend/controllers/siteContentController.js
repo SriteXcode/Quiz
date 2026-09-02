@@ -529,3 +529,78 @@ exports.deleteContactMessage = async (req, res) => {
   }
 };
 
+// @desc    Generate Dynamic XML Sitemap for Search Engines (Google/Bing)
+// @route   GET /api/sitemap.xml or GET /sitemap.xml
+// @access  Public
+exports.generateSitemap = async (req, res) => {
+  try {
+    const Quiz = require('../models/Quiz');
+    const ShortGyaan = require('../models/ShortGyaan');
+
+    const [quizzes, shorts] = await Promise.all([
+      Quiz.find({}).select('_id updatedAt createdAt title category').lean(),
+      ShortGyaan.find({}).select('_id updatedAt createdAt category').lean()
+    ]);
+
+    const baseUrl = 'https://brainarena.in';
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    // Static Core Pages
+    const staticPages = [
+      { url: '/', priority: '1.0', changefreq: 'daily' },
+      { url: '/quiz', priority: '0.9', changefreq: 'daily' },
+      { url: '/short-gyaan', priority: '0.8', changefreq: 'daily' },
+      { url: '/about', priority: '0.7', changefreq: 'monthly' },
+      { url: '/contact', priority: '0.6', changefreq: 'monthly' },
+      { url: '/profile', priority: '0.6', changefreq: 'weekly' },
+      { url: '/login', priority: '0.5', changefreq: 'monthly' },
+      { url: '/signup', priority: '0.5', changefreq: 'monthly' },
+      { url: '/privacy', priority: '0.4', changefreq: 'yearly' },
+      { url: '/terms', priority: '0.4', changefreq: 'yearly' }
+    ];
+
+    staticPages.forEach((p) => {
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}${p.url}</loc>\n`;
+      xml += `    <lastmod>${currentDate}</lastmod>\n`;
+      xml += `    <changefreq>${p.changefreq}</changefreq>\n`;
+      xml += `    <priority>${p.priority}</priority>\n`;
+      xml += `  </url>\n`;
+    });
+
+    // Dynamic Quiz Entries
+    quizzes.forEach((quiz) => {
+      const lastMod = (quiz.updatedAt || quiz.createdAt || new Date()).toISOString().split('T')[0];
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/quiz?id=${quiz._id}</loc>\n`;
+      xml += `    <lastmod>${lastMod}</lastmod>\n`;
+      xml += `    <changefreq>daily</changefreq>\n`;
+      xml += `    <priority>0.8</priority>\n`;
+      xml += `  </url>\n`;
+    });
+
+    // Dynamic Shorts Gyaan Entries
+    shorts.forEach((shortItem) => {
+      const lastMod = (shortItem.updatedAt || shortItem.createdAt || new Date()).toISOString().split('T')[0];
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/short-gyaan?id=${shortItem._id}</loc>\n`;
+      xml += `    <lastmod>${lastMod}</lastmod>\n`;
+      xml += `    <changefreq>weekly</changefreq>\n`;
+      xml += `    <priority>0.7</priority>\n`;
+      xml += `  </url>\n`;
+    });
+
+    xml += `</urlset>`;
+
+    res.header('Content-Type', 'application/xml');
+    res.status(200).send(xml);
+  } catch (error) {
+    console.error('[Sitemap Generation Error]:', error);
+    res.status(500).send('Error generating sitemap');
+  }
+};
+
+

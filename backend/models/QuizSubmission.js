@@ -86,9 +86,13 @@ const quizSubmissionSchema = new mongoose.Schema(
   }
 );
 
-// Compound index for querying submissions per quiz
+// High-Performance Compound Indexes for Leaderboards, User History, and Profile Stats
 quizSubmissionSchema.index({ quizId: 1, isOfficialLeaderboardEntry: 1, score: -1, timeTakenSeconds: 1 });
+quizSubmissionSchema.index({ quizId: 1, userId: 1 });
+quizSubmissionSchema.index({ userId: 1, isFirstAttempt: 1, createdAt: -1 });
+quizSubmissionSchema.index({ userEmail: 1, isFirstAttempt: 1 });
 
 const QuizSubmission = mongoose.model('QuizSubmission', quizSubmissionSchema);
 
 module.exports = QuizSubmission;
+

@@ -48,6 +48,19 @@ app.get('/', (req, res) => {
   });
 });
 
+const { generateSitemap } = require('./controllers/siteContentController');
+const { generateGithubBadgeSvg } = require('./controllers/badgeController');
+
+// Dynamic XML Sitemap for Search Engines (Google, Bing)
+app.get('/sitemap.xml', generateSitemap);
+app.get('/api/sitemap.xml', generateSitemap);
+
+// Dynamic GitHub README Badge Endpoint (.svg)
+app.get('/api/badges/user/:userId/:category.svg', generateGithubBadgeSvg);
+app.get('/api/badges/user/:userId/badge.svg', generateGithubBadgeSvg);
+
+const adRoutes = require('./routes/adRoutes');
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -57,6 +70,7 @@ app.use('/api/shorts', shortGyaanRoutes);
 app.use('/api/site', siteRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/ads', adRoutes);
 
 // 404 Handler
 app.use((req, res) => {

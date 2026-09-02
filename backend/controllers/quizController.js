@@ -1,11 +1,20 @@
 const mongoose = require('mongoose');
 const Quiz = require('../models/Quiz');
 const QuizSubmission = require('../models/QuizSubmission');
+const { getCache, setCache, deleteCacheByPattern } = require('../config/redis');
 
-// 1. GET ALL QUIZZES
+// 1. GET ALL QUIZZES (Redis Cached 60s)
 exports.getQuizzes = async (req, res) => {
   try {
     const { category, type, search, status } = req.query;
+    const cacheKey = `quizzes:all:${category || 'All'}:${type || 'all'}:${status || 'all'}:${search || ''}`;
+
+    // 1. Try Redis cache first (<3ms latency)
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
+
     const query = {};
 
     if (category && category !== 'All') {
@@ -26,24 +35,42 @@ exports.getQuizzes = async (req, res) => {
     }
 
     const quizzes = await Quiz.find(query).sort({ createdAt: -1 });
-    res.json({
+    const responsePayload = {
       success: true,
       count: quizzes.length,
       quizzes
-    });
+    };
+
+    // 2. Store in Redis cache (60 seconds TTL)
+    await setCache(cacheKey, responsePayload, 60);
+
+    res.json(responsePayload);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// 2. GET QUIZ BY ID
+// 2. GET QUIZ BY ID (Redis Cached 300s)
 exports.getQuizById = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    const quizId = req.params.id;
+    const cacheKey = `quiz:detail:${quizId}`;
+
+    // 1. Try Redis cache first
+    const cachedQuiz = await getCache(cacheKey);
+    if (cachedQuiz) {
+      return res.json(cachedQuiz);
+    }
+
+    const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz challenge not found' });
     }
-    res.json({ success: true, quiz });
+
+    const responsePayload = { success: true, quiz };
+    await setCache(cacheKey, responsePayload, 300);
+
+    res.json(responsePayload);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -169,6 +196,32 @@ exports.submitQuiz = async (req, res) => {
     const submission = new QuizSubmission(submissionPayload);
     await submission.save();
 
+    // Invalidate Redis leaderboard & profile stats cache so fresh scores reflect instantly
+    deleteCacheByPattern(`quiz:leaderboard:${quizId}*`).catch(() => {});
+    deleteCacheByPattern(`user:profile:stats:*`).catch(() => {});
+
+    // Resolve rewardConfiguration from quiz schema or default fallbacks
+    const rewardConfig = quiz.rewardConfig || {
+      enableCertificate: true,
+      enableGithubBadge: true,
+      enableDiagnosticRadar: true,
+      enableSocialShareCard: true,
+      enableBrainCoins: true,
+      brainCoinsAmount: 50,
+      enableSponsorVoucher: false,
+      sponsorVoucherCode: '',
+      sponsorVoucherDetails: ''
+    };
+
+    let earnedBrainCoins = 0;
+    if (rewardConfig.enableBrainCoins !== false) {
+      earnedBrainCoins = rewardConfig.brainCoinsAmount || 50;
+      if (req.user && (req.user._id || req.user.id)) {
+        const uId = req.user._id || req.user.id;
+        User.findByIdAndUpdate(uId, { $inc: { brainCoins: earnedBrainCoins } }).catch(() => {});
+      }
+    }
+
     res.json({
       success: true,
       message: isOfficialLeaderboardEntry
@@ -178,6 +231,8 @@ exports.submitQuiz = async (req, res) => {
         score,
         accuracy,
         earnedXP,
+        earnedBrainCoins,
+        rewardConfig,
         correctCount,
         incorrectCount,
         unattemptedCount,
@@ -208,10 +263,17 @@ exports.submitQuiz = async (req, res) => {
   }
 };
 
-// 4. GET QUIZ OFFICIAL LEADERBOARD (Single Entry Per User)
+// 4. GET QUIZ OFFICIAL LEADERBOARD (Single Entry Per User, Redis Cached 15s)
 exports.getQuizLeaderboard = async (req, res) => {
   try {
     const quizId = req.params.id;
+    const cacheKey = `quiz:leaderboard:${quizId}`;
+
+    // 1. Try Redis cache first
+    const cachedLeaderboard = await getCache(cacheKey);
+    if (cachedLeaderboard) {
+      return res.json(cachedLeaderboard);
+    }
 
     // Fetch official 1st attempts only, sorted by score DESC, then timeTakenSeconds ASC
     const leaderboard = await QuizSubmission.find({
@@ -221,32 +283,33 @@ exports.getQuizLeaderboard = async (req, res) => {
       .sort({ score: -1, timeTakenSeconds: 1 })
       .limit(50);
 
-    const formattedLeaderboard = leaderboard.map((entry) => {
-      let email = (entry.userEmail || '').trim();
-      let name = (entry.userName || '').trim();
-      let username = email ? email.split('@')[0] : '';
+    const formattedLeaderboard = leaderboard.map((sub, index) => ({
+      rank: index + 1,
+      userId: sub.userId,
+      userName: sub.userName || 'Anonymous Scholar',
+      userEmail: sub.userEmail ? (sub.userEmail.split('@')[0] + '***@' + sub.userEmail.split('@')[1]) : 'candidate***@brainarena.in',
+      score: sub.score,
+      accuracy: sub.accuracy || 100,
+      earnedXP: sub.earnedXP || 100,
+      correctCount: sub.correctCount || 0,
+      totalQuestions: sub.totalQuestions || 1,
+      timeTakenSeconds: sub.timeTakenSeconds,
+      submittedAt: sub.createdAt
+    }));
 
-      if ((!name || name === 'Candidate') && username) {
-        name = username.charAt(0).toUpperCase() + username.slice(1);
-      }
-      if (!username && name && name !== 'Candidate') {
-        username = name.toLowerCase().replace(/\s+/g, '_');
-      }
-
-      return {
-        ...entry.toObject(),
-        userName: name || email || 'Candidate',
-        userEmail: email,
-        username: username || (name ? name.toLowerCase().replace(/\s+/g, '_') : '')
-      };
-    });
-
-    res.json({
+    const responsePayload = {
       success: true,
+      quizId,
       count: formattedLeaderboard.length,
       leaderboard: formattedLeaderboard
-    });
+    };
+
+    // Cache leaderboard for 15 seconds
+    await setCache(cacheKey, responsePayload, 15);
+
+    res.json(responsePayload);
   } catch (error) {
+    console.error('[Get Leaderboard Error]:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -377,8 +440,15 @@ exports.getUserProfileStats = async (req, res) => {
     }
 
     const objectUserId = new mongoose.Types.ObjectId(userId.toString());
+    const cacheKey = `user:profile:stats:${userId}`;
 
-    // 1. Fetch all submissions by this user
+    // 1. Try Redis Cache first for sub-millisecond, zero-fluctuation response
+    const cachedStats = await getCache(cacheKey);
+    if (cachedStats) {
+      return res.json(cachedStats);
+    }
+
+    // 2. Fetch all submissions by this user
     const userSubmissions = await QuizSubmission.find({ userId: objectUserId })
       .populate('quizId', 'title category quizType techStack')
       .sort({ createdAt: -1 });
@@ -407,20 +477,33 @@ exports.getUserProfileStats = async (req, res) => {
       ? Math.round(sumAccuracy / totalSubmissions)
       : 0;
 
-    // 2. Global Leaderboard Ranking Calculation
-    // Aggregate total earnedXP across all users in the entire database
+    // 3. Global Leaderboard Ranking Calculation (STRICTLY OFFICIAL LIVE TESTS ONLY)
+    // Practice & replay attempts are excluded so ranks are deterministic & non-fluctuating
     const globalRankings = await QuizSubmission.aggregate([
+      {
+        $match: {
+          isOfficialLeaderboardEntry: true,
+          isPracticeMode: { $ne: true }
+        }
+      },
       {
         $group: {
           _id: '$userId',
           totalXP: { $sum: '$earnedXP' },
           totalScore: { $sum: '$score' },
           avgAccuracy: { $avg: '$accuracy' },
-          submissionCount: { $sum: 1 }
+          submissionCount: { $sum: 1 },
+          earliestSubmissionAt: { $min: '$createdAt' }
         }
       },
       {
-        $sort: { totalXP: -1, totalScore: -1, avgAccuracy: -1 }
+        $sort: {
+          totalXP: -1,
+          totalScore: -1,
+          avgAccuracy: -1,
+          earliestSubmissionAt: 1,
+          _id: 1 // Deterministic tie-breaker prevents rank fluctuation on refresh
+        }
       }
     ]);
 
@@ -428,17 +511,15 @@ exports.getUserProfileStats = async (req, res) => {
       r => r._id && r._id.toString() === userId.toString()
     );
 
-    let globalRankStr = '#1';
-    let globalRankNumber = 1;
+    let globalRankStr = 'Unranked';
+    let globalRankNumber = null;
+
     if (userRankIndex !== -1) {
       globalRankNumber = userRankIndex + 1;
       globalRankStr = `#${globalRankNumber}`;
-    } else if (totalSubmissions === 0) {
+    } else {
       globalRankStr = 'Unranked';
       globalRankNumber = null;
-    } else {
-      globalRankNumber = globalRankings.length + 1;
-      globalRankStr = `#${globalRankNumber}`;
     }
 
     // Calculate highest score & category distribution
@@ -456,7 +537,7 @@ exports.getUserProfileStats = async (req, res) => {
       categoryStats[cat] = (categoryStats[cat] || 0) + 1;
     });
 
-    // 3. Dynamic Badges Calculation based on real achievements
+    // 4. Dynamic Badges Calculation based on real achievements
     const badges = [
       {
         id: 'speed_demon',
@@ -502,7 +583,7 @@ exports.getUserProfileStats = async (req, res) => {
       }
     ];
 
-    // 4. Formatted Recent Activity History
+    // 5. Formatted Recent Activity History
     const recentHistory = userSubmissions.slice(0, 15).map((s) => ({
       _id: s._id,
       quizId: s.quizId?._id,
@@ -520,10 +601,10 @@ exports.getUserProfileStats = async (req, res) => {
       date: s.createdAt
     }));
 
-    // 5. Total Official Certificates Count
+    // 6. Total Official Certificates Count
     const totalCertificates = userSubmissions.filter(s => s.certificateId && !s.isPracticeMode).length;
 
-    res.json({
+    const responsePayload = {
       success: true,
       stats: {
         totalQuizzes: distinctQuizzes || totalSubmissions,
@@ -544,7 +625,12 @@ exports.getUserProfileStats = async (req, res) => {
         badges,
         recentHistory
       }
-    });
+    };
+
+    // Cache user profile stats for 30 seconds
+    await setCache(cacheKey, responsePayload, 30);
+
+    res.json(responsePayload);
   } catch (error) {
     console.error('[Get Profile Stats Error]:', error);
     res.status(500).json({ success: false, message: error.message });

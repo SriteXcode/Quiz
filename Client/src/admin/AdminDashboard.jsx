@@ -27,7 +27,13 @@ import {
   apiGetAdminReviews,
   apiCreateAdminReview,
   apiUpdateReview,
-  apiDeleteReview
+  apiDeleteReview,
+  apiGetAdminAdCampaigns,
+  apiCreateAdCampaign,
+  apiUpdateAdCampaign,
+  apiDeleteAdCampaign,
+  apiGetGlobalAdsStatus,
+  apiToggleGlobalAdsStatus
 } from '../services/api';
 import {
   downloadQuizQuestionsTemplate,
@@ -155,7 +161,7 @@ const initialMockPartners = [
 ];
 
 export const AdminDashboard = () => {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, login } = useAuth();
   const { addToast } = useToast();
 
   const [activeTab, setActiveTab] = useState('overview');
@@ -191,7 +197,8 @@ export const AdminDashboard = () => {
     'partners',
     'messages',
     'reviews',
-    'rewards'
+    'rewards',
+    'ads'
   ], []);
 
   const activeTabIndex = useMemo(() => {
@@ -292,6 +299,27 @@ export const AdminDashboard = () => {
   const [selectedMessageModal, setSelectedMessageModal] = useState(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
+  // Ad Campaigns & Monetization State
+  const [adCampaignsList, setAdCampaignsList] = useState([]);
+  const [globalAdsEnabled, setGlobalAdsEnabled] = useState(true);
+  const [isAdModalOpen, setIsAdModalOpen] = useState(false);
+  const [editingAdId, setEditingAdId] = useState(null);
+  const [adPreviewMode, setAdPreviewMode] = useState('horizontal'); // 'horizontal' | 'shorts_card'
+  const [previewDeviceSize, setPreviewDeviceSize] = useState('desktop'); // 'mobile' | 'tablet' | 'desktop'
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [adFormData, setAdFormData] = useState({
+    title: '',
+    sponsorName: '',
+    placement: 'homepage_hero_bottom',
+    adType: 'custom_banner',
+    imageUrl: '',
+    targetUrl: '',
+    headlineText: '',
+    descriptionText: '',
+    priority: 1,
+    status: 'active'
+  });
+
   // Site Settings (About Us & Contact Information) State
   const [siteSettings, setSiteSettings] = useState({
     about: {
@@ -385,7 +413,7 @@ export const AdminDashboard = () => {
     const fetchAllAdminData = async () => {
       setIsLoadingMessages(true);
       try {
-        const [statsRes, usersRes, quizzesRes, worksRes, siteRes, partnersRes, msgsRes, reviewsRes] =
+        const [statsRes, usersRes, quizzesRes, worksRes, siteRes, partnersRes, msgsRes, reviewsRes, adsRes, globalAdsRes] =
           await Promise.allSettled([
             apiGetAdminStats(),
             apiGetAdminUsers(searchQuery, roleFilter),
@@ -399,7 +427,9 @@ export const AdminDashboard = () => {
               priorityFilter: msgPriorityFilter,
               search: msgSearchQuery
             }),
-            apiGetAdminReviews(reviewStatusFilter, reviewSearchQuery)
+            apiGetAdminReviews(reviewStatusFilter, reviewSearchQuery),
+            apiGetAdminAdCampaigns(),
+            apiGetGlobalAdsStatus()
           ]);
 
         if (statsRes.status === 'fulfilled' && statsRes.value?.success && statsRes.value.stats) {
@@ -427,6 +457,12 @@ export const AdminDashboard = () => {
         if (reviewsRes.status === 'fulfilled' && reviewsRes.value?.success) {
           if (Array.isArray(reviewsRes.value.reviews)) setReviewsList(reviewsRes.value.reviews);
           if (reviewsRes.value.stats) setReviewStats(reviewsRes.value.stats);
+        }
+        if (adsRes && adsRes.status === 'fulfilled' && adsRes.value?.success && Array.isArray(adsRes.value.campaigns)) {
+          setAdCampaignsList(adsRes.value.campaigns);
+        }
+        if (globalAdsRes && globalAdsRes.status === 'fulfilled' && globalAdsRes.value?.success) {
+          setGlobalAdsEnabled(globalAdsRes.value.adsEnabled !== false);
         }
       } catch {
         console.warn('[Admin Parallel Load]: Fallback active');
@@ -832,6 +868,106 @@ You are building a high-frequency financial settlement engine. Given an array of
       setIsReviewAdminModalOpen(false);
     } catch (err) {
       addToast(`Error saving review: ${err.message}`, 'error');
+    }
+  };
+
+  const handleOpenCreateAdModal = () => {
+    setEditingAdId(null);
+    setAdFormData({
+      title: '',
+      sponsorName: '',
+      placement: 'homepage_hero_bottom',
+      placements: ['homepage_hero_bottom'],
+      adType: 'custom_banner',
+      imageUrl: '',
+      targetUrl: '',
+      headlineText: '',
+      descriptionText: '',
+      buttonText: '',
+      priority: 1,
+      status: 'active',
+      startDate: new Date().toISOString().slice(0, 16),
+      endDate: ''
+    });
+    setIsAdModalOpen(true);
+  };
+
+  const handleOpenEditAdModal = (adItem) => {
+    setEditingAdId(adItem._id || adItem.id);
+    const plList = Array.isArray(adItem.placements) && adItem.placements.length > 0
+      ? adItem.placements
+      : [adItem.placement || 'homepage_hero_bottom'];
+
+    const formatISO = (dt) => (dt ? new Date(dt).toISOString().slice(0, 16) : '');
+
+    setAdFormData({
+      title: adItem.title || '',
+      sponsorName: adItem.sponsorName || '',
+      placement: plList[0],
+      placements: plList,
+      adType: adItem.adType || 'custom_banner',
+      imageUrl: adItem.imageUrl || '',
+      targetUrl: adItem.targetUrl || '',
+      headlineText: adItem.headlineText || '',
+      descriptionText: adItem.descriptionText || '',
+      buttonText: adItem.buttonText || '',
+      priority: adItem.priority || 1,
+      status: adItem.status || 'active',
+      startDate: formatISO(adItem.startDate) || new Date().toISOString().slice(0, 16),
+      endDate: formatISO(adItem.endDate)
+    });
+    setIsAdModalOpen(true);
+  };
+
+  const handleSaveAdSubmit = async (e) => {
+    e.preventDefault();
+    if (!adFormData.title) {
+      addToast('Campaign title is required.', 'warning');
+      return;
+    }
+
+    try {
+      if (editingAdId) {
+        const res = await apiUpdateAdCampaign(editingAdId, adFormData);
+        if (res && res.success !== false) {
+          setAdCampaignsList((prev) =>
+            prev.map((ad) => ((ad._id === editingAdId || ad.id === editingAdId) ? (res.campaign || { ...ad, ...adFormData }) : ad))
+          );
+          addToast('Ad campaign updated successfully! 📢', 'success');
+        }
+      } else {
+        const res = await apiCreateAdCampaign(adFormData);
+        if (res && res.success !== false && res.campaign) {
+          setAdCampaignsList((prev) => [res.campaign, ...prev]);
+          addToast('New ad campaign created and live! 🚀', 'success');
+        }
+      }
+      setIsAdModalOpen(false);
+    } catch (err) {
+      addToast(`Error saving ad campaign: ${err.message}`, 'error');
+    }
+  };
+
+  const handleDeleteAd = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this ad campaign?')) return;
+    try {
+      await apiDeleteAdCampaign(id);
+      setAdCampaignsList((prev) => prev.filter((ad) => (ad._id || ad.id) !== id));
+      addToast('Ad campaign deleted.', 'info');
+    } catch (err) {
+      addToast(`Error deleting ad: ${err.message}`, 'error');
+    }
+  };
+
+  const handleToggleGlobalAds = async () => {
+    try {
+      const res = await apiToggleGlobalAdsStatus(!globalAdsEnabled);
+      if (res && res.success) {
+        setGlobalAdsEnabled(res.adsEnabled);
+        addToast(res.message, res.adsEnabled ? 'success' : 'info');
+      }
+    } catch (err) {
+      addToast(`Error toggling global ads: ${err.message}`, 'error');
     }
   };
 
@@ -1591,22 +1727,105 @@ You are building a high-frequency financial settlement engine. Given an array of
       label: 'Rewards & Tiers',
       badge: 'Tiers',
       badgeColor: 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+    },
+    {
+      id: 'ads',
+      icon: '📢',
+      label: 'Ad Campaigns',
+      badge: 'Monetization',
+      badgeColor: 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
     }
   ];
+
+  const [adminLoginEmail, setAdminLoginEmail] = useState('');
+  const [adminLoginPassword, setAdminLoginPassword] = useState('');
+  const [isSubmittingAdminLogin, setIsSubmittingAdminLogin] = useState(false);
+
+  const handleAdminQuickLogin = async (e) => {
+    e.preventDefault();
+    if (!adminLoginEmail || !adminLoginPassword) {
+      addToast('Please enter both Admin Email and Password', 'warning');
+      return;
+    }
+    setIsSubmittingAdminLogin(true);
+    try {
+      const res = await login(adminLoginEmail, adminLoginPassword);
+      if (res && res.success) {
+        addToast('Admin authentication verified successfully! 🛡️', 'success');
+      } else {
+        addToast(res?.error || 'Admin authentication failed.', 'error');
+      }
+    } catch (err) {
+      addToast(`Login failed: ${err.message}`, 'error');
+    } finally {
+      setIsSubmittingAdminLogin(false);
+    }
+  };
 
   // Access check for Admin Portal
   if (!isAdmin) {
     return (
-      <div className="text-center py-16 px-6 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] my-8 max-w-lg mx-auto shadow-2xl space-y-5 animate-fadeIn">
-        <span className="text-6xl block mb-2">🔒</span>
-        <div>
-          <h2 className="text-2xl font-bold font-poppins text-[var(--text-main)]">
-            Admin Access Restricted
+      <div className="max-w-md mx-auto my-12 p-6 sm:p-8 bg-[var(--bg-card)] rounded-3xl border border-[var(--border-theme)] shadow-2xl space-y-6 text-left animate-fadeIn">
+        <div className="text-center space-y-2">
+          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center text-3xl mx-auto shadow-inner">
+            🛡️
+          </div>
+          <h2 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)]">
+            Admin Authentication Required
           </h2>
-          <p className="text-xs font-lato text-[var(--text-muted)] mt-1.5 leading-relaxed">
-            Please sign in with authorized Administrator credentials to access the Admin Control Center.
+          <p className="text-xs font-lato text-[var(--text-muted)] leading-relaxed">
+            {user ? (
+              <span>Your account (<strong className="text-[var(--text-main)]">{user.email}</strong>) does not have Admin privileges. Please sign in with administrator credentials.</span>
+            ) : (
+              <span>Your session expired or authorization is required. Please sign in below to unlock the Admin Control Center.</span>
+            )}
           </p>
         </div>
+
+        <form onSubmit={handleAdminQuickLogin} className="space-y-4 font-lato">
+          <div>
+            <label className="block text-xs font-poppins font-bold text-[var(--text-main)] mb-1">
+              Admin Email Address
+            </label>
+            <input
+              type="email"
+              required
+              placeholder="admin@brainarena.com"
+              value={adminLoginEmail}
+              onChange={(e) => setAdminLoginEmail(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-poppins font-bold text-[var(--text-main)] mb-1">
+              Admin Password
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••••••"
+              value={adminLoginPassword}
+              onChange={(e) => setAdminLoginPassword(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] text-xs focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmittingAdminLogin}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 via-blue-600 to-indigo-700 hover:from-indigo-700 hover:to-blue-700 text-white font-poppins font-bold text-xs shadow-lg transition-all cursor-pointer transform active:scale-95 flex items-center justify-center space-x-2 disabled:opacity-50"
+          >
+            {isSubmittingAdminLogin ? (
+              <span className="flex items-center space-x-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Authenticating Admin...</span>
+              </span>
+            ) : (
+              <span>Unlock Admin Control Center 🔓</span>
+            )}
+          </button>
+        </form>
       </div>
     );
   }
@@ -3329,8 +3548,603 @@ You are building a high-frequency financial settlement engine. Given an array of
           </div>
         </div>
 
+        {/* SLIDE 9: AD CAMPAIGNS & MONETIZATION MANAGEMENT */}
+        <div
+          className={`w-full shrink-0 min-w-full transition-opacity duration-300 ${
+            activeTabIndex === 9 ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          style={{ height: activeTabIndex === 9 ? 'auto' : 0, overflow: activeTabIndex === 9 ? 'visible' : 'hidden' }}
+        >
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* TOP HEADER CARD WITH + ADD CAMPAIGN BUTTON */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] flex items-center space-x-2">
+                  <span>📢</span>
+                  <span>Ad Campaigns & Monetization Management</span>
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)] mt-1">
+                  Manage sponsor banners, placement slots, Google AdSense slots, and analyze real-time impressions, clicks & CTR %.
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-3 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleToggleGlobalAds}
+                  className={`px-4 py-2.5 rounded-2xl font-poppins font-bold text-xs shadow-md transition-all cursor-pointer flex items-center space-x-2 ${
+                    globalAdsEnabled
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
+                  title={globalAdsEnabled ? "Shut down all ads platform-wide (Make site 100% Ad-Free)" : "Turn on ads platform-wide"}
+                >
+                  <span>{globalAdsEnabled ? '🚫 Make Site Ad-Free (Turn Off Ads)' : '🟢 Turn On Banners'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenCreateAdModal}
+                  className="px-5 py-2.5 rounded-2xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95 flex items-center space-x-2"
+                >
+                  <span>+</span>
+                  <span>Add Ad Campaign</span>
+                </button>
+              </div>
+            </div>
+
+            {/* MONETIZATION ANALYTICS CARDS */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] shadow-xs text-center">
+                <div className="text-[10px] font-bold font-poppins text-[var(--text-muted)] uppercase">Total Campaigns</div>
+                <div className="text-xl sm:text-2xl font-extrabold font-poppins text-[var(--text-main)] mt-1">{adCampaignsList.length}</div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] shadow-xs text-center">
+                <div className="text-[10px] font-bold font-poppins text-[var(--text-muted)] uppercase">Active Banners</div>
+                <div className="text-xl sm:text-2xl font-extrabold font-poppins text-emerald-600 mt-1">
+                  {adCampaignsList.filter(a => a.status === 'active').length}
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] shadow-xs text-center">
+                <div className="text-[10px] font-bold font-poppins text-[var(--text-muted)] uppercase">Total Impressions</div>
+                <div className="text-xl sm:text-2xl font-extrabold font-poppins text-blue-600 mt-1">
+                  {adCampaignsList.reduce((sum, a) => sum + (a.impressionsCount || 0), 0).toLocaleString()}
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-theme)] shadow-xs text-center">
+                <div className="text-[10px] font-bold font-poppins text-[var(--text-muted)] uppercase">Total Clicks (CTR)</div>
+                <div className="text-xl sm:text-2xl font-extrabold font-poppins text-amber-500 mt-1">
+                  {adCampaignsList.reduce((sum, a) => sum + (a.clicksCount || 0), 0).toLocaleString()}
+                </div>
+              </div>
+            </div>
+
+            {/* AD CAMPAIGNS TABLE */}
+            <div className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-3xl p-5 shadow-sm overflow-hidden space-y-4">
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left font-lato text-xs sm:text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-[var(--border-theme)] text-[var(--text-muted)] font-poppins text-[11px] uppercase tracking-wider">
+                      <th className="py-3 px-3">Banner / Title</th>
+                      <th className="py-3 px-3">Placement Slot</th>
+                      <th className="py-3 px-3">Sponsor Name</th>
+                      <th className="py-3 px-3 text-center">Status</th>
+                      <th className="py-3 px-3 text-center">Views</th>
+                      <th className="py-3 px-3 text-center">Clicks</th>
+                      <th className="py-3 px-3 text-center">CTR %</th>
+                      <th className="py-3 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-theme)]">
+                    {adCampaignsList.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="py-8 text-center text-[var(--text-muted)] italic font-poppins">
+                          No custom ad campaigns created yet. Click "+ Add Ad Campaign" to launch a campaign!
+                        </td>
+                      </tr>
+                    ) : (
+                      adCampaignsList.map((adItem) => (
+                        <tr key={adItem._id || adItem.id} className="hover:bg-[var(--bg-main)]/50 transition-colors">
+                          <td className="py-3 px-3">
+                            <div className="flex items-center space-x-3">
+                              {adItem.imageUrl ? (
+                                <img src={adItem.imageUrl} alt={adItem.title} className="w-12 h-8 rounded-lg object-cover border border-[var(--border-theme)]" onError={(e) => { e.target.style.display = 'none'; }} />
+                              ) : (
+                                <div className="w-12 h-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xs">📢</div>
+                              )}
+                              <div>
+                                <div className="font-extrabold font-poppins text-[var(--text-main)]">{adItem.title}</div>
+                                <div className="text-[11px] text-[var(--text-muted)] truncate max-w-xs">{adItem.headlineText || adItem.targetUrl || 'Custom Ad'}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {(Array.isArray(adItem.placements) && adItem.placements.length > 0 ? adItem.placements : [adItem.placement || 'homepage_hero_bottom']).map((p) => (
+                                <span key={p} className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 font-mono text-[10px] font-bold capitalize">
+                                  {p.replace(/_/g, ' ')}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-[var(--text-main)]">
+                            {adItem.sponsorName || 'Official Sponsor'}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <div className="flex flex-col items-center space-y-0.5">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-poppins font-bold uppercase ${
+                                adItem.status === 'active' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/30' : 'bg-slate-500/15 text-slate-500 border border-slate-500/30'
+                              }`}>
+                                {adItem.status}
+                              </span>
+                              {adItem.endDate && (
+                                <span className="text-[9.5px] font-mono text-[var(--text-muted)]">
+                                  Exp: {new Date(adItem.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-bold text-[var(--text-main)]">
+                            {adItem.impressionsCount || 0}
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-bold text-amber-500">
+                            {adItem.clicksCount || 0}
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono font-bold text-blue-500">
+                            {adItem.ctr || '0.00%'}
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => handleOpenEditAdModal(adItem)}
+                                className="px-2.5 py-1 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-blue-500 text-xs font-bold font-poppins cursor-pointer"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteAd(adItem._id || adItem.id)}
+                                className="px-2.5 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 text-xs font-bold font-poppins cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
+
+      {/* ========================================================================= */}
+      {/* 📢 AD CAMPAIGN CREATOR & EDITOR MODAL */}
+      {/* ========================================================================= */}
+      {isAdModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="w-full max-w-lg bg-[var(--bg-card)] text-[var(--text-main)] border border-[var(--border-theme)] rounded-3xl p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh] relative">
+            <button
+              onClick={() => setIsAdModalOpen(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-secondary)] font-bold text-xs cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center space-x-3 mb-6">
+              <span className="text-3xl">📢</span>
+              <div>
+                <h3 className="text-xl font-bold font-poppins text-[var(--text-main)]">
+                  {editingAdId ? 'Edit Ad Campaign' : 'Create New Ad Campaign'}
+                </h3>
+                <p className="text-xs font-lato text-[var(--text-muted)]">
+                  Configure sponsor banner, placement slot, target URL, and status.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveAdSubmit} className="space-y-4 font-lato text-xs sm:text-sm">
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Campaign Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Google Cloud Certification Deal 2026"
+                  value={adFormData.title}
+                  onChange={(e) => setAdFormData({ ...adFormData, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Sponsor Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Google Cloud / AWS"
+                  value={adFormData.sponsorName}
+                  onChange={(e) => setAdFormData({ ...adFormData, sponsorName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              {/* MULTI-SELECT PLACEMENT SLOTS */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block font-poppins font-bold text-xs text-[var(--text-main)]">
+                    Target Placement Slots * (Select multiple locations for this banner)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allSlots = ['homepage_hero_bottom', 'quiz_catalog_top', 'shorts_gyaan_feed', 'quiz_result_modal'];
+                      const isAllSelected = adFormData.placements?.length === allSlots.length;
+                      setAdFormData({ ...adFormData, placements: isAllSelected ? ['homepage_hero_bottom'] : allSlots, placement: 'homepage_hero_bottom' });
+                    }}
+                    className="text-[10px] font-poppins font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    {adFormData.placements?.length === 4 ? 'Deselect All' : 'Select All Slots'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 rounded-2xl border border-[var(--border-theme)] bg-[var(--bg-main)]">
+                  {[
+                    { id: 'homepage_hero_bottom', label: '🏠 Homepage Hero Bottom' },
+                    { id: 'quiz_catalog_top', label: '📚 Quiz Catalog Top' },
+                    { id: 'shorts_gyaan_feed', label: '📱 Shorts Gyaan Native Feed' },
+                    { id: 'quiz_result_modal', label: '🏆 Quiz Completion Modal' }
+                  ].map((slot) => {
+                    const isChecked = adFormData.placements?.includes(slot.id);
+                    return (
+                      <label
+                        key={slot.id}
+                        className={`flex items-center space-x-2 p-2 rounded-xl border cursor-pointer transition-all ${
+                          isChecked
+                            ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/40 font-bold text-[var(--text-main)] shadow-2xs'
+                            : 'border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-muted)]'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const current = adFormData.placements || [];
+                            let next;
+                            if (e.target.checked) {
+                              next = [...current, slot.id];
+                            } else {
+                              next = current.filter((s) => s !== slot.id);
+                              if (next.length === 0) next = [slot.id];
+                            }
+                            setAdFormData({ ...adFormData, placements: next, placement: next[0] });
+                          }}
+                          className="w-4 h-4 rounded text-indigo-600 cursor-pointer"
+                        />
+                        <span className="text-xs">{slot.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* START DATE & EXPIRY DATE CAMPAIGN SCHEDULING */}
+              <div className="p-3.5 rounded-2xl border border-[var(--border-theme)] bg-[var(--bg-main)] space-y-3">
+                <div className="text-xs font-poppins font-bold text-[var(--text-main)] flex items-center space-x-1">
+                  <span>⏰</span>
+                  <span>Ad Campaign Schedule & Automated Expiry</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
+                      Start Date & Time (Go Live)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={adFormData.startDate}
+                      onChange={(e) => setAdFormData({ ...adFormData, startDate: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] font-mono text-xs focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-poppins font-bold text-[var(--text-muted)] uppercase mb-1">
+                      Expiry Date & Time (End Campaign)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={adFormData.endDate}
+                      onChange={(e) => setAdFormData({ ...adFormData, endDate: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] text-[var(--text-main)] font-mono text-xs focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <ImageUploadDropzone
+                  label="Banner / Graphic Image"
+                  value={adFormData.imageUrl}
+                  onChange={(url) => setAdFormData({ ...adFormData, imageUrl: url })}
+                  placeholder="Drag & drop ad banner graphic or paste image URL..."
+                  helpText="Upload banner file directly to Cloudinary or paste direct URL"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Target Click-Through URL</label>
+                <input
+                  type="url"
+                  placeholder="https://sponsor-website.com/offer"
+                  value={adFormData.targetUrl}
+                  onChange={(e) => setAdFormData({ ...adFormData, targetUrl: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Headline Text</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Free Certification Voucher for Top Developers"
+                  value={adFormData.headlineText}
+                  onChange={(e) => setAdFormData({ ...adFormData, headlineText: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Description Text</label>
+                <textarea
+                  rows="2"
+                  placeholder="e.g. Complete quizzes to claim your $100 cloud credits."
+                  value={adFormData.descriptionText}
+                  onChange={(e) => setAdFormData({ ...adFormData, descriptionText: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Call-To-Action (CTA) Button Text</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Claim Offer → / Register Now / Learn More"
+                  value={adFormData.buttonText}
+                  onChange={(e) => setAdFormData({ ...adFormData, buttonText: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Campaign Status</label>
+                  <select
+                    value={adFormData.status}
+                    onChange={(e) => setAdFormData({ ...adFormData, status: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)] cursor-pointer"
+                  >
+                    <option value="active">Active (Live)</option>
+                    <option value="paused">Paused</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-poppins font-bold text-xs mb-1 text-[var(--text-main)]">Priority (1-10)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={adFormData.priority}
+                    onChange={(e) => setAdFormData({ ...adFormData, priority: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] text-[var(--text-main)]"
+                  />
+                </div>
+              </div>
+
+              {/* LIVE REAL-TIME AD PREVIEW CARD */}
+              <div className="p-4 rounded-3xl border border-amber-500/30 bg-[var(--bg-main)] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-theme)] pb-2.5">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm">👁️</span>
+                    <span className="font-poppins font-bold text-xs text-[var(--text-main)]">
+                      Live Ad Preview (Real-Time Render)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewRefreshKey((prev) => prev + 1)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-poppins font-bold text-[10px] hover:bg-amber-500/20 cursor-pointer flex items-center space-x-1"
+                      title="Re-trigger live graphic image render"
+                    >
+                      <span>🔄</span>
+                      <span>Refresh Preview</span>
+                    </button>
+                  </div>
+
+                  {/* Format & Responsive Viewport Switches */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {/* Format Toggle */}
+                    <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setAdPreviewMode('horizontal')}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-poppins font-bold transition-all cursor-pointer ${
+                          adPreviewMode === 'horizontal'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        }`}
+                      >
+                        Banner
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAdPreviewMode('shorts_card')}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-poppins font-bold transition-all cursor-pointer ${
+                          adPreviewMode === 'shorts_card'
+                            ? 'bg-amber-500 text-slate-950 shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        }`}
+                      >
+                        Shorts Card
+                      </button>
+                    </div>
+
+                    {/* Responsive Device Size Toggle */}
+                    <div className="inline-flex rounded-xl border border-[var(--border-theme)] bg-[var(--bg-card)] p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDeviceSize('mobile')}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-poppins font-bold transition-all cursor-pointer ${
+                          previewDeviceSize === 'mobile'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        }`}
+                        title="Mobile (Small Screen Viewport ~340px)"
+                      >
+                        📱 Mobile
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDeviceSize('tablet')}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-poppins font-bold transition-all cursor-pointer ${
+                          previewDeviceSize === 'tablet'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        }`}
+                        title="Tablet (Medium Screen Viewport ~600px)"
+                      >
+                        📱 Tablet
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDeviceSize('desktop')}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-poppins font-bold transition-all cursor-pointer ${
+                          previewDeviceSize === 'desktop'
+                            ? 'bg-indigo-600 text-white shadow-xs'
+                            : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        }`}
+                        title="Desktop (Large Full-Width Viewport)"
+                      >
+                        💻 Desktop
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PREVIEW DEVICE VIEWPORT CONTAINER */}
+                <div
+                  key={previewRefreshKey}
+                  className={`transition-all duration-300 ${
+                    previewDeviceSize === 'mobile'
+                      ? 'max-w-[340px] mx-auto ring-2 ring-indigo-500/30 p-2 rounded-2xl bg-black/20'
+                      : previewDeviceSize === 'tablet'
+                      ? 'max-w-[580px] mx-auto ring-2 ring-indigo-500/30 p-2 rounded-2xl bg-black/20'
+                      : 'w-full'
+                  }`}
+                >
+                  {adPreviewMode === 'horizontal' ? (
+                    /* Wide Horizontal Banner Format */
+                    <div className="w-full relative overflow-hidden rounded-2xl border border-[var(--border-theme)] bg-[var(--bg-card)] p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm text-left animate-fadeIn">
+                      <div className="absolute top-2 right-2 bg-black/70 text-[9px] font-bold tracking-wider text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 uppercase">
+                        ⚡ SPONSORED
+                      </div>
+                      {adFormData.imageUrl ? (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-2xl overflow-hidden shrink-0 border border-[var(--border-theme)] bg-slate-900/50 p-1.5 flex items-center justify-center">
+                          <img
+                            key={`img-h-${previewRefreshKey}-${adFormData.imageUrl}`}
+                            src={adFormData.imageUrl}
+                            alt="Sponsor Logo"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 aspect-square rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col items-center justify-center text-[10px] shrink-0 font-bold text-amber-500 p-1 text-center">
+                          <span>📢 Logo</span>
+                          <span className="text-[8px] font-normal text-[var(--text-muted)] mt-0.5">Upload image</span>
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-1">
+                        <div className="text-[10px] font-bold font-poppins text-amber-500 uppercase tracking-wide">
+                          {adFormData.sponsorName || 'Official Sponsor'}
+                        </div>
+                        <h4 className="text-sm font-extrabold font-poppins text-[var(--text-main)] leading-snug">
+                          {adFormData.headlineText || adFormData.title || 'Campaign Title / Headline'}
+                        </h4>
+                        <p className="text-xs font-lato text-[var(--text-muted)] line-clamp-2">
+                          {adFormData.descriptionText || 'Sponsor offer description text goes here.'}
+                        </p>
+                      </div>
+                      <button type="button" className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-poppins font-bold text-xs shadow-xs shrink-0 cursor-pointer">
+                        {adFormData.buttonText || 'Visit Sponsor →'}
+                      </button>
+                    </div>
+                  ) : (
+                    /* Shorts Vertical Native Card Format */
+                    <div className="w-full max-w-sm mx-auto bg-[var(--bg-card)] border border-amber-500/30 rounded-2xl p-5 shadow-lg space-y-4 text-left animate-fadeIn">
+                      <div className="flex justify-between items-center border-b border-[var(--border-theme)] pb-2">
+                        <div className="flex items-center space-x-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                          <span className="text-[10px] font-extrabold font-poppins text-amber-500 uppercase tracking-wider">
+                            SPONSORED ANNOUNCEMENT
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">{adFormData.sponsorName || 'Partner'}</span>
+                      </div>
+
+                      {adFormData.imageUrl ? (
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 aspect-square mx-auto rounded-2xl overflow-hidden border border-[var(--border-theme)] bg-slate-900/50 p-2 flex items-center justify-center shadow-inner">
+                          <img
+                            key={`img-s-${previewRefreshKey}-${adFormData.imageUrl}`}
+                            src={adFormData.imageUrl}
+                            alt="Sponsor Logo"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 sm:w-28 sm:h-28 aspect-square mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 flex flex-col items-center justify-center text-xs font-bold text-amber-500 p-2 text-center">
+                          <span>📢 Logo</span>
+                          <span className="text-[9px] font-normal text-[var(--text-muted)] mt-0.5">Upload image</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-1.5">
+                        <h4 className="text-base font-extrabold font-poppins text-[var(--text-main)]">
+                          {adFormData.headlineText || adFormData.title || 'Campaign Title'}
+                        </h4>
+                        <p className="text-xs font-lato text-[var(--text-secondary)] leading-relaxed">
+                          {adFormData.descriptionText || 'Explore exclusive opportunities and partner offers with brainArena.'}
+                        </p>
+                      </div>
+
+                      <button type="button" className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-slate-950 font-poppins font-extrabold text-xs shadow-md cursor-pointer">
+                        {adFormData.buttonText || 'Explore Offer →'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAdModalOpen(false)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-theme)] text-[var(--text-secondary)] font-poppins font-semibold text-xs cursor-pointer hover:bg-[var(--bg-main)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[var(--color-primary-600)] hover:bg-[var(--color-primary-700)] text-white font-poppins font-bold text-xs shadow-md cursor-pointer transition-all active:scale-95"
+                >
+                  {editingAdId ? 'Save Campaign' : 'Create Campaign'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 🚀 QUIZ CREATOR / BUILDER MODAL WITH REWARDS & RANK GROUPS BUILDER */}
@@ -4719,6 +5533,194 @@ You are building a high-frequency financial settlement engine. Given an array of
                         </div>
                       </div>
                     )}
+
+                  </div>
+                )}
+              </div>
+
+              {/* ========================================================================= */}
+              {/* 🎁 SECTION 5: REWARDS & RECOGNITION PERKS CONFIGURATION */}
+              {/* ========================================================================= */}
+              <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                openQuizSection === 'rewards_config'
+                  ? 'border-emerald-500 shadow-md ring-1 ring-emerald-500/20 bg-[var(--bg-card)]'
+                  : 'border-[var(--border-theme)] hover:border-emerald-400 bg-[var(--bg-main)]/60'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => setOpenQuizSection(openQuizSection === 'rewards_config' ? null : 'rewards_config')}
+                  className="w-full p-4 sm:p-4.5 flex items-center justify-between gap-3 text-left cursor-pointer transition-colors hover:bg-emerald-500/10"
+                >
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-xs">
+                      5
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-poppins font-bold text-sm text-[var(--text-main)]">
+                          🎁 Rewards & Recognition Configuration
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                          Per-Quiz Rules
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">
+                        Configure which rewards (Certificates, GitHub Badges, Diagnostic Radar, BrainCoins, Vouchers) to award for this quiz.
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`text-xs font-bold transition-transform duration-200 inline-block ${openQuizSection === 'rewards_config' ? 'rotate-180 text-emerald-500' : 'text-[var(--text-muted)]'}`}>
+                    ▼
+                  </span>
+                </button>
+
+                {openQuizSection === 'rewards_config' && (
+                  <div className="px-4 sm:px-5 pb-5 pt-3 space-y-4 border-t border-[var(--border-theme)] animate-fadeIn text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      
+                      {/* Certificate Switch */}
+                      <label className="flex items-center space-x-2.5 p-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={quizFormData.rewardConfig?.enableCertificate !== false}
+                          onChange={(e) => setQuizFormData({
+                            ...quizFormData,
+                            rewardConfig: { ...quizFormData.rewardConfig, enableCertificate: e.target.checked }
+                          })}
+                          className="w-4 h-4 rounded text-emerald-600 cursor-pointer"
+                        />
+                        <div>
+                          <div className="font-bold text-[var(--text-main)]">📜 Verifiable Certificate</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">Generates dynamic official certificate</div>
+                        </div>
+                      </label>
+
+                      {/* GitHub Badge Switch */}
+                      <label className="flex items-center space-x-2.5 p-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={quizFormData.rewardConfig?.enableGithubBadge !== false}
+                          onChange={(e) => setQuizFormData({
+                            ...quizFormData,
+                            rewardConfig: { ...quizFormData.rewardConfig, enableGithubBadge: e.target.checked }
+                          })}
+                          className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                        />
+                        <div>
+                          <div className="font-bold text-[var(--text-main)]">🛡️ Dynamic GitHub README Badge (.svg)</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">Generates live markdown embed badge</div>
+                        </div>
+                      </label>
+
+                      {/* Diagnostic Radar Switch */}
+                      <label className="flex items-center space-x-2.5 p-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={quizFormData.rewardConfig?.enableDiagnosticRadar !== false}
+                          onChange={(e) => setQuizFormData({
+                            ...quizFormData,
+                            rewardConfig: { ...quizFormData.rewardConfig, enableDiagnosticRadar: e.target.checked }
+                          })}
+                          className="w-4 h-4 rounded text-indigo-600 cursor-pointer"
+                        />
+                        <div>
+                          <div className="font-bold text-[var(--text-main)]">📊 Skill Diagnostic Radar</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">Multi-axis speed & accuracy analysis</div>
+                        </div>
+                      </label>
+
+                      {/* Social Share Card Switch */}
+                      <label className="flex items-center space-x-2.5 p-3 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={quizFormData.rewardConfig?.enableSocialShareCard !== false}
+                          onChange={(e) => setQuizFormData({
+                            ...quizFormData,
+                            rewardConfig: { ...quizFormData.rewardConfig, enableSocialShareCard: e.target.checked }
+                          })}
+                          className="w-4 h-4 rounded text-purple-600 cursor-pointer"
+                        />
+                        <div>
+                          <div className="font-bold text-[var(--text-main)]">🖼️ LinkedIn / Social Showcase Card</div>
+                          <div className="text-[10px] text-[var(--text-muted)]">1200x630 dynamic shareable graphic</div>
+                        </div>
+                      </label>
+
+                    </div>
+
+                    {/* BrainCoins Config */}
+                    <div className="p-3.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] space-y-2">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={quizFormData.rewardConfig?.enableBrainCoins !== false}
+                          onChange={(e) => setQuizFormData({
+                            ...quizFormData,
+                            rewardConfig: { ...quizFormData.rewardConfig, enableBrainCoins: e.target.checked }
+                          })}
+                          className="w-4 h-4 rounded text-amber-500 cursor-pointer"
+                        />
+                        <span className="font-bold text-[var(--text-main)]">🪙 Award BrainCoins on Completion</span>
+                      </label>
+                      {quizFormData.rewardConfig?.enableBrainCoins !== false && (
+                        <div className="flex items-center space-x-2 pt-1">
+                          <span className="text-xs text-[var(--text-muted)]">Coins Amount:</span>
+                          <input
+                            type="number"
+                            min="5"
+                            max="500"
+                            value={quizFormData.rewardConfig?.brainCoinsAmount || 50}
+                            onChange={(e) => setQuizFormData({
+                              ...quizFormData,
+                              rewardConfig: { ...quizFormData.rewardConfig, brainCoinsAmount: Number(e.target.value) }
+                            })}
+                            className="w-24 px-3 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] font-bold text-amber-500 text-xs"
+                          />
+                          <span className="text-[10px] text-[var(--text-muted)]">coins credited to user wallet</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sponsor Voucher Config */}
+                    <div className="p-3.5 rounded-xl border border-[var(--border-theme)] bg-[var(--bg-main)] space-y-2">
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(quizFormData.rewardConfig?.enableSponsorVoucher)}
+                          onChange={(e) => setQuizFormData({
+                            ...quizFormData,
+                            rewardConfig: { ...quizFormData.rewardConfig, enableSponsorVoucher: e.target.checked }
+                          })}
+                          className="w-4 h-4 rounded text-rose-500 cursor-pointer"
+                        />
+                        <span className="font-bold text-[var(--text-main)]">🎟️ Issue Sponsor Discount Voucher Code</span>
+                      </label>
+                      {Boolean(quizFormData.rewardConfig?.enableSponsorVoucher) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Voucher Code e.g. BRAINARENA50"
+                            value={quizFormData.rewardConfig?.sponsorVoucherCode || ''}
+                            onChange={(e) => setQuizFormData({
+                              ...quizFormData,
+                              rewardConfig: { ...quizFormData.rewardConfig, sponsorVoucherCode: e.target.value }
+                            })}
+                            className="px-3 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] font-mono font-bold text-xs"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Voucher Details e.g. 50% Off Cloud Voucher"
+                            value={quizFormData.rewardConfig?.sponsorVoucherDetails || ''}
+                            onChange={(e) => setQuizFormData({
+                              ...quizFormData,
+                              rewardConfig: { ...quizFormData.rewardConfig, sponsorVoucherDetails: e.target.value }
+                            })}
+                            className="px-3 py-1.5 rounded-lg border border-[var(--border-theme)] bg-[var(--bg-card)] text-xs"
+                          />
+                        </div>
+                      )}
+                    </div>
 
                   </div>
                 )}

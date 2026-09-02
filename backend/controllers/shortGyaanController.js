@@ -1,14 +1,26 @@
 const mongoose = require('mongoose');
 const xlsx = require('xlsx');
 const ShortGyaan = require('../models/ShortGyaan');
+const { getCache, setCache } = require('../config/redis');
 
-// 1. GET SHORT GYAAN QUESTIONS (Infinite Feed Stream & Pagination)
+// 1. GET SHORT GYAAN QUESTIONS (Infinite Feed Stream & Pagination, Redis Cached 60s)
 exports.getShortsGyaan = async (req, res) => {
   try {
     const { category, search, savedOnly, page = 1, limit = 10 } = req.query;
     const userId = req.user ? (req.user._id || req.user.id || req.user.userId) : null;
-    const query = {};
 
+    // Cache key for non-saved public feeds
+    const isPublicFeed = savedOnly !== 'true';
+    const cacheKey = `shorts:feed:${category || 'All'}:${page}:${limit}:${search || ''}`;
+
+    if (isPublicFeed && !userId) {
+      const cachedFeed = await getCache(cacheKey);
+      if (cachedFeed) {
+        return res.json(cachedFeed);
+      }
+    }
+
+    const query = {};
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
 
@@ -61,7 +73,7 @@ exports.getShortsGyaan = async (req, res) => {
       return obj;
     });
 
-    res.json({
+    const responsePayload = {
       success: true,
       page: pageNum,
       limit: limitNum,
@@ -69,7 +81,13 @@ exports.getShortsGyaan = async (req, res) => {
       hasMore: true, // Infinite feed always provides continuous recommendations
       count: formattedShorts.length,
       shorts: formattedShorts
-    });
+    };
+
+    if (isPublicFeed && !userId) {
+      await setCache(cacheKey, responsePayload, 60);
+    }
+
+    res.json(responsePayload);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

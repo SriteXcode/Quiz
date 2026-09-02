@@ -102,6 +102,9 @@ export const request = async (endpoint, options = {}) => {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
+      if (res.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:unauthorized', { detail: { endpoint, status: 401 } }));
+      }
       throw new Error(data.message || `Request failed with status ${res.status}`);
     }
 
@@ -607,6 +610,17 @@ export const apiCheckQuizAccess = async (quizId) => {
   });
 };
 
+// Ad Campaign & Monetization System API Helpers
+export const apiGetAdByPlacement = (placement) => request(`/ads/placement/${placement}`);
+export const apiRecordAdImpression = (id) => request(`/ads/${id}/impression`, { method: 'POST' });
+export const apiRecordAdClick = (id) => request(`/ads/${id}/click`, { method: 'POST' });
+export const apiGetAdminAdCampaigns = () => request('/ads/admin/campaigns');
+export const apiCreateAdCampaign = (data) => request('/ads/admin/campaigns', { method: 'POST', body: JSON.stringify(data) });
+export const apiUpdateAdCampaign = (id, data) => request(`/ads/admin/campaigns/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const apiDeleteAdCampaign = (id) => request(`/ads/admin/campaigns/${id}`, { method: 'DELETE' });
+export const apiGetGlobalAdsStatus = () => request('/ads/admin/global-status');
+export const apiToggleGlobalAdsStatus = (adsEnabled) => request('/ads/admin/toggle-global', { method: 'POST', body: JSON.stringify({ adsEnabled }) });
+
 export default {
   apiRegister,
   apiLogin,
@@ -663,5 +677,12 @@ export default {
   apiCreatePaymentOrder,
   apiVerifyPayment,
   apiEnrollInQuiz,
-  apiCheckQuizAccess
+  apiCheckQuizAccess,
+  apiGetAdByPlacement,
+  apiRecordAdImpression,
+  apiRecordAdClick,
+  apiGetAdminAdCampaigns,
+  apiCreateAdCampaign,
+  apiUpdateAdCampaign,
+  apiDeleteAdCampaign
 };

@@ -62,6 +62,10 @@ const siteSettingsSchema = new mongoose.Schema(
         whatsappCommunity: { type: String, default: 'https://chat.whatsapp.com/BkBrToj3Hzv6ekv8BqSzO1' },
         telegramCommunity: { type: String, default: 'https://t.me/braiiinarena' }
       }
+    },
+    adsEnabled: {
+      type: Boolean,
+      default: true
     }
   },
   {

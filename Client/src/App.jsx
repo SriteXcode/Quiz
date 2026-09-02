@@ -2,19 +2,20 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 // Reusable Layout & Showcase Components
 import Navbar from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
-import { PartnersSection } from './components/PartnersSection';
 import { LiveQuizzes } from './components/LiveQuizzes';
-import { PreviousWorks } from './components/PreviousWorks';
-import { ReviewSection } from './components/ReviewSection';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import PwaInstallCard from './components/PwaInstallCard';
 import InitialLogoLoader from './components/InitialLogoLoader';
 import GlobalNetworkBanner from './components/GlobalNetworkBanner';
-import UniversalReviewModal from './components/UniversalReviewModal';
 import { CodeSyntaxBackgroundTexture } from './components/CodeSyntaxBackgroundTexture';
+import { PageSkeletonLoader } from './components/Skeleton';
 
-// Dynamic Lazy-Loaded Pages & Heavy Subsystems
+// Dynamic Lazy-Loaded Pages, Subsystems & Below-the-Fold Components
+const PartnersSection = lazy(() => import('./components/PartnersSection').then(m => ({ default: m.PartnersSection })));
+const PreviousWorks = lazy(() => import('./components/PreviousWorks').then(m => ({ default: m.PreviousWorks })));
+const ReviewSection = lazy(() => import('./components/ReviewSection').then(m => ({ default: m.ReviewSection })));
+const UniversalReviewModal = lazy(() => import('./components/UniversalReviewModal'));
 const QuizDetailPage = lazy(() => import('./pages/QuizDetailPage'));
 const QuizExecutionPage = lazy(() => import('./pages/QuizExecutionPage'));
 const QuizPage = lazy(() => import('./pages/QuizPage'));
@@ -32,6 +33,7 @@ const AdminDashboard = lazy(() => import('./admin/AdminDashboard'));
 import { apiGetQuizzes, request } from './services/api';
 import { getQuizAutoStatus } from './utils/dateUtils';
 import { syncPendingOfflineActions } from './utils/offlineSync';
+import { updatePageSEO } from './utils/seoHelper';
 
 // Contexts
 import { useAuth } from './context/AuthContext';
@@ -224,6 +226,79 @@ export const App = () => {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Dynamic Page Title & SEO Meta Tag Updater
+  useEffect(() => {
+    if (isExecutingQuiz && selectedQuiz) {
+      updatePageSEO({
+        title: `Live Exam: ${selectedQuiz.title}`,
+        description: `Taking live assessment: ${selectedQuiz.title} on brainArena. Test your HTML, JS & coding knowledge!`,
+        canonical: `/quiz`
+      });
+    } else if (selectedQuiz) {
+      updatePageSEO({
+        title: selectedQuiz.title,
+        description: selectedQuiz.description || selectedQuiz.quickDetails || `Practice ${selectedQuiz.category} questions online on brainArena.`,
+        canonical: `/quiz`
+      });
+    } else if (activePolicy) {
+      updatePageSEO({
+        title: activePolicy === 'privacy' ? 'Privacy Policy' : 'Terms of Service',
+        description: `Official ${activePolicy} for brainArena platform.`,
+        canonical: `/${activePolicy}`
+      });
+    } else {
+      switch (activeTab) {
+        case 'quiz':
+          updatePageSEO({
+            title: 'HTML, JS & Programming Quiz Catalog',
+            description: 'Explore live quiz contests, free HTML question practice, JavaScript MCQs, and coding challenges with certificates.',
+            keywords: 'html quiz, question practice, javascript quiz, live contest, arena quiz, coding practice',
+            canonical: '/quiz'
+          });
+          break;
+        case 'short-gyaan':
+        case 'shorts-gyaan':
+          updatePageSEO({
+            title: 'Shorts Gyaan - Micro-Learning & Tech Flashcards',
+            description: 'Bite-sized technical MCQs, HTML & JS flashcards, and daily tech gyaan practice on brainArena.',
+            keywords: 'shorts gyaan, tech gyaan, question practice, html mcq, bite sized learning',
+            canonical: '/short-gyaan'
+          });
+          break;
+        case 'about':
+          updatePageSEO({
+            title: 'About brainArena - Next-Gen Learning & Contest Platform',
+            description: 'Learn about brainArena platform, live quiz practice competitions, certificates, and partner ecosystem.',
+            canonical: '/about'
+          });
+          break;
+        case 'contact':
+          updatePageSEO({
+            title: 'Contact Support & Inquiries',
+            description: 'Get in touch with brainArena team for contest queries, partnerships, and technical support.',
+            canonical: '/contact'
+          });
+          break;
+        case 'profile':
+          updatePageSEO({
+            title: 'User Profile & Official Certificates',
+            description: 'View your real-time global rank, quiz score history, earned XP, and official certificates on brainArena.',
+            canonical: '/profile'
+          });
+          break;
+        case 'home':
+        default:
+          updatePageSEO({
+            title: 'brainArena - Live Quiz Contests, HTML & Coding Question Practice with Certificates',
+            description: 'Master coding with free online question practice, HTML & JavaScript quizzes, Shorts Gyaan micro-learning, and win rewards in weekend live contests on brainArena.',
+            keywords: 'brainarena, quiz, question practice, html quiz, javascript quiz, java mcq, arena quiz, coding contest, free certificate quiz, shorts gyaan, daily live practice',
+            canonical: '/'
+          });
+          break;
+      }
+    }
+  }, [activeTab, selectedQuiz, isExecutingQuiz, activePolicy]);
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
@@ -380,7 +455,7 @@ export const App = () => {
 
       {/* Main Page Layout Container */}
       <main className={`flex-grow w-full mx-auto ${isShortsTab ? 'max-w-full p-0 overflow-hidden h-[calc(100vh-4.2rem)] no-scrollbar' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-2 pb-20 md:pb-4'}`}>
-        <Suspense fallback={<div className="min-h-[50vh] flex items-center justify-center font-poppins text-sm text-[var(--text-muted)] animate-pulse">Loading brainArena...</div>}>
+        <Suspense fallback={<PageSkeletonLoader />}>
           {activePolicy !== null ? (
             <PolicyPage
               policyType={activePolicy}

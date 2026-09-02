@@ -79,6 +79,28 @@ const userSchema = new mongoose.Schema(
       enum: ['UNVERIFIED', 'ACTIVE_AND_PAYABLE', 'INVALID_VPA'],
       default: 'UNVERIFIED'
     },
+    brainCoins: {
+      type: Number,
+      default: 100
+    },
+    unlockedBadges: [
+      {
+        quizId: String,
+        quizTitle: String,
+        category: String,
+        badgeTitle: String,
+        unlockedAt: { type: Date, default: Date.now }
+      }
+    ],
+    unlockedVouchers: [
+      {
+        quizId: String,
+        sponsorName: String,
+        code: String,
+        details: String,
+        unlockedAt: { type: Date, default: Date.now }
+      }
+    ],
     avatarUrl: {
       type: String,
       default: ''
@@ -115,6 +137,10 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
+// High-Performance Index for User Admin Filtering (Email & GoogleId are already indexed via unique/sparse)
+userSchema.index({ role: 1, createdAt: -1 });
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
+

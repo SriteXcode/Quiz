@@ -1069,6 +1069,93 @@ You are building a high-frequency financial settlement engine. Given an array of
             </div>
           </div>
 
+          {/* BRAINCOINS AWARD BANNER */}
+          {submissionResult?.submission?.rewardConfig?.enableBrainCoins !== false && (
+            <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-between animate-fadeIn">
+              <div className="flex items-center space-x-2.5">
+                <span className="text-2xl animate-bounce">🪙</span>
+                <div>
+                  <div className="font-poppins font-extrabold text-xs text-amber-600 dark:text-amber-400">
+                    +{submissionResult?.submission?.earnedBrainCoins || 50} BrainCoins Credited!
+                  </div>
+                  <div className="text-[10px] text-[var(--text-muted)] font-lato">
+                    BrainCoins added to wallet for store perks & rank avatars.
+                  </div>
+                </div>
+              </div>
+              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-amber-500 text-slate-950">
+                Wallet Updated
+              </span>
+            </div>
+          )}
+
+          {/* SPONSOR DISCOUNT VOUCHER CODE BOX */}
+          {submissionResult?.submission?.rewardConfig?.enableSponsorVoucher && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md space-y-2 animate-fadeIn text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-poppins font-extrabold flex items-center space-x-1">
+                  <span>🎟️ Partner Sponsor Voucher Unlocked!</span>
+                </span>
+                <span className="text-[10px] font-mono bg-white/20 px-2 py-0.5 rounded-full font-bold">SPONSOR PERK</span>
+              </div>
+              <div className="text-xs font-lato opacity-90">
+                {submissionResult?.submission?.rewardConfig?.sponsorVoucherDetails || 'Special sponsor reward voucher for completing quiz challenge.'}
+              </div>
+              <div className="flex items-center space-x-2 pt-1">
+                <input
+                  type="text"
+                  readOnly
+                  value={submissionResult?.submission?.rewardConfig?.sponsorVoucherCode || 'BRAINARENA50'}
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-black/40 font-mono font-bold text-amber-300 text-xs border border-white/20 text-center"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(submissionResult?.submission?.rewardConfig?.sponsorVoucherCode || 'BRAINARENA50');
+                    addToast('Sponsor voucher code copied! 🎟️', 'success');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-white text-purple-700 font-poppins font-bold text-xs shadow-xs hover:bg-purple-50 cursor-pointer"
+                >
+                  Copy Code
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* DYNAMIC GITHUB README SVG BADGE EMBED BOX */}
+          {submissionResult?.submission?.rewardConfig?.enableGithubBadge !== false && (
+            <div className="p-3.5 rounded-2xl bg-[var(--bg-main)] border border-[var(--border-theme)] space-y-2 text-left animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-poppins font-bold text-[var(--text-main)] flex items-center space-x-1.5">
+                  <span>🛡️ GitHub Profile README Badge (.svg)</span>
+                </span>
+                <span className="text-[9px] font-mono text-blue-500 font-bold uppercase">Dynamic SVG</span>
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] font-lato">
+                Paste this Markdown snippet into your GitHub profile <code className="bg-slate-800 text-blue-300 px-1 py-0.5 rounded">README.md</code> to showcase your verified skill!
+              </p>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={`![${quiz?.title || 'Skill'} Master](${window.location.origin}/api/badges/user/${user?._id || 'demo'}/${encodeURIComponent(quiz?.category || 'Dev')}.svg)`}
+                  className="flex-1 px-3 py-1.5 rounded-xl bg-[var(--bg-card)] font-mono text-[10px] text-[var(--text-muted)] border border-[var(--border-theme)] truncate"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const snippet = `![${quiz?.title || 'Skill'} Master](${window.location.origin}/api/badges/user/${user?._id || 'demo'}/${encodeURIComponent(quiz?.category || 'Dev')}.svg)`;
+                    navigator.clipboard.writeText(snippet);
+                    addToast('GitHub Markdown badge snippet copied! 🛡️', 'success');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-[var(--color-primary-600)] text-white font-poppins font-bold text-xs shadow-xs hover:bg-[var(--color-primary-700)] cursor-pointer shrink-0"
+                >
+                  Copy Markdown
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ROW 3: ACTION BUTTONS (Share Score & Challenge Friends, Certificate, Practice Again) */}
           <div className="space-y-3 pt-1">
             <button
@@ -1080,13 +1167,15 @@ You are building a high-frequency financial settlement engine. Given an array of
             </button>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                onClick={() => setIsCertificateOpen(true)}
-                className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
-              >
-                <span>🎓</span>
-                <span>Certificate</span>
-              </button>
+              {submissionResult?.submission?.rewardConfig?.enableCertificate !== false && (
+                <button
+                  onClick={() => setIsCertificateOpen(true)}
+                  className="w-full py-3 rounded-2xl border-2 border-[var(--border-theme)] bg-[var(--bg-main)] hover:border-[var(--color-primary-500)] text-[var(--text-main)] font-poppins font-bold text-xs sm:text-sm shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-98 flex items-center justify-center space-x-2"
+                >
+                  <span>🎓</span>
+                  <span>Certificate</span>
+                </button>
+              )}
 
               <button
                 onClick={handleRestartAsPractice}

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import Skeleton from '../components/Skeleton';
+import AdBanner from '../components/AdBanner';
 import { apiGetPreviousWorks, apiGetQuizzes } from '../services/api';
 import { getQuizAutoStatus } from '../utils/dateUtils';
 import QuizCountdownBadge from '../components/QuizCountdownBadge';
@@ -173,7 +174,9 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
 
   return (
     <div className="space-y-6 py-2 animate-fadeIn">
-      
+      {/* Top Banner Ad Slot */}
+      <AdBanner placement="quiz_catalog_top" />
+
       {/* Sticky Compact Header Card (Title Left, Count & Controls Right) */}
       <div className="sticky top-[64px] sm:top-[72px] z-30 bg-[var(--bg-card)]/95 backdrop-blur-md border border-[var(--border-theme)] rounded-2xl p-3.5 sm:p-5 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 transition-all duration-300">
         {/* Left Side: Title strictly aligned left */}
@@ -246,7 +249,7 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
         )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {filteredQuizzes.map((quiz) => {
+          {filteredQuizzes.map((quiz, index) => {
             const isCode = quiz.quizType === 'code';
             const isQuick = quiz.mcqSubtype === 'quick';
             const isCompleted = quiz.computedStatus === 'past';
@@ -254,13 +257,19 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
             const originalPrice = quiz.price || 0;
             const effectivePrice = isCompleted && quiz.isPaid ? Math.max(1, Math.round(originalPrice * 0.10)) : originalPrice;
             const isDiscounted = isCompleted && quiz.isPaid && originalPrice > 0;
+            const showInlineAd = index > 0 && index % 4 === 0;
 
             return (
-              <div
-                key={quiz._id || quiz.id || quiz.title}
-                onClick={() => handleQuizClick(quiz)}
-                className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1 relative overflow-hidden"
-              >
+              <Fragment key={quiz._id || quiz.id || quiz.title || index}>
+                {showInlineAd && (
+                  <div className="col-span-full my-2">
+                    <AdBanner placement="quiz_catalog_top" />
+                  </div>
+                )}
+                <div
+                  onClick={() => handleQuizClick(quiz)}
+                  className="bg-[var(--bg-card)] border border-[var(--border-theme)] rounded-2xl p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1 relative overflow-hidden"
+                >
                 {quiz.computedStatus === 'running' && (
                   <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-poppins font-extrabold uppercase px-3 py-0.5 rounded-bl-xl shadow-sm">
                     🔴 Live Now
@@ -355,7 +364,8 @@ export const QuizPage = ({ isLoading: propLoading, onSelectQuiz }) => {
                   </button>
                 </div>
               </div>
-            );
+            </Fragment>
+          );
           })}
         </div>
       )}

@@ -3,6 +3,129 @@ import { useToast } from '../context/ToastContext';
 import QuizShareModal from './QuizShareModal';
 import CertificateStoryPoster from './CertificateStoryPoster';
 
+// Dynamic Rank-Based Certificate Customization Engine
+export const getRankCertificateConfig = (rankInput) => {
+  const rank = parseInt(rankInput, 10) || 0;
+
+  if (rank === 1) {
+    return {
+      rankLabel: '1st Rank Gold Winner',
+      certificateTitle: '1st Rank Gold Winner Certificate',
+      headerBadge: '🥇 1st RANK GOLD CHAMPION',
+      awardStatement: 'for achieving 1st Place Gold Champion Rank in nationwide live assessment competition:',
+      sealEmoji: '🏆',
+      sealTitle: 'GOLD WINNER',
+      theme: {
+        bgClass: 'bg-[#fffdf5] text-[#1c1917]',
+        borderOuter: '#d97706',
+        borderInner: '#b45309',
+        accentColor: '#b45309',
+        sealFill: '#f59e0b',
+        sealRibbon: '#b45309',
+        badgeBg: 'bg-amber-100/90 text-amber-950 border-amber-300',
+        canvasBg: '#fffdf5',
+        canvasBorder: '#d97706',
+        canvasAccent: '#b45309',
+        canvasText: '#1c1917'
+      }
+    };
+  }
+
+  if (rank === 2) {
+    return {
+      rankLabel: '2nd Rank Silver Runner-Up',
+      certificateTitle: '2nd Rank Silver Medalist Certificate',
+      headerBadge: '🥈 2nd RANK SILVER RUNNER-UP',
+      awardStatement: 'for achieving 2nd Place Silver Runner-Up Rank in nationwide live assessment competition:',
+      sealEmoji: '🥈',
+      sealTitle: 'SILVER RUNNER-UP',
+      theme: {
+        bgClass: 'bg-[#f8fafc] text-[#0f172a]',
+        borderOuter: '#64748b',
+        borderInner: '#334155',
+        accentColor: '#1e293b',
+        sealFill: '#94a3b8',
+        sealRibbon: '#475569',
+        badgeBg: 'bg-slate-200/90 text-slate-900 border-slate-400',
+        canvasBg: '#f8fafc',
+        canvasBorder: '#64748b',
+        canvasAccent: '#1e293b',
+        canvasText: '#0f172a'
+      }
+    };
+  }
+
+  if (rank === 3) {
+    return {
+      rankLabel: '3rd Rank Bronze Medalist',
+      certificateTitle: '3rd Rank Bronze Medalist Certificate',
+      headerBadge: '🥉 3rd RANK BRONZE MEDALIST',
+      awardStatement: 'for achieving 3rd Place Bronze Medalist Rank in nationwide live assessment competition:',
+      sealEmoji: '🥉',
+      sealTitle: 'BRONZE MEDALIST',
+      theme: {
+        bgClass: 'bg-[#fffbeb] text-[#291e07]',
+        borderOuter: '#b45309',
+        borderInner: '#78350f',
+        accentColor: '#78350f',
+        sealFill: '#d97706',
+        sealRibbon: '#78350f',
+        badgeBg: 'bg-amber-100/80 text-amber-900 border-amber-300',
+        canvasBg: '#fffbeb',
+        canvasBorder: '#b45309',
+        canvasAccent: '#78350f',
+        canvasText: '#291e07'
+      }
+    };
+  }
+
+  if (rank >= 4 && rank <= 10) {
+    return {
+      rankLabel: `Top 10 High Achiever (Rank #${rank})`,
+      certificateTitle: 'Top 10 High Achiever Certificate of Merit',
+      headerBadge: `🏅 TOP 10 HIGH ACHIEVER (RANK #${rank})`,
+      awardStatement: `for placing in the Top 10 High Achievers (Rank #${rank}) in nationwide live assessment competition:`,
+      sealEmoji: '🏅',
+      sealTitle: 'TOP 10 MERIT',
+      theme: {
+        bgClass: 'bg-[#faf5ff] text-[#1e1b4b]',
+        borderOuter: '#6366f1',
+        borderInner: '#3730a3',
+        accentColor: '#4338ca',
+        sealFill: '#6366f1',
+        sealRibbon: '#3730a3',
+        badgeBg: 'bg-indigo-100/90 text-indigo-950 border-indigo-300',
+        canvasBg: '#faf5ff',
+        canvasBorder: '#6366f1',
+        canvasAccent: '#4338ca',
+        canvasText: '#1e1b4b'
+      }
+    };
+  }
+
+  return {
+    rankLabel: rank > 10 ? `Participant (Rank #${rank})` : 'Verified Participant',
+    certificateTitle: 'Certificate of Participation & Skill Validation',
+    headerBadge: rank > 10 ? `PARTICIPANT (RANK #${rank})` : 'VERIFIED PARTICIPANT',
+    awardStatement: 'for demonstrating technical competence and mastery in successfully completing the assessment:',
+    sealEmoji: '📜',
+    sealTitle: 'PARTICIPANT',
+    theme: {
+      bgClass: 'bg-[#f0f9ff] text-[#0c4a6e]',
+      borderOuter: '#0284c7',
+      borderInner: '#075985',
+      accentColor: '#0369a1',
+      sealFill: '#0284c7',
+      sealRibbon: '#075985',
+      badgeBg: 'bg-sky-100/90 text-sky-950 border-sky-300',
+      canvasBg: '#f0f9ff',
+      canvasBorder: '#0284c7',
+      canvasAccent: '#0369a1',
+      canvasText: '#0c4a6e'
+    }
+  };
+};
+
 export const CertificateModal = ({
   isOpen,
   onClose,
@@ -21,14 +144,16 @@ export const CertificateModal = ({
   const score = data.score !== undefined ? data.score : 100;
   const accuracy = data.accuracy !== undefined ? data.accuracy : 100;
   const earnedXP = data.earnedXP || 150;
-  
+  const userRank = data.rank || data.rankPosition || data.place || 0;
+  const rankConfig = getRankCertificateConfig(userRank);
+
   const certificateId = useMemo(() => {
     if (data.certificateId) return data.certificateId;
     if (data._id || data.id) return `CERT-${data._id || data.id}`;
     const cleanName = (data.userName || 'CANDIDATE').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     return `CERT-QZ-${cleanName || 'GOLD'}-OFFICIAL`;
   }, [data.certificateId, data._id, data.id, data.userName]);
-  
+
   const issueDate = useMemo(() => {
     if (data.issuedAt) {
       return new Date(data.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -49,20 +174,7 @@ export const CertificateModal = ({
   };
   const gradeInfo = getGrade();
 
-  // Official Standard Gold Theme Configuration
-  const theme = {
-    bgClass: 'bg-[#fcfbf7] text-[#1c1917]',
-    borderOuter: '#d97706',
-    borderInner: '#b45309',
-    accentColor: '#b45309',
-    sealFill: '#f59e0b',
-    sealRibbon: '#b45309',
-    badgeBg: 'bg-amber-100/80 border-amber-300 text-amber-950',
-    canvasBg: '#fcfbf7',
-    canvasBorder: '#d97706',
-    canvasAccent: '#b45309',
-    canvasText: '#1c1917'
-  };
+  const theme = rankConfig.theme;
 
   // -------------------------------------------------------------
   // HIGH-RESOLUTION CANVAS 2D EXPORTER (3000 x 2000 Ultra-HD PNG)
@@ -139,12 +251,12 @@ export const CertificateModal = ({
       
       ctx.fillStyle = theme.canvasAccent;
       ctx.font = 'bold 44px sans-serif';
-      ctx.fillText('★ ★ ★  BRAINARENA GLOBAL CERTIFICATION  ★ ★ ★', width / 2, 230);
+      ctx.fillText(`★ ★ ★  ${rankConfig.headerBadge}  ★ ★ ★`, width / 2, 230);
 
       ctx.fillStyle = theme.canvasText;
-      ctx.font = 'bold 80px "Cinzel", "Playfair Display", Georgia, serif';
+      ctx.font = 'bold 76px "Cinzel", "Playfair Display", Georgia, serif';
       ctx.letterSpacing = '2px';
-      ctx.fillText('CERTIFICATE OF PARTICIPATION', width / 2, 360);
+      ctx.fillText(rankConfig.certificateTitle.toUpperCase(), width / 2, 360);
 
       ctx.fillStyle = '#57534e';
       ctx.font = 'italic 34px "Playfair Display", Georgia, serif';
@@ -169,9 +281,9 @@ export const CertificateModal = ({
 
       // 5. Achievement Description Statement
       ctx.fillStyle = '#475569';
-      ctx.font = '36px "Lato", "Poppins", sans-serif';
+      ctx.font = '34px "Lato", "Poppins", sans-serif';
       ctx.fillText(
-        'for demonstrating technical mastery and successfully completing the proctored assessment in:',
+        rankConfig.awardStatement,
         width / 2,
         730
       );
@@ -187,7 +299,7 @@ export const CertificateModal = ({
         { label: 'EXAM SCORE', value: `${score}%` },
         { label: 'ACCURACY RATE', value: `${accuracy}%` },
         { label: 'XP REWARD', value: `+${earnedXP} XP` },
-        { label: 'HONORS GRADE', value: gradeInfo.title }
+        { label: 'RANK POSITION', value: userRank > 0 ? `#${userRank}` : gradeInfo.title }
       ];
 
       const startX = width / 2 - 900;
@@ -422,14 +534,14 @@ export const CertificateModal = ({
 
             {/* 1. HEADER SECTION */}
             <div className="text-center space-y-0.5 relative z-10 pt-0.5">
-              <div className="flex items-center justify-center space-x-1 text-[7px] sm:text-[8px] font-poppins font-bold tracking-widest uppercase opacity-80" style={{ color: theme.accentColor }}>
+              <div className="flex items-center justify-center space-x-1 text-[7px] sm:text-[8px] font-poppins font-bold tracking-widest uppercase opacity-90" style={{ color: theme.accentColor }}>
                 <span>★ ★ ★</span>
-                <span>BRAINARENA GLOBAL CERTIFICATION</span>
+                <span>{rankConfig.headerBadge}</span>
                 <span>★ ★ ★</span>
               </div>
 
               <h1 className="text-xs sm:text-base md:text-lg font-extrabold font-cinzel tracking-wider uppercase text-[#1c1917]">
-                Certificate of Participation
+                {rankConfig.certificateTitle}
               </h1>
 
               <p className="text-[7.5px] sm:text-[9px] font-playfair italic opacity-85">
@@ -447,7 +559,7 @@ export const CertificateModal = ({
               </div>
 
               <p className="text-[7px] sm:text-[8px] font-lato max-w-xs sm:max-w-sm mx-auto opacity-80 leading-tight">
-                for demonstrating technical competence and mastery in successfully completing the assessment:
+                {rankConfig.awardStatement}
               </p>
 
               <div className="inline-block px-2 py-0.5 rounded-md font-poppins font-bold text-[8.5px] sm:text-[10px] border shadow-2xs" style={{ borderColor: theme.borderInner, backgroundColor: 'rgba(0,0,0,0.02)' }}>
@@ -457,24 +569,26 @@ export const CertificateModal = ({
 
             {/* 3. PERFORMANCE METRICS ROW */}
             <div className="grid grid-cols-4 gap-1 sm:gap-1.5 max-w-xs sm:max-w-sm mx-auto w-full relative z-10 text-center py-0.5">
-              <div className="p-0.5 sm:p-1 rounded-md border bg-amber-100/70 border-amber-300 text-amber-950 shadow-2xs">
+              <div className={`p-0.5 sm:p-1 rounded-md border ${theme.badgeBg} shadow-2xs`}>
                 <div className="text-[6px] sm:text-[7px] font-poppins font-bold uppercase opacity-75">Score</div>
                 <div className="text-[10px] sm:text-xs font-extrabold font-poppins">{score}%</div>
               </div>
 
-              <div className="p-0.5 sm:p-1 rounded-md border bg-amber-100/70 border-amber-300 text-amber-950 shadow-2xs">
+              <div className={`p-0.5 sm:p-1 rounded-md border ${theme.badgeBg} shadow-2xs`}>
                 <div className="text-[6px] sm:text-[7px] font-poppins font-bold uppercase opacity-75">Accuracy</div>
                 <div className="text-[10px] sm:text-xs font-extrabold font-poppins">{accuracy}%</div>
               </div>
 
-              <div className="p-0.5 sm:p-1 rounded-md border bg-amber-100/70 border-amber-300 text-amber-950 shadow-2xs">
+              <div className={`p-0.5 sm:p-1 rounded-md border ${theme.badgeBg} shadow-2xs`}>
                 <div className="text-[6px] sm:text-[7px] font-poppins font-bold uppercase opacity-75">XP Gained</div>
                 <div className="text-[10px] sm:text-xs font-extrabold font-poppins">+{earnedXP}</div>
               </div>
 
-              <div className="p-0.5 sm:p-1 rounded-md border bg-amber-100/70 border-amber-300 text-amber-950 shadow-2xs">
-                <div className="text-[6px] sm:text-[7px] font-poppins font-bold uppercase opacity-75">Honors</div>
-                <div className="text-[8.5px] sm:text-[10px] font-extrabold font-poppins truncate">{gradeInfo.title}</div>
+              <div className={`p-0.5 sm:p-1 rounded-md border ${theme.badgeBg} shadow-2xs`}>
+                <div className="text-[6px] sm:text-[7px] font-poppins font-bold uppercase opacity-75">Rank</div>
+                <div className="text-[8.5px] sm:text-[10px] font-extrabold font-poppins truncate">
+                  {userRank > 0 ? `#${userRank}` : gradeInfo.title}
+                </div>
               </div>
             </div>
 
@@ -491,8 +605,8 @@ export const CertificateModal = ({
               {/* Center: Official Verified Medal Seal */}
               <div className="flex flex-col items-center justify-center">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full shadow-xs flex flex-col items-center justify-center text-white border border-white/40" style={{ backgroundColor: theme.sealFill }}>
-                  <span className="text-[7px] sm:text-[9px]">🎖️</span>
-                  <span className="text-[4.5px] sm:text-[5.5px] font-poppins font-extrabold tracking-tighter uppercase leading-none">VERIFIED</span>
+                  <span className="text-[7px] sm:text-[9px]">{rankConfig.sealEmoji}</span>
+                  <span className="text-[4.5px] sm:text-[5.5px] font-poppins font-extrabold tracking-tighter uppercase leading-none">{rankConfig.sealTitle}</span>
                 </div>
               </div>
 
